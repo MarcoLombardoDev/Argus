@@ -114,6 +114,7 @@ class ArgusApp(ctk.CTk):
         main_area.grid(row=0, column=0, sticky="nsew")
         main_area.grid_columnconfigure(0, weight=1)
         main_area.grid_rowconfigure(1, weight=1)
+        main_area.grid_rowconfigure(2, weight=0)  # footer row
 
         # Topbar (navigazione)
         self._build_topbar(main_area)
@@ -132,8 +133,36 @@ class ArgusApp(ctk.CTk):
         self._build_temporal_panel(self._content)
         self._build_ai_panel(self._content)
 
+        # Footer copyright
+        self._build_footer(main_area)
+
         # Mostra la vista auto trading di default (o portfolio)
         self._switch_view("autotrading", force=True)
+
+    # ─────────────────────────────────────────────────────────────
+    # Footer — Copyright
+    # ─────────────────────────────────────────────────────────────
+
+    def _build_footer(self, parent):
+        """Barra di copyright fissa in fondo alla finestra."""
+        footer = ctk.CTkFrame(
+            parent,
+            height=22,
+            fg_color=("#0f1117", "#0f1117"),
+            corner_radius=0,
+        )
+        footer.grid(row=2, column=0, sticky="ew")
+        footer.grid_propagate(False)
+        footer.grid_columnconfigure(0, weight=1)
+        footer.grid_rowconfigure(0, weight=1)
+
+        ctk.CTkLabel(
+            footer,
+            text="© 2026 Marco Lombardo — Argus  |  Licensed under AGPL-3.0  |  Commercial licensing available",
+            font=ctk.CTkFont(family="Segoe UI", size=9),
+            text_color=("#4a5568", "#4a5568"),
+            anchor="center",
+        ).grid(row=0, column=0, sticky="ew", padx=20)
 
     # ─────────────────────────────────────────────────────────────
     # Topbar — Logo + Status + Navigazione

@@ -1,5 +1,8 @@
 # 👁️ Argus — Advanced Market Forecast & AI Analysis
 
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Commercial License Available](https://img.shields.io/badge/Commercial%20License-Available-green.svg)](#license--commercial-licensing)
+
 Argus is an advanced Python desktop application for **quantitative price forecasting and AI-driven analysis** of cryptocurrency assets. It combines Google Research's **TimesFM 2.5** foundation model for temporal prediction, a cooperative **Multi-Agent LLM pipeline** for qualitative analysis and debate, and a **VectorBT instant backtester** to constrain AI decisions with real mathematical evidence.
 
 On top of the analysis engine, Argus features a full **Portfolio Manager** module integrated with [CCXT](https://github.com/ccxt/ccxt) for generating and executing orders on derivatives exchanges (e.g., BingX), with an institutional-grade Money Management framework and a fully autonomous **Auto-Trading Scheduler**.
@@ -24,7 +27,8 @@ On top of the analysis engine, Argus features a full **Portfolio Manager** modul
 6. [Installation & Setup](#installation--setup)
 7. [Supported Exchanges](#supported-exchanges)
 8. [Requirements](#requirements)
-9. [Disclaimer](#disclaimer)
+9. [License & Commercial Licensing](#license--commercial-licensing)
+10. [Disclaimer](#disclaimer)
 
 ---
 
@@ -687,6 +691,40 @@ Key dependencies (see [`requirements.txt`](requirements.txt) for the full list):
 | `openai` | LLM provider client (OpenRouter/OpenAI/Ollama compatible) |
 | `requests` | News scraping and REST API calls |
 | `torch` | PyTorch backend for TimesFM |
+
+---
+
+## License & Commercial Licensing
+
+Argus is open-source software released under the **[GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE)**.
+
+### What AGPL-3.0 Means for You
+
+| Use Case | Allowed? | Obligation |
+|---|---|---|
+| Personal / research use | ✅ Yes | None |
+| Modify & redistribute privately | ✅ Yes | None |
+| Deploy modified version on a server | ✅ Yes | Must publish source code of your modified version |
+| Fork & publish on GitHub | ✅ Yes | Must use AGPL-3.0 license |
+| Integrate into a **closed-source commercial product** | ⚠️ Restricted | Requires a commercial license (see below) |
+| Offer as a **proprietary SaaS** without sharing source | ❌ Not allowed under AGPL | Requires a commercial license |
+
+### Commercial Licensing
+
+If you need to use Argus in a **proprietary application**, **closed-source SaaS**, or **enterprise deployment** without being bound by the AGPL-3.0 copyleft requirements, a **commercial license** is available.
+
+A commercial license grants you the right to:
+- Embed Argus in closed-source software
+- Run Argus as a service without disclosing your source code
+- Use Argus in commercial products without AGPL obligations
+
+For commercial licensing inquiries, please contact **Marco Lombardo** at [marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com).
+
+### Contributing
+
+Contributions are welcome! All contributors must agree to the [Contributor License Agreement (CLA)](CLA.md) before their Pull Request can be merged. The CLA grants the Project Owner the right to dual-license contributions under AGPL-3.0 and commercial terms — this is what makes the dual-licensing model sustainable.
+
+> **To agree to the CLA:** Include `I have read and agree to the Contributor License Agreement (CLA.md).` in your Pull Request description.
 
 ---
 
