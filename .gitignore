@@ -49,3 +49,9 @@ Thumbs.db
 
 # Log
 *.log
+
+# Private / sensitive notes (never commit)
+info-private.txt
+*-private.txt
+*-private.key
+*-private.json
