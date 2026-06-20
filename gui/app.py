@@ -1,0 +1,801 @@
+"""
+app.py — Argus
+CustomTkinter main window. Coordinates configuration, analysis, and visualization.
+
+Layout:
+  ┌─────────────────────────────────────────────────────────────┐
+  │ 👁️ ARGUS  │  · status text            │ [📈 Temporale] [🤖 AI] │
+  │━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│
+  │                                                             │
+  │  [Time-Series Analysis View]  ─OR─  [AI Analysis View]       │
+  │  (toggled in the main body via navigation click)           │
+  │                                                             │
+  └─────────────────────────────────────────────────────────────┘
+"""
+
+import threading
+import queue
+import time
+from datetime import datetime
+import customtkinter as ctk
+from tkinter import messagebox
+
+from core.data_manager import (
+    load_settings, save_settings, save_historical,
+    save_forecast_log, load_forecast_log, get_last_run_info, load_forecast_history,
+    load_market_list,
+)
+
+from core.forecaster import CryptoForecaster
+from core.analyzer import build_results
+from gui.config_panel import ConfigPanel, ConfigWindow
+from gui.results_table import ResultsTable
+from gui.ai_analysis_panel import AIAnalysisPanel
+from gui.markets_panel import MarketsPanel
+from gui.portfolio_panel import PortfolioPanel
+from gui.auto_trading_panel import AutoTradingPanel
+from gui.pattern_matching_panel import PatternMatchingPanel
+from gui.utils import apply_binance_tab_style
+
+
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
+
+# ─── Colori tema ────────────────────────────────────────────────
+_BG_ROOT   = ("#181a20", "#181a20")
+_BG_TOPBAR = _BG_ROOT
+_BG_PANEL  = ("#1e2329", "#1e2329")
+_BG_INPUT  = ("#2b3139", "#2b3139")
+_ACCENT    = ("#f0b90b", "#f0b90b")
+_HOVER     = ("#d39e00", "#d39e00")
+_MUTED     = ("#848e9c", "#848e9c")
+_SEP       = ("#474d57", "#474d57")
+
+
+class ArgusApp(ctk.CTk):
+    """Main window of Argus."""
+
+    def __init__(self):
+        super().__init__()
+
+        self._settings = load_settings()
+        self._forecaster: CryptoForecaster | None = None
+        self._results: list[dict] = []
+        self._running = False
+        self._stop_requested = False
+        self._msg_queue: queue.Queue = queue.Queue()
+        self._last_configure_time = 0.0
+        self._active_view = "portfolio"   # "portfolio" | "markets" | "temporal" | "ai"
+        self._cached_market_list: list[dict] = []  # Lista asset cached dalla sezione Mercati
+
+        self._configure_window()
+        self._build_ui()
+        self._load_last_log()
+        self._poll_queue()
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self.bind("<Configure>", self._on_window_configure)
+        self.after(250, lambda: self.state("zoomed"))
+
+    # ─────────────────────────────────────────────────────────────
+    # Window setup
+    # ─────────────────────────────────────────────────────────────
+
+    def _configure_window(self):
+        import os
+        try:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            max_mtime = 0
+            for root, dirs, files in os.walk(base_dir):
+                if '.git' in root or '__pycache__' in root or 'data' in root:
+                    continue
+                for file in files:
+                    if file.endswith('.py'):
+                        mtime = os.path.getmtime(os.path.join(root, file))
+                        if mtime > max_mtime:
+                            max_mtime = mtime
+            v_date = datetime.fromtimestamp(max_mtime).strftime("%Y.%m.%d")
+        except Exception:
+            v_date = datetime.now().strftime("%Y.%m.%d")
+            
+        self.title(f"Argus — v. {v_date}")
+        self.geometry("1300x840")
+        self.minsize(1100, 680)
+        self.configure(fg_color=_BG_ROOT)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+    # ─────────────────────────────────────────────────────────────
+    # Build UI — struttura principale
+    # ─────────────────────────────────────────────────────────────
+
+    def _build_ui(self):
+        # === ROOT CONTAINER ===
+        main_area = ctk.CTkFrame(self, fg_color=_BG_ROOT, corner_radius=0)
+        main_area.grid(row=0, column=0, sticky="nsew")
+        main_area.grid_columnconfigure(0, weight=1)
+        main_area.grid_rowconfigure(1, weight=1)
+
+        # Topbar (navigazione)
+        self._build_topbar(main_area)
+
+        # Content area — contiene tutti e tre i pannelli (uno alla volta visibile)
+        self._content = ctk.CTkFrame(main_area, fg_color=_BG_ROOT, corner_radius=0)
+        self._content.grid(row=1, column=0, sticky="nsew")
+        self._content.grid_columnconfigure(0, weight=1)
+        self._content.grid_rowconfigure(0, weight=1)
+
+        # Costruisce i pannelli principali
+        self._build_auto_trading_panel(self._content)
+        self._build_portfolio_panel(self._content)
+        self._build_markets_panel(self._content)
+        self._build_pm_panel(self._content)
+        self._build_temporal_panel(self._content)
+        self._build_ai_panel(self._content)
+
+        # Mostra la vista auto trading di default (o portfolio)
+        self._switch_view("autotrading", force=True)
+
+    # ─────────────────────────────────────────────────────────────
+    # Topbar — Logo + Status + Navigazione
+    # ─────────────────────────────────────────────────────────────
+
+    def _build_topbar(self, parent):
+        topbar = ctk.CTkFrame(parent, height=52, fg_color=_BG_TOPBAR, corner_radius=0)
+        topbar.grid(row=0, column=0, sticky="ew")
+        topbar.grid_propagate(False)
+        topbar.grid_rowconfigure(0, weight=1)
+        topbar.grid_rowconfigure(1, weight=0)
+        topbar.grid_columnconfigure(1, weight=1)   # per spingere i bottoni a destra
+
+        # ── Logo ──────────────────────────────────────────────────
+        ctk.CTkLabel(
+            topbar,
+            text="👁️ ARGUS",
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
+            text_color=_ACCENT,
+        ).grid(row=0, column=0, padx=(20, 16), sticky="w")
+
+        # ── Separatore verticale ─────────────────────────────────────
+        ctk.CTkFrame(topbar, width=1, fg_color=_SEP).grid(
+            row=0, column=0, padx=(120, 0), pady=8, sticky="ns"
+        )
+
+        # ── Pulsanti di navigazione ──────────────────────────────────
+        nav_frame = ctk.CTkFrame(topbar, fg_color="transparent")
+        nav_frame.grid(row=0, column=2, padx=(0, 20), sticky="e")
+
+        # ─ Auto Trading (PRIMO, a sinistra) ──────────────────────────
+        self._btn_nav_auto = ctk.CTkButton(
+            nav_frame,
+            text="🤖  Auto Trading",
+            command=lambda: self._switch_view("autotrading"),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color=_BG_INPUT,
+            hover_color=_HOVER,
+            border_color=_ACCENT,
+            border_width=1,
+            height=40,
+            width=160,
+            corner_radius=8,
+        )
+        self._btn_nav_auto.pack(side="left", padx=(0, 6))
+
+        # ─ Portfolio ──────────────────────────
+        self._btn_nav_portfolio = ctk.CTkButton(
+            nav_frame,
+            text="💼  Portfolio",
+            command=lambda: self._switch_view("portfolio"),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color=_BG_INPUT,
+            hover_color=_HOVER,
+            border_color=_ACCENT,
+            border_width=1,
+            height=40,
+            width=180,
+            corner_radius=8,
+        )
+        self._btn_nav_portfolio.pack(side="left", padx=(0, 6))
+
+        # ─ Mercati ──────────────────────────
+        self._btn_nav_markets = ctk.CTkButton(
+            nav_frame,
+            text="🌐  Market",
+            command=lambda: self._switch_view("markets"),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color=_BG_INPUT,
+            hover_color=_HOVER,
+            border_color=_ACCENT,
+            border_width=1,
+            height=40,
+            width=160,
+            corner_radius=8,
+        )
+        self._btn_nav_markets.pack(side="left", padx=(0, 6))
+
+        # ─ Pattern Matching ─────────────────────────────────
+        self._btn_nav_pm = ctk.CTkButton(
+            nav_frame,
+            text="🔍  Pattern Matching",
+            command=lambda: self._switch_view("pm"),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color=_BG_INPUT,
+            hover_color=_HOVER,
+            border_color=_ACCENT,
+            border_width=1,
+            height=40,
+            width=180,
+            corner_radius=8,
+        )
+        self._btn_nav_pm.pack(side="left", padx=(0, 6))
+
+        # ─ Analisi Temporale ────────────────────────────────
+        self._btn_nav_temporal = ctk.CTkButton(
+            nav_frame,
+            text="📈  Time-Series Analysis",
+            command=lambda: self._switch_view("temporal"),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color=_ACCENT,
+            hover_color=_HOVER,
+            height=40,
+            width=190,
+            corner_radius=8,
+        )
+        self._btn_nav_temporal.pack(side="left", padx=(0, 6))
+
+        self._btn_nav_ai = ctk.CTkButton(
+            nav_frame,
+            text="🤖  Advanced Analysis",
+            command=lambda: self._switch_view("ai"),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color=_BG_INPUT,
+            hover_color=_HOVER,
+            border_color=_ACCENT,
+            border_width=1,
+            height=40,
+            width=190,
+            corner_radius=8,
+        )
+        self._btn_nav_ai.pack(side="left")
+
+        # ── Progress bar (riga 1) ─────────────────────────────────
+        self._progress = ctk.CTkProgressBar(
+            topbar,
+            height=3,
+            fg_color=("#1a1e2e", "#1a1e2e"),
+            progress_color=_ACCENT,
+            corner_radius=0,
+        )
+        self._progress.grid(row=1, column=0, columnspan=3, sticky="ew", padx=0, pady=0)
+        self._progress.set(0)
+
+    # ───────────────────────────────────────────────────────────────
+    # Vista 00 — Auto Trading
+    # ───────────────────────────────────────────────────────────────
+
+    def _build_auto_trading_panel(self, parent):
+        """Costruisce il pannello Auto Trading."""
+        self._auto_trading_panel = AutoTradingPanel(
+            parent,
+            settings=self._settings,
+            app_instance=self
+        )
+
+    # ───────────────────────────────────────────────────────────────
+    # Vista 0 — Portfolio
+    # ───────────────────────────────────────────────────────────────
+
+    def _build_portfolio_panel(self, parent):
+        """Costruisce il pannello Portfolio."""
+        self._portfolio_panel = PortfolioPanel(
+            parent,
+            settings=self._settings,
+        )
+
+    # ───────────────────────────────────────────────────────────────
+    # Vista 1 — Mercato
+    # ───────────────────────────────────────────────────────────────
+
+    def _build_markets_panel(self, parent):
+        """Costruisce il pannello Mercato."""
+        self._markets_panel = MarketsPanel(
+            parent,
+            settings=self._settings,
+        )
+
+    # ───────────────────────────────────────────────────────────────
+    # Vista 1 — Pattern Matching
+    # ───────────────────────────────────────────────────────────────
+
+    def _build_pm_panel(self, parent):
+        self._pm_panel = PatternMatchingPanel(parent, settings=self._settings)
+
+    # ───────────────────────────────────────────────────────────────
+    # Vista 1 — Analisi Temporale
+    # ───────────────────────────────────────────────────────────────
+
+    def _build_temporal_panel(self, parent):
+        """Costruisce il pannello dell'analisi temporale (TimesFM)."""
+        self._temporal_frame = ctk.CTkFrame(
+            parent,
+            fg_color=_BG_PANEL,
+            border_color=_SEP,
+            border_width=1,
+            corner_radius=12,
+        )
+        # Griglia: riga 0 = sub-header, riga 1 = tab view (expandable)
+        self._temporal_frame.grid_columnconfigure(0, weight=1)
+        self._temporal_frame.grid_rowconfigure(1, weight=1)
+
+        # ── Sub-header: titolo + log test + pulsante run ────────────
+        sub_hdr = ctk.CTkFrame(self._temporal_frame, fg_color="transparent", height=48)
+        sub_hdr.grid(row=0, column=0, sticky="ew", padx=16, pady=(10, 0))
+        sub_hdr.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            sub_hdr,
+            text="Time-Series Analysis",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            text_color=_ACCENT,
+        ).grid(row=0, column=0, sticky="w", padx=(0, 20))
+
+        # Status label temporale (spostato qui dall'header per coerenza con l'AI)
+        self._status_label = ctk.CTkLabel(
+            sub_hdr,
+            text="·  Ready. Run an analysis.",
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+            text_color=_MUTED,
+            anchor="w",
+        )
+        self._status_label.grid(row=0, column=1, padx=(10, 8), sticky="ew")
+
+        # Pulsante run sul lato destro
+        self._btn_run = ctk.CTkButton(
+            sub_hdr,
+            text="▶  Run Time-Series Analysis",
+            command=self._start_analysis,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color=_ACCENT,
+            hover_color=_HOVER,
+            text_color="#181a20",
+            height=34,
+            width=230,
+            corner_radius=8,
+        )
+        self._btn_run.grid(row=0, column=2, sticky="e")
+
+        # Separatore orizzontale
+        ctk.CTkFrame(self._temporal_frame, height=1, fg_color=_SEP).grid(
+            row=0, column=0, sticky="ew", padx=16, pady=(58, 0)
+        )
+
+        # ── Tab view ──────────────────────────────────────────
+        self._tab_view = ctk.CTkTabview(
+            self._temporal_frame,
+            fg_color=_BG_PANEL,
+            segmented_button_fg_color=("#1e293b", "#1e293b"),
+            segmented_button_selected_color=_ACCENT,
+            segmented_button_selected_hover_color=_HOVER,
+            segmented_button_unselected_color=_BG_PANEL,
+            segmented_button_unselected_hover_color=("#343a40", "#343a40"),
+            text_color="white",
+        )
+        self._tab_view.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+
+        self._tab_view.add("📊  Results")
+        self._tab_view.add("⚙️  Settings")
+        apply_binance_tab_style(self._tab_view._segmented_button)
+
+        self._tab_view.tab("📊  Results").grid_columnconfigure(0, weight=1)
+        self._tab_view.tab("📊  Results").grid_rowconfigure(0, weight=1)
+        self._tab_view.tab("⚙️  Settings").grid_columnconfigure(0, weight=1)
+        self._tab_view.tab("⚙️  Settings").grid_rowconfigure(0, weight=1)
+
+        # Tabella risultati
+        self._results_table = ResultsTable(self._tab_view.tab("📊  Results"))
+        self._results_table.grid(row=0, column=0, sticky="nsew")
+
+        # Pannello impostazioni
+        settings_container = ctk.CTkFrame(
+            self._tab_view.tab("⚙️  Settings"), fg_color="transparent"
+        )
+        settings_container.grid(row=0, column=0, sticky="nsew", padx=20, pady=10)
+        settings_container.grid_columnconfigure(0, weight=1)
+        settings_container.grid_rowconfigure(0, weight=1)
+
+        self._config_panel = ConfigPanel(
+            settings_container,
+            settings=self._settings,
+            on_save_callback=self._on_config_saved,
+        )
+        self._config_panel.grid(row=0, column=0, sticky="nsew", padx=20, pady=10)
+
+    # ─────────────────────────────────────────────────────────────
+    # Vista 2 — Analisi Avanzata AI
+    # ─────────────────────────────────────────────────────────────
+
+    def _build_ai_panel(self, parent):
+        """Costruisce il pannello dell'analisi avanzata AI (embedded)."""
+        # AIAnalysisPanel embedded direttamente, ora gestito con lo stesso stile di bordo e angoli di _temporal_frame
+        self._ai_panel = AIAnalysisPanel(
+            parent,
+            timefm_results=[],
+            app_settings=self._settings,
+        )
+
+    # ─────────────────────────────────────────────────────────────
+    # Navigazione tra viste
+    # ─────────────────────────────────────────────────────────────
+
+    def _switch_view(self, view: str, force: bool = False):
+        """Alterna tra le quattro viste: portfolio, markets, temporal, ai."""
+        if not force and self._active_view == view:
+            return
+
+        if view == "ai" and not self._results:
+            messagebox.showinfo(
+                "Data Unavailable",
+                "Run a time-series analysis first to obtain data for AI analysis.",
+            )
+            return
+
+        self._active_view = view
+
+        # Nasconde tutti, poi mostra quello attivo
+        self._auto_trading_panel.grid_remove()
+        self._portfolio_panel.grid_remove()
+        self._markets_panel.grid_remove()
+        self._pm_panel.grid_remove()
+        self._temporal_frame.grid_remove()
+        self._ai_panel.grid_remove()
+
+        padding = dict(padx=16, pady=(0, 16))
+
+        def _btn_active(btn):
+            btn.configure(fg_color=_ACCENT, hover_color=_HOVER, border_width=0, text_color="#181a20")
+
+        def _btn_inactive(btn):
+            btn.configure(fg_color=_BG_INPUT, hover_color=_HOVER,
+                          border_color=_ACCENT, border_width=1, text_color="white")
+
+        # Reset tutti i bottoni
+        _btn_inactive(self._btn_nav_auto)
+        _btn_inactive(self._btn_nav_portfolio)
+        _btn_inactive(self._btn_nav_markets)
+        _btn_inactive(self._btn_nav_pm)
+        _btn_inactive(self._btn_nav_temporal)
+        _btn_inactive(self._btn_nav_ai)
+
+        if view == "autotrading":
+            self._auto_trading_panel.grid(row=0, column=0, sticky="nsew", **padding)
+            _btn_active(self._btn_nav_auto)
+            self._progress.configure(progress_color=_ACCENT[0])
+
+        elif view == "portfolio":
+            self._portfolio_panel.grid(row=0, column=0, sticky="nsew", **padding)
+            _btn_active(self._btn_nav_portfolio)
+            self._progress.configure(progress_color=_ACCENT[0])
+
+        elif view == "markets":
+            self._markets_panel.grid(row=0, column=0, sticky="nsew", **padding)
+            _btn_active(self._btn_nav_markets)
+            
+        elif view == "pm":
+            self._pm_panel.grid(row=0, column=0, sticky="nsew", **padding)
+            _btn_active(self._btn_nav_pm)
+            self._progress.configure(progress_color=_ACCENT[0])
+
+        elif view == "temporal":
+            self._temporal_frame.grid(row=0, column=0, sticky="nsew", **padding)
+            _btn_active(self._btn_nav_temporal)
+            self._progress.configure(progress_color=_ACCENT[0])
+
+        else:  # "ai"
+            self._ai_panel.grid(row=0, column=0, sticky="nsew", **padding)
+            self._ai_panel.update_timefm_results(self._results)
+            _btn_active(self._btn_nav_ai)
+            self._progress.configure(progress_color=_ACCENT[0])
+
+    # ─────────────────────────────────────────────────────────────
+    # Status + progress
+    # ─────────────────────────────────────────────────────────────
+
+    def _update_status(self, text: str):
+        """Aggiorna il testo dello stato nell'header."""
+        prefix = "·  " if not text.startswith(("·", "✅", "❌", "📂", "🤖", "📊", "⏹")) else ""
+        self._status_label.configure(text=f"{prefix}{text}")
+
+    def _on_window_configure(self, event):
+        if event.widget == self:
+            self._last_configure_time = time.time()
+
+    # ─────────────────────────────────────────────────────────────
+    # Message queue (thread → GUI)
+    # ─────────────────────────────────────────────────────────────
+
+    def _poll_queue(self):
+        """Consuma i messaggi dalla coda del thread background."""
+        try:
+            while True:
+                msg = self._msg_queue.get_nowait()
+                self._handle_msg(msg)
+        except queue.Empty:
+            pass
+        self.after(100, self._poll_queue)
+
+    def _handle_msg(self, msg: dict):
+        mtype = msg.get("type")
+
+        if mtype == "status":
+            text = msg.get("text", "")
+            frac = msg.get("fraction", None)
+            self._update_status(text)
+            if frac is not None:
+                self._progress.set(frac)
+
+        elif mtype == "done":
+            results = msg.get("results", [])
+            self._results = results
+            self._results_table.populate(results)
+            self._set_running(False)
+            self._progress.set(1.0)
+
+            n      = len(results)
+            buy_n  = sum(1 for r in results if r.get("signal") == "BUY")
+            sell_n = sum(1 for r in results if r.get("signal") == "SELL")
+            market_type = self._settings.get("market_type", "crypto").upper()
+            self._update_status(
+                f"✅ Analysis completed [{market_type}] — {n} assets analyzed  |  "
+                f"🟢 {buy_n} BUY  🔴 {sell_n} SELL  |  "
+                f"Updated: {datetime.now().strftime('%H:%M:%S')}"
+            )
+
+        elif mtype == "error":
+            err = msg.get("text", "Unknown error")
+            self._set_running(False)
+            self._update_status(f"❌ {err}")
+            messagebox.showerror("Argus Error", err)
+
+    def _post(self, **kwargs):
+        """Invia un messaggio alla coda dalla GUI o da un thread."""
+        self._msg_queue.put(kwargs)
+
+    # ─────────────────────────────────────────────────────────────
+    # Analisi Temporale — avvio e thread
+    # ─────────────────────────────────────────────────────────────
+
+    def _start_analysis(self):
+        if self._running:
+            return
+
+        # Cooldown anti-ghost-click da ridimensionamento finestra
+        time_since_configure = time.time() - self._last_configure_time
+        if time_since_configure < 0.4:
+            print(f"[ArgusApp] Ignored ghost click ({time_since_configure:.3f}s)")
+            return
+
+        # Sincronizza impostazioni dalla UI
+        if hasattr(self, "_config_panel"):
+            try:
+                self._settings.update(self._config_panel.get_current_settings())
+                save_settings(self._settings)
+            except Exception as e:
+                print(f"[ArgusApp] Settings sync error: {e}")
+
+        cfg = self._settings
+        self._set_running(True)
+        self._progress.set(0.0)
+        self._tab_view.set("📊  Results")
+
+        threading.Thread(
+            target=self._analysis_thread,
+            args=(cfg,),
+            daemon=True,
+        ).start()
+
+    def _stop_analysis(self):
+        self._stop_requested = True
+        self._update_status("⏹ Stop requested...")
+
+    def _analysis_thread(self, cfg: dict):
+        """Thread background che esegue l'intera pipeline di analisi temporale."""
+
+        def status(text: str, fraction: float | None = None):
+            self._post(type="status", text=text, fraction=fraction)
+
+        def should_stop() -> bool:
+            return self._stop_requested
+
+        try:
+            market_type = "crypto"
+            horizon    = 4
+            threshold  = cfg.get("signal_threshold_pct", 2.0)
+            history    = 30
+            backend    = cfg.get("backend", "cpu")
+            checkpoint = cfg.get("model_checkpoint", "google/timesfm-2.5-200m-pytorch")
+            cg_key     = cfg.get("coingecko_api_key", "")
+            cg_plan    = cfg.get("coingecko_api_plan", "demo")
+
+            # Step 1: Carica lista asset dalla cache (Mercato) o la rigenera
+            status(f"📂 Loading {market_type.upper()} list from Market section...", 0.01)
+            asset_list = self._cached_market_list
+
+            if not asset_list:
+                # Prova a caricare dal file
+                from core.data_manager import load_market_list
+                full_list = load_market_list(market_type)
+                asset_list = [full_list[0]] if full_list else []
+
+
+
+            if not asset_list:
+                self._post(type="error", text="Unable to retrieve asset list.")
+                return
+
+            if should_stop():
+                status("⏹ Analysis interrupted by user.", 0.0)
+                self._set_running_safe(False)
+                return
+
+            status(f"✅ {market_type.upper()} list loaded: {len(asset_list)} assets.", 0.03)
+
+            # Step 2: Dati storici
+            status(f"📥 Loading local historical data for {len(asset_list)} assets...", 0.04)
+            from core.data_manager import load_historical
+            
+            historical_data = {}
+            for i, coin in enumerate(asset_list):
+                sym = coin["symbol"]
+                try:
+                    df = load_historical(sym)
+                    if df is not None and not df.empty:
+                        historical_data[sym] = df
+                except ValueError as ve:
+                    status(f"⚠️ Historical data missing/obsolete for {sym}.", 0.04 + (i / len(asset_list)) * 0.36)
+            
+            if should_stop():
+                status("⏹ Analysis interrupted by user.", 0.0)
+                self._set_running_safe(False)
+                return
+
+            if not historical_data:
+                self._post(type="error", text="No valid local historical data found. Go to Market and click Update Prices.")
+                self._set_running_safe(False)
+                return
+            
+            status(f"✅ Historical data loaded: {len(historical_data)} symbols.", 0.42)
+
+            # Step 3: Carica modello TimesFM
+            if (self._forecaster is None
+                    or self._forecaster.checkpoint != checkpoint
+                    or self._forecaster.backend != backend):
+                status("🤖 Initializing TimesFM model...", 0.43)
+                self._forecaster = CryptoForecaster(checkpoint=checkpoint, backend=backend)
+
+            if not self._forecaster._model_loaded:
+                ok = self._forecaster.load_model(
+                    progress_callback=lambda m, f=None: status(m, 0.43 + (f or 0) * 0.07)
+                )
+                if not ok:
+                    self._post(
+                        type="error",
+                        text="TimesFM loading error. Check installation and internet connection.",
+                    )
+                    return
+
+            if should_stop():
+                status("⏹ Analysis interrupted by user.", 0.0)
+                self._set_running_safe(False)
+                return
+
+            # Step 4: Forecast (orizzonte fisso 8 candele)
+            status("🔮 Running TimesFM forecasting (8 candles horizon)...", 0.50)
+            forecasts = self._forecaster.forecast_batch(
+                historical_data,
+                horizon=8,
+                progress_callback=lambda m, f=None: status(m, 0.50 + (f or 0) * 0.40),
+                stop_flag=should_stop,
+            )
+
+            if should_stop():
+                status("⏹ Analysis interrupted by user.", 0.0)
+                self._set_running_safe(False)
+                return
+
+            # Step 5: Calcola segnali
+            status("📊 Calculating BUY/SELL/HOLD signals...", 0.92)
+            results = build_results(
+                crypto_list=asset_list,
+                forecasts=forecasts,
+                horizon_days=horizon,
+                threshold_pct=threshold,
+            )
+
+            # Salva log
+            status("💾 Saving analysis log...", 0.95)
+            save_forecast_log(results)
+            self._settings["last_run"] = datetime.now().isoformat()
+            save_settings(self._settings)
+
+            self._post(type="done", results=results)
+
+        except Exception as exc:
+            import traceback
+            print(f"[ArgusApp] Exception in analysis thread:\n{traceback.format_exc()}")
+            self._post(type="error", text=f"Unexpected error: {exc}")
+
+    # ─────────────────────────────────────────────────────────────
+    # UI state helpers
+    # ─────────────────────────────────────────────────────────────
+
+    def _set_running(self, running: bool):
+        self._running = running
+        self._stop_requested = False
+        state = "disabled" if running else "normal"
+        self._btn_run.configure(state=state)
+        if hasattr(self, "_config_panel"):
+            self._config_panel._btn_save.configure(state=state)
+        # Disabilita anche il pulsante Mercati durante l'analisi
+        if hasattr(self, "_btn_nav_markets"):
+            self._btn_nav_markets.configure(state=state)
+
+    def _set_running_safe(self, running: bool):
+        """Thread-safe: schedula _set_running sulla GUI thread."""
+        self.after(0, lambda: self._set_running(running))
+
+    # ─────────────────────────────────────────────────────────────
+    # Load logs
+    # ─────────────────────────────────────────────────────────────
+
+    def _load_last_log(self):
+        """Carica e visualizza l'ultimo forecast log senza rieseguire l'analisi."""
+        df = load_forecast_history()
+        if df is None or df.empty:
+            self._update_status("No previous log found. Run your first analysis.")
+            return
+
+        results = df.to_dict(orient="records")
+        for r in results:
+            for key in ("last_price", "forecast_price", "change_pct", "rank", "horizon_days", 
+                        "target_price_1d", "change_pct_1d", "target_price_3d", "change_pct_3d", "confidence"):
+                try:
+                    import math
+                    val = r.get(key)
+                    if val is not None and not (isinstance(val, float) and math.isnan(val)):
+                        r[key] = float(val) if key != "rank" else int(float(val))
+                    else:
+                        r[key] = None
+                except (ValueError, TypeError):
+                    r[key] = None
+
+        self._results = results
+        self._results_table.populate(results)
+        info = get_last_run_info()
+        self._update_status(f"📂 Log loaded — {info}")
+
+    # ─────────────────────────────────────────────────────────────
+    # Callbacks & Manual Triggers
+    # ─────────────────────────────────────────────────────────────
+
+    # Vecchia funzione rimossa.
+
+    def _on_config_saved(self, updated: dict):
+        """Chiamato quando l'utente salva la configurazione TimesFM."""
+        save_settings(self._settings)
+        market_type = updated.get('market_type', 'crypto').upper()
+        self._update_status(
+            f"✅ Configuration saved — "
+            f"Market: {market_type}  |  "
+            f"Horizon: 2h  |  "
+            f"Threshold: ±{updated.get('signal_threshold_pct', 2.0)}%"
+        )
+
+    def _on_close(self):
+        """Chiamato quando l'utente tenta di chiudere l'applicazione."""
+        if self._running:
+            if not messagebox.askyesno(
+                "Confirm Exit",
+                "An analysis is still running. Do you really want to exit?"
+            ):
+                return
+            self._stop_requested = True
+        self.destroy()

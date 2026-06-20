@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# --- Sensitive / Runtime Data (never commit) ---
+# Environment variables and secrets
+.env
+
+# User configuration with API keys
+config/settings.json
+
+# Operational data generated at runtime
+data/historical/
+data/forecast_log.csv
+data/forecast_history.csv
+data/autotrading_log.json
+data/pm_history.json
+data/portfolio_audit.json
+data/ai_analysis/
+data/market_lists/
+
+# Scratch / temp files
+scratch_pm.py
+
+# HuggingFace cache
+.cache/
+huggingface/
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Log
+*.log
