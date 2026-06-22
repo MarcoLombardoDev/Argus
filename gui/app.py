@@ -207,7 +207,6 @@ class ArgusApp(ctk.CTk):
             width=160,
             corner_radius=8,
         )
-        self._btn_nav_auto.pack(side="left", padx=(0, 6))
 
         # ─ Portfolio ──────────────────────────
         self._btn_nav_portfolio = ctk.CTkButton(
@@ -223,7 +222,6 @@ class ArgusApp(ctk.CTk):
             width=180,
             corner_radius=8,
         )
-        self._btn_nav_portfolio.pack(side="left", padx=(0, 6))
 
         # ─ Mercati ──────────────────────────
         self._btn_nav_markets = ctk.CTkButton(
@@ -239,7 +237,6 @@ class ArgusApp(ctk.CTk):
             width=160,
             corner_radius=8,
         )
-        self._btn_nav_markets.pack(side="left", padx=(0, 6))
 
         # ─ Pattern Matching ─────────────────────────────────
         self._btn_nav_pm = ctk.CTkButton(
@@ -255,7 +252,6 @@ class ArgusApp(ctk.CTk):
             width=180,
             corner_radius=8,
         )
-        self._btn_nav_pm.pack(side="left", padx=(0, 6))
 
         # ─ Analisi Temporale ────────────────────────────────
         self._btn_nav_temporal = ctk.CTkButton(
@@ -269,7 +265,6 @@ class ArgusApp(ctk.CTk):
             width=190,
             corner_radius=8,
         )
-        self._btn_nav_temporal.pack(side="left", padx=(0, 6))
 
         self._btn_nav_ai = ctk.CTkButton(
             nav_frame,
@@ -284,6 +279,13 @@ class ArgusApp(ctk.CTk):
             width=190,
             corner_radius=8,
         )
+
+        # Pack in the original requested order (Auto Trading, Portfolio, then others)
+        self._btn_nav_auto.pack(side="left", padx=(0, 6))
+        self._btn_nav_portfolio.pack(side="left", padx=(0, 6))
+        self._btn_nav_markets.pack(side="left", padx=(0, 6))
+        self._btn_nav_pm.pack(side="left", padx=(0, 6))
+        self._btn_nav_temporal.pack(side="left", padx=(0, 6))
         self._btn_nav_ai.pack(side="left")
 
         # ── Progress bar (riga 1) ─────────────────────────────────
@@ -458,13 +460,6 @@ class ArgusApp(ctk.CTk):
     def _switch_view(self, view: str, force: bool = False):
         """Alterna tra le quattro viste: portfolio, markets, temporal, ai."""
         if not force and self._active_view == view:
-            return
-
-        if view == "ai" and not self._results:
-            messagebox.showinfo(
-                "Data Unavailable",
-                "Run a time-series analysis first to obtain data for AI analysis.",
-            )
             return
 
         self._active_view = view

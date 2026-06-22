@@ -12,6 +12,7 @@ import datetime
 
 from core.portfolio_manager import PortfolioManager
 from core.data_manager import save_settings
+from gui.utils import apply_binance_tab_style
 from core.ai_analysis_store import load_all_sessions
 
 COLOR_ACCENT = "#7c83fd"
@@ -40,7 +41,7 @@ class PortfolioPanel(ctk.CTkFrame):
 
         ctk.CTkLabel(
             hdr, text="💼 Portfolio",
-            font=ctk.CTkFont("Segoe UI", 13, "bold"), text_color=COLOR_ACCENT,
+            font=ctk.CTkFont("Segoe UI", 13, "bold"), text_color="#f0b90b",
         ).grid(row=0, column=0, sticky="w", padx=(0, 20))
 
         self._status_lbl = ctk.CTkLabel(
@@ -54,10 +55,12 @@ class PortfolioPanel(ctk.CTkFrame):
 
         # Tabs
         self._tabs = ctk.CTkTabview(
-            self, fg_color=BG_PANEL,
-            segmented_button_fg_color=("#1e293b", "#1e293b"),
-            segmented_button_selected_color=COLOR_ACCENT,
-            segmented_button_selected_hover_color=COLOR_HOVER,
+            self, fg_color=("#1e2329", "#1e2329"),
+            segmented_button_fg_color=("#2b3139", "#2b3139"),
+            segmented_button_selected_color="#f0b90b",
+            segmented_button_selected_hover_color="#d39e00",
+            segmented_button_unselected_color=("#1e2329", "#1e2329"),
+            segmented_button_unselected_hover_color=("#343a40", "#343a40"),
             command=self._on_tab_changed
         )
         self._tabs.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
@@ -73,6 +76,7 @@ class PortfolioPanel(ctk.CTkFrame):
         self._build_settings_tab()
         self._build_portfolio_tab()
         self._build_orders_tab()
+        apply_binance_tab_style(self._tabs._segmented_button)
         
         self._queue = queue.Queue()
         self._check_queue()
@@ -80,7 +84,7 @@ class PortfolioPanel(ctk.CTkFrame):
         self._auto_update_loop()
 
     def _auto_update_loop(self):
-        if self._tabs.get() == "🏦 Stato Portafoglio":
+        if self._tabs.get() == "🏦 Portfolio Status":
             self._update_portfolio_view()
             
         pm_settings = self.settings.get("portfolio_manager", {})
@@ -140,27 +144,117 @@ class PortfolioPanel(ctk.CTkFrame):
         
         lbl("Exchange", r, 0)
         _EXCHANGE_OPTIONS = [
+            ("AftermathFinance", "aftermath"),
+            ("Alpaca", "alpaca"),
+            ("Apex", "apex"),
+            ("Arkham", "arkham"),
+            ("AscendEX", "ascendex"),
+            ("Aster", "aster"),
+            ("Backpack", "backpack"),
+            ("Bequant", "bequant"),
+            ("BigONE", "bigone"),
             ("Binance", "binance"),
+            ("Binance COIN-M", "binancecoinm"),
             ("Binance US", "binanceus"),
+            ("Binance USDⓈ-M", "binanceusdm"),
             ("BingX", "bingx"),
+            ("Bit2C", "bit2c"),
+            ("Bitbank", "bitbank"),
+            ("Bitbns", "bitbns"),
             ("Bitfinex", "bitfinex"),
+            ("bitFlyer", "bitflyer"),
             ("Bitget", "bitget"),
+            ("Bithumb", "bithumb"),
+            ("BitMart", "bitmart"),
             ("BitMEX", "bitmex"),
-            ("Bitmart", "bitmart"),
+            ("BitoPro", "bitopro"),
+            ("Bitrue", "bitrue"),
+            ("Bitso", "bitso"),
+            ("Bitstamp", "bitstamp"),
+            ("BIT.TEAM", "bitteam"),
+            ("BitTrade", "bittrade"),
+            ("Bitvavo", "bitvavo"),
+            ("Blockchain.com", "blockchaincom"),
+            ("BloFin", "blofin"),
+            ("BTC Markets", "btcmarkets"),
+            ("BTCTurk", "btcturk"),
+            ("BtcBox", "btcbox"),
+            ("Bullish", "bullish"),
             ("Bybit", "bybit"),
-            ("Coinbase Advanced", "coinbase"),
+            ("Bybit EU", "bybiteu"),
+            ("BYDFi", "bydfi"),
+            ("CEX.IO", "cex"),
+            ("Coinbase", "coinbase"),
+            ("Coinbase Advanced", "coinbaseadvanced"),
+            ("Coinbase Exchange", "coinbaseexchange"),
+            ("Coinbase International", "coinbaseinternational"),
+            ("Coincheck", "coincheck"),
+            ("CoinEx", "coinex"),
+            ("CoinMate", "coinmate"),
+            ("Coinmetro", "coinmetro"),
+            ("CoinOne", "coinone"),
+            ("Coins.ph", "coinsph"),
+            ("CoinSpot", "coinspot"),
             ("Crypto.com", "cryptocom"),
+            ("Cryptomus", "cryptomus"),
+            ("DeepCoin", "deepcoin"),
+            ("Delta Exchange", "delta"),
             ("Deribit", "deribit"),
+            ("Derive", "derive"),
+            ("DigiFinex", "digifinex"),
+            ("dYdX", "dydx"),
+            ("EXMO", "exmo"),
+            ("FMFW.io", "fmfwio"),
+            ("Foxbit", "foxbit"),
             ("Gate.io", "gate"),
+            ("Gate.io Pro", "gateio"),
+            ("Gemini", "gemini"),
+            ("GRVT", "grvt"),
+            ("HashKey Global", "hashkey"),
+            ("Hibachi", "hibachi"),
+            ("HitBTC", "hitbtc"),
+            ("HollaEx", "hollaex"),
             ("HTX (Huobi)", "htx"),
+            ("Huobi Legacy", "huobi"),
             ("Hyperliquid", "hyperliquid"),
+            ("Independent Reserve", "independentreserve"),
+            ("INDODAX", "indodax"),
             ("Kraken", "kraken"),
+            ("Kraken Futures", "krakenfutures"),
             ("KuCoin", "kucoin"),
             ("KuCoin Futures", "kucoinfutures"),
-            ("MEXC", "mexc"),
+            ("Latoken", "latoken"),
+            ("LBank", "lbank"),
+            ("Lighter", "lighter"),
+            ("Luno", "luno"),
+            ("Mercado Bitcoin", "mercado"),
+            ("MEXC Global", "mexc"),
+            ("Mode Trade", "modetrade"),
+            ("MyOKX EEA", "myokx"),
+            ("NDAX", "ndax"),
+            ("NovaDAX", "novadax"),
             ("OKX", "okx"),
+            ("OKX US", "okxus"),
+            ("One Trading", "onetrading"),
+            ("OX.FUN", "oxfun"),
+            ("p2b", "p2b"),
+            ("Pacifica", "pacifica"),
+            ("Paradex", "paradex"),
+            ("Paymium", "paymium"),
             ("Phemex", "phemex"),
+            ("Poloniex", "poloniex"),
+            ("Tokocrypto", "tokocrypto"),
+            ("Toobit", "toobit"),
+            ("Upbit", "upbit"),
+            ("Waves Exchange", "wavesexchange"),
+            ("Weex", "weex"),
+            ("WhiteBit", "whitebit"),
             ("WOO X", "woo"),
+            ("WOOFI PRO", "woofipro"),
+            ("XT.com", "xt"),
+            ("YoBit", "yobit"),
+            ("Zaif", "zaif"),
+            ("Zebpay", "zebpay"),
         ]
         self._exchange_id_map = {f"{n} ({i})": i for n, i in _EXCHANGE_OPTIONS}
         _exc_labels = [f"{n} ({i})" for n, i in _EXCHANGE_OPTIONS]
@@ -172,13 +266,14 @@ class PortfolioPanel(ctk.CTkFrame):
             values=_exc_labels,
             variable=self._exchange_var,
             font=ctk.CTkFont(family="Segoe UI", size=11),
-            fg_color=BG_INPUT,
-            button_color=COLOR_ACCENT,
-            button_hover_color=COLOR_HOVER,
-            dropdown_fg_color=BG_CARD,
-            dropdown_hover_color=("#2d3748", "#2d3748"),
+            fg_color=("#2b3139", "#2b3139"),
+            button_color=("#f0b90b", "#f0b90b"),
+            button_hover_color=("#d39e00", "#d39e00"),
+            dropdown_fg_color=("#2b3139", "#2b3139"),
+            dropdown_hover_color=("#343a40", "#343a40"),
             text_color="white",
             dropdown_text_color="white",
+            height=36,
         ).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
         
         lbl("API Key (or Key Name)", r, 0)
@@ -256,7 +351,20 @@ class PortfolioPanel(ctk.CTkFrame):
         
         lbl("Sizing Method", r, 0)
         self._sizing_mode_var = ctk.StringVar(value=self.settings.get("sizing_mode", "margin_pct"))
-        ctk.CTkOptionMenu(left_frame, variable=self._sizing_mode_var, values=["margin_pct", "risk_pct"]).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
+        ctk.CTkOptionMenu(
+            left_frame,
+            variable=self._sizing_mode_var,
+            values=["margin_pct", "risk_pct"],
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+            fg_color=("#2b3139", "#2b3139"),
+            button_color=("#f0b90b", "#f0b90b"),
+            button_hover_color=("#d39e00", "#d39e00"),
+            dropdown_fg_color=("#2b3139", "#2b3139"),
+            dropdown_hover_color=("#343a40", "#343a40"),
+            text_color="white",
+            dropdown_text_color="white",
+            height=36,
+        ).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
         
         lbl("Risk per Trade (%)", r, 0)
         self._risk_pct_var = ctk.StringVar(value=str(self.settings.get("risk_per_trade_pct", 1.5)))
@@ -309,7 +417,17 @@ class PortfolioPanel(ctk.CTkFrame):
         self._max_tp_roi_var = ctk.StringVar(value=str(pm_settings.get("maxTakeProfitROI", 200.0)))
         ctk.CTkEntry(left_frame, textvariable=self._max_tp_roi_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
         
-        ctk.CTkButton(left_frame, text="💾 Save Settings", command=self._save_settings, fg_color=COLOR_ACCENT).grid(row=r, column=0, columnspan=2, pady=20)
+        ctk.CTkButton(
+            left_frame,
+            text="💾 Save Settings",
+            command=self._save_settings,
+            font=ctk.CTkFont("Segoe UI", 12, "bold"),
+            fg_color="#f0b90b",
+            hover_color="#d39e00",
+            text_color="#181a20",
+            height=38,
+            corner_radius=8,
+        ).grid(row=r, column=0, columnspan=2, padx=16, pady=20, sticky="ew"); r+=1
         
         info_card = ctk.CTkFrame(right_frame, fg_color=BG_CARD, corner_radius=12)
         info_card.pack(fill="x", padx=16, pady=8)
@@ -419,7 +537,7 @@ class PortfolioPanel(ctk.CTkFrame):
         self._lbl_balance = ctk.CTkLabel(toolbar, text="Balance: ...", font=ctk.CTkFont("Segoe UI", 12, "bold"))
         self._lbl_balance.pack(side="left")
         
-        self._btn_sell = ctk.CTkButton(toolbar, text="📉 Vendi Selezionati", command=self._sell_selected_portfolio, width=150, fg_color="#ff5252", text_color="#1a1a2e", font=ctk.CTkFont("Segoe UI", 12, "bold"))
+        self._btn_sell = ctk.CTkButton(toolbar, text="📉 Sell Selected", command=self._sell_selected_portfolio, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont("Segoe UI", 12, "bold"))
         self._btn_sell.pack(side="right", padx=(10, 0))
         
         # Table
@@ -609,13 +727,13 @@ class PortfolioPanel(ctk.CTkFrame):
         toolbar = ctk.CTkFrame(tab, fg_color="transparent")
         toolbar.pack(fill="x", padx=10, pady=10)
         
-        self._btn_generate = ctk.CTkButton(toolbar, text="🔄 Genera Proposte", command=self._generate_orders, width=150, fg_color="#3b82f6", text_color="#ffffff", font=ctk.CTkFont("Segoe UI", 12, "bold"))
+        self._btn_generate = ctk.CTkButton(toolbar, text="🔄 Generate Proposals", command=self._generate_orders, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont("Segoe UI", 12, "bold"))
         self._btn_generate.pack(side="left")
         
-        self._btn_execute = ctk.CTkButton(toolbar, text="🚀 Esegui Ordini", command=self._execute_orders, width=150, fg_color="#00e676", text_color="#1a1a2e", font=ctk.CTkFont("Segoe UI", 12, "bold"), state="disabled")
+        self._btn_execute = ctk.CTkButton(toolbar, text="🚀 Execute Orders", command=self._execute_orders, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont("Segoe UI", 12, "bold"), state="disabled")
         self._btn_execute.pack(side="right", padx=(10, 0))
         
-        self._btn_delete = ctk.CTkButton(toolbar, text="🗑️ Elimina Selezionati", command=self._delete_selected_orders, width=150, fg_color="#ff5252", text_color="#1a1a2e", font=ctk.CTkFont("Segoe UI", 12, "bold"), state="disabled")
+        self._btn_delete = ctk.CTkButton(toolbar, text="🗑️ Delete Selected", command=self._delete_selected_orders, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont("Segoe UI", 12, "bold"), state="disabled")
         self._btn_delete.pack(side="right")
         
         tree_frame = tk.Frame(tab, bg="#0d0d1a")

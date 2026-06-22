@@ -474,7 +474,18 @@ class AIAnalysisPanel(ctk.CTkFrame):
         """Aggiorna i risultati TimesFM."""
         self._timefm_results = results
         if results:
-            self._tabs.set("📊  Risultati")
+            try:
+                self._tabs.set("📊  Results")
+            except:
+                pass
+            self._status_lbl.configure(text="Select assets and run the analysis.", text_color=COLOR_MUTED)
+            self._btn_run.configure(state="normal")
+        else:
+            self._status_lbl.configure(
+                text="⚠️ Data Unavailable: Run a time-series analysis first to obtain data for AI analysis.",
+                text_color="#ff5252"
+            )
+            self._btn_run.configure(state="disabled")
 
     # ─────────────────────────────────────────────────────────
     # TAB 2 — Risultati
@@ -600,6 +611,12 @@ class AIAnalysisPanel(ctk.CTkFrame):
         self._ai_results = []
         
         all_sessions = load_all_sessions()
+        if not all_sessions:
+            self._res_tree.insert(
+                "", "end",
+                values=("", "No AI analysis data available. Run a time-series analysis first.", "", "", "", "", "", "", "", "", "", "", "")
+            )
+            return
         row_count = 0
         
         for session in all_sessions:
@@ -946,7 +963,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
 
         # Ollama Host URL
         self._ollama_host_label = ctk.CTkLabel(
-            self._provider_config_frame, text="Host URL Ollama",
+            self._provider_config_frame, text="Ollama Host URL",
             font=ctk.CTkFont("Segoe UI", 11),
             text_color=("#808080", "#a0a0a0"), anchor="w",
         )
@@ -959,7 +976,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         )
 
         # Modello Quick
-        lbl("Modello Quick Thinking (Analisti prelim.)", left_frame, row=r); r += 1
+        lbl("Quick Thinking Model (Prelim. Analysts)", left_frame, row=r); r += 1
         self._model_quick_var = ctk.StringVar(value="anthropic/claude-3-haiku")
         ctk.CTkEntry(
             left_frame, textvariable=self._model_quick_var,
@@ -970,7 +987,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         ctk.CTkLabel(left_frame, text="Lightweight and cost-effective model used for preliminary sentiment and news analysis.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
 
         # Modello Deep
-        lbl("Modello Deep Thinking (Ricercatori e Decisore)", left_frame, row=r); r += 1
+        lbl("Deep Thinking Model (Researchers & Decision Maker)", left_frame, row=r); r += 1
         self._model_deep_var = ctk.StringVar(value="anthropic/claude-3-5-sonnet")
         ctk.CTkEntry(
             left_frame, textvariable=self._model_deep_var,
@@ -981,7 +998,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         ctk.CTkLabel(left_frame, text="Advanced 'reasoning' model that handles critical debate and formulates final consensus.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
 
         # Modello Fallback
-        lbl("Modello di Fallback (in caso di errore)", left_frame, row=r); r += 1
+        lbl("Fallback Model (on error)", left_frame, row=r); r += 1
         self._model_fallback_var = ctk.StringVar(value="google/gemini-2.5-flash")
         ctk.CTkEntry(
             left_frame, textvariable=self._model_fallback_var,
@@ -1293,7 +1310,10 @@ class AIAnalysisPanel(ctk.CTkFrame):
         self._stop_requested = False
         self._btn_run.configure(state="disabled")
         self._progress.set(0.0)
-        self._tabs.set("📊  Risultati")
+        try:
+            self._tabs.set("📊  Results")
+        except:
+            pass
 
         thread = threading.Thread(
             target=self._analysis_thread,
