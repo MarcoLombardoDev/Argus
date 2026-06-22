@@ -13,8 +13,8 @@ On top of the analysis engine, Argus features a full **Portfolio Manager** modul
 
 1. [Architecture Overview](#architecture-overview)
 2. [Module Deep-Dives](#module-deep-dives)
-   - [TimesFM Temporal Forecast](#1-timesfm-temporal-forecast)
-   - [BTC Pattern Matching (KNN-DTW)](#2-btc-pattern-matching-knn-dtw)
+   - [BTC Pattern Matching (KNN-DTW)](#1-btc-pattern-matching-knn-dtw)
+   - [TimesFM Temporal Forecast](#2-timesfm-temporal-forecast)
    - [Multi-Agent AI Analysis](#3-multi-agent-ai-analysis-pipeline)
    - [Ensemble Engine](#4-ensemble-engine--mathematical-formulas)
    - [Instant Backtest (VectorBT)](#5-instant-backtest-vectorbt)
@@ -41,10 +41,10 @@ On top of the analysis engine, Argus features a full **Portfolio Manager** modul
 │  Market Data (CoinGecko / yfinance / BingX CCXT)        │
 │       │                                                 │
 │       ▼                                                 │
-│  ┌──────────┐  ┌──────────────┐  ┌──────────────────┐  │
-│  │ TimesFM  │  │ KNN-DTW BTC  │  │  Multi-Agent LLM │  │
-│  │ Forecast │  │ Pattern Match│  │  Pipeline (AI)   │  │
-│  └────┬─────┘  └──────┬───────┘  └────────┬─────────┘  │
+│  ┌──────────────┐  ┌──────────┐  ┌──────────────────┐  │
+│  │ KNN-DTW BTC  │  │ TimesFM  │  │  Multi-Agent LLM │  │
+│  │ Pattern Match│  │ Forecast │  │  Pipeline (AI)   │  │
+│  └──────┬───────┘  └────┬─────┘  └────────┬─────────┘  │
 │       │               │                   │             │
 │       └───────────────┴───────────────────┘             │
 │                       │                                 │
@@ -66,47 +66,13 @@ On top of the analysis engine, Argus features a full **Portfolio Manager** modul
 ```
 
 **Core Design Principle — Stateless Data Architecture:**  
-Analysis modules (AI, TimesFM, Pattern Matching) do **not** fetch data directly from external providers during inference; this prevents API rate-limit blocks during live trading cycles. The Markets panel is responsible for downloading and locally caching up to 1 year of 15-minute BTC candles. All analysis modules read from this local cache. If the cache is older than 2 hours, agents request a manual refresh (automatically triggered during Auto-Trading cycles).
+Analysis modules (Pattern Matching, TimesFM, AI) do **not** fetch data directly from external providers during inference; this prevents API rate-limit blocks during live trading cycles. The Markets panel is responsible for downloading and locally caching up to 1 year of 15-minute BTC candles. All analysis modules read from this local cache. If the cache is older than 2 hours, agents request a manual refresh (automatically triggered during Auto-Trading cycles).
 
 ---
 
 ## Module Deep-Dives
 
-### 1. TimesFM Temporal Forecast
-
-**File:** [`core/forecaster.py`](core/forecaster.py)
-
-Argus integrates **TimesFM 2.5 (200M parameter PyTorch model)** by Google Research — a foundation time series model pre-trained on large-scale real-world datasets.
-
-#### Configuration
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| Checkpoint | HuggingFace model ID | `google/timesfm-2.5-200m-pytorch` |
-| Backend | `cpu` or `gpu` | `cpu` |
-| Horizon | Forecast steps | `8` candles (2 hours @ 15m) |
-| Context window | Minimum historical points | `96` candles |
-| Timeframe | OHLCV interval | `15m` (intraday) |
-
-#### How it works
-1. The model is **lazily loaded** from HuggingFace on first use (downloaded once, then cached).
-2. A minimum of **96 historical 15-minute candles** (~24 hours) are fed as context.
-3. TimesFM outputs 8 future candle predictions (`horizon=8`).
-4. The forecasted price at horizon `h` is compared to the last known close to yield a **percentage change estimate**:
-
-$$\Delta P_{\text{tfm}} = \frac{P_{\text{forecast},h} - P_{\text{last}}}{P_{\text{last}}} \times 100$$
-
-5. A directional signal (`BUY` / `HOLD` / `SELL`) is emitted if $|\Delta P_{\text{tfm}}|$ exceeds the configurable signal threshold.
-
-#### ATR-Based Confidence Bound
-TimesFM also computes a **14-period ATR on the last 15 historical bars** to express how volatile the context is. This ATR value is reported as a SL/TP boundary hint and passed to the Ensemble engine as a volatility reference:
-
-$$\text{TR}_t = \max\bigl(H_t - L_t,\ |H_t - C_{t-1}|,\ |L_t - C_{t-1}|\bigr)$$
-
-$$\text{ATR}_{14} = \frac{1}{14}\sum_{t=T-13}^{T} \text{TR}_t$$
-
----
-
-### 2. BTC Pattern Matching (KNN-DTW)
+### 1. BTC Pattern Matching (KNN-DTW)
 
 **File:** [`core/btc_pattern_matcher.py`](core/btc_pattern_matcher.py)
 
@@ -163,6 +129,40 @@ $$\text{VolPenalty} = \frac{1}{1 + 0.5 \times \sigma_{\text{FutureReturns}}}$$
 $$\text{Confidence}_{\text{pm}} = \text{BaseConfidence} \times \text{VolPenalty}$$
 
 A high standard deviation of future returns across matches indicates diverging historical outcomes, and the confidence is penalized accordingly.
+
+---
+
+### 2. TimesFM Temporal Forecast
+
+**File:** [`core/forecaster.py`](core/forecaster.py)
+
+Argus integrates **TimesFM 2.5 (200M parameter PyTorch model)** by Google Research — a foundation time series model pre-trained on large-scale real-world datasets.
+
+#### Configuration
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| Checkpoint | HuggingFace model ID | `google/timesfm-2.5-200m-pytorch` |
+| Backend | `cpu` or `gpu` | `cpu` |
+| Horizon | Forecast steps | `8` candles (2 hours @ 15m) |
+| Context window | Minimum historical points | `96` candles |
+| Timeframe | OHLCV interval | `15m` (intraday) |
+
+#### How it works
+1. The model is **lazily loaded** from HuggingFace on first use (downloaded once, then cached).
+2. A minimum of **96 historical 15-minute candles** (~24 hours) are fed as context.
+3. TimesFM outputs 8 future candle predictions (`horizon=8`).
+4. The forecasted price at horizon `h` is compared to the last known close to yield a **percentage change estimate**:
+
+$$\Delta P_{\text{tfm}} = \frac{P_{\text{forecast},h} - P_{\text{last}}}{P_{\text{last}}} \times 100$$
+
+5. A directional signal (`BUY` / `HOLD` / `SELL`) is emitted if $|\Delta P_{\text{tfm}}|$ exceeds the configurable signal threshold.
+
+#### ATR-Based Confidence Bound
+TimesFM also computes a **14-period ATR on the last 15 historical bars** to express how volatile the context is. This ATR value is reported as a SL/TP boundary hint and passed to the Ensemble engine as a volatility reference:
+
+$$\text{TR}_t = \max\bigl(H_t - L_t,\ |H_t - C_{t-1}|,\ |L_t - C_{t-1}|\bigr)$$
+
+$$\text{ATR}_{14} = \frac{1}{14}\sum_{t=T-13}^{T} \text{TR}_t$$
 
 ---
 
@@ -236,8 +236,8 @@ The Ensemble Engine is the single source of truth that fuses the three independe
 #### Base Weights (User-Configurable)
 | Module | Default Weight | Setting Key |
 |--------|---------------|-------------|
-| TimesFM | `0.40` | `ensemble_w_tfm` |
 | Pattern Matching | `0.35` | `ensemble_w_pm` |
+| TimesFM | `0.40` | `ensemble_w_tfm` |
 | AI Analyst | `0.25` | `ensemble_w_ai` |
 
 #### Dynamic Weight Adjustment (Confidence-Based)
@@ -420,82 +420,74 @@ This ensures orders are always placed relative to the current market price, not 
 
 **File:** [`gui/auto_trading_panel.py`](gui/auto_trading_panel.py) | **Core:** [`core/data_manager.py`](core/data_manager.py), [`core/portfolio_manager.py`](core/portfolio_manager.py)
 
-The Auto-Trading module executes a complete, autonomous 5-step workflow at a configurable interval (triggered 30 seconds after the close of every 15-minute candle).
+The Auto-Trading module executes a complete, autonomous 5-step workflow at a configurable interval (triggered 30 seconds after the close of every 15-minute candle). The analysis modules run in the same order as in the application navigation: **Market Data → Pattern Matching → TimesFM → AI Advanced Analysis**.
 
 ---
 
-#### Step 1 — Data Update & TimesFM Prediction
+#### Step 1 — Market Data Update
 
-1. **Asset retrieval**: Fetches the list of configured top crypto assets (from local cache or via CoinGecko/Yahoo Finance).
+1. **Asset retrieval**: Loads the configured crypto assets (BTC-focused for intraday trading).
 2. **Exchange price sync**: Fetches real-time prices from the exchange (BingX) via CCXT `fetch_tickers()`. Falls back to CoinGecko or Yahoo Finance if unavailable.
-3. **Daily historical download**: Downloads up to 365 days of daily OHLCV data for all assets.
-4. **TimesFM batch inference**: Runs the TimesFM 2.5 model in batch mode with `horizon=1` (1-day forecast per asset).
-5. **Signal emission**: Computes `change_pct_1d` and emits `BUY / HOLD / SELL` based on the configurable percentage threshold.
+3. **BTC history download**: Downloads up to 365 days of 15-minute BTC OHLCV candles from the exchange. Falls back to yfinance (60 days) if the exchange is unavailable.
+4. **Market panel sync**: Updates the Markets panel cache with the fresh data.
 
 ---
 
-#### Step 2 — Macro BTC/ETH Filter (Trend & Dominance)
+#### Step 2 — BTC Pattern Matching (KNN-DTW)
 
-This step determines whether the macro market environment favours BTC or ETH, and uses dominance analysis to select a "macro asset" for preferential trading.
+Runs the KNN-DTW pattern matching engine on the freshly downloaded BTC 15m history:
 
-**Cooldown Logic:**  
-If `settings["auto_trading"]["macro_cooldown"] > 0`, it is decremented by 1 and the macro logic is skipped entirely for this run.
+1. **Analysis**: Identifies the `k=5` most similar historical 2-hour windows to the current window using Euclidean distance on normalized log returns.
+2. **Expected move**: Computes the mean projected future return across all matched windows.
+3. **Confidence**: Scores sign consistency and proximity of historical matches.
+4. **UI update**: Inserts a new row in the Pattern Matching panel with move %, confidence, and target price. Saves to persistent history.
 
-**Discordance Check:**  
-When cooldown is 0, the system checks if `change_pct_1d` for BTC and ETH have opposite signs and are both non-zero.
+---
 
-- If signs are **concordant** (both positive, both negative, or one is zero): macro logic not applied.
-- If signs are **discordant**: ETH/BTC dominance analysis is triggered.
+#### Step 3 — TimesFM Time-Series Analysis
 
-**ETH/BTC Dominance Ratio:**  
-Downloads 30-day history of the `ETH/BTC` price ratio:
+Runs the Google TimesFM 2.5 foundation model on the BTC 15m history:
 
-$$\text{Ratio}_t = \frac{P_{\text{ETH},t}}{P_{\text{BTC},t}}$$
+1. **Model load**: Lazily loads TimesFM from HuggingFace cache (downloaded only once, then cached locally).
+2. **Inference**: Feeds the last 96+ candles as context and forecasts the next 8 candles (`horizon=8`, 2 hours ahead).
+3. **Signal emission**: Computes `change_pct_1d` and emits `BUY / HOLD / SELL` based on the configurable percentage threshold.
+4. **Result storage**: Saves forecast to `data/forecast_log.csv` and updates the Time-Series Analysis panel.
 
-$$\text{MA14} = \frac{1}{14}\sum_{t=T-13}^{T}\text{Ratio}_t$$
+---
+
+#### Step 4 — AI Advanced Analysis & Order Execution (Macro Asset: BTC)
+
+Determines the macro market direction via BTC/ETH dominance analysis, then runs the full AI pipeline on BTC.
+
+**Macro BTC/ETH Filter:**  
+Checks if `change_pct_1d` for BTC and ETH have opposite signs (discordance). If discordant, runs the ETH/BTC dominance ratio analysis:
+
+$$\text{Ratio}_t = \frac{P_{\text{ETH},t}}{P_{\text{BTC},t}}, \quad \text{MA14} = \frac{1}{14}\sum_{t=T-13}^{T}\text{Ratio}_t$$
 
 | Condition | Interpretation | Macro Candidate |
-|-----------|---------------|-----------------|
+|-----------|---------------|-----------------|  
 | $\text{Ratio}_T < \text{MA14}$ | BTC drains liquidity from ETH | **BTC** |
 | $\text{Ratio}_T \geq \text{MA14}$ | ETH outperforms BTC | **ETH** |
 
-**Trend Confirmation:**  
-If the dominant asset's `change_pct_1d > 0%` → confirmed as macro candidate (e.g., LONG BTC).  
-If the dominant asset's predicted change is ≤ 0% → uncertain/sideways market → **FLAT** (skip macro trading for this run).
+A `macro_cooldown` of 3 runs is set after any determination to prevent redundant signals.
 
-**Cooldown Reset:**  
-After any macro determination (candidate confirmed or FLAT), `macro_cooldown` is set to **3 runs** to prevent redundant signals.
-
----
-
-#### Step 3 — Best Normal Asset Selection
-
-Selects the highest-conviction non-macro asset for the secondary trade slot.
-
-**Exclusion Rules (hard):**
-- BTC and ETH are **always excluded** from normal selection (reserved for macro slot only).
-- Assets in the user-defined exclusion list.
-- Assets in cooldown due to low AI confidence (3-run cooldown).
-- If `ignore_portfolio = False`: assets already held in portfolio.
-
-**Fallback:**  
-If no eligible new assets exist, the system evaluates portfolio assets for potential DCA reinforcement.
+**AI Analysis & Execution:**
+1. **Pre-trade management**: Closes any profitable existing BTC/ETH positions (unrealized PnL > 0). Loss positions are kept open.
+2. **Full AI pipeline**: Runs the complete 6-agent LLM pipeline, receiving Pattern Matching and TimesFM results as context for the decision.
+3. **Order execution**: Portfolio Manager places the order via CCXT. If AI confidence is below threshold, a 3-run cooldown is set for that asset.
 
 ---
 
-#### Step 4 — AI Analysis & Order Execution (Macro Asset)
+#### Step 5 — AI Advanced Analysis & Order Execution (Normal Asset)
 
-If a macro asset was confirmed in Step 2:
+**Asset Selection:**  
+Selects the highest-conviction non-macro asset:
+- BTC and ETH are always excluded (reserved for macro slot).
+- Excludes assets in the user-defined exclusion list, in low-confidence cooldown, or already held (if `ignore_portfolio = False`).
+- Falls back to portfolio assets for potential DCA reinforcement if no new eligible asset exists.
 
-1. **Pre-trade portfolio management**: Checks existing BTC/ETH positions. Immediately closes any **profitable** positions on those assets (quantity > 0 and unrealized PnL > 0). Loss positions are kept open.
-2. **Full AI pipeline**: Runs the complete 6-agent LLM analysis pipeline on the macro asset.
-3. **Order execution**: If the AI confirms with high confidence, the Portfolio Manager places the order on the exchange via CCXT. If rejected due to low confidence, a 3-run cooldown is set for that asset.
-
----
-
-#### Step 5 — AI Analysis & Order Execution (Normal Asset)
-
-Runs the full AI pipeline on the normal asset selected in Step 3. If the primary selection is rejected (low confidence or failed analysis), the system **cascades** through the next-best candidates in the sorted list until a successful order or the list is exhausted.
+**AI Analysis & Execution:**  
+Runs the full AI pipeline on the selected normal asset. If the primary candidate is rejected (low confidence or failed analysis), the system **cascades** through the next-best candidates until a successful order or the list is exhausted.
 
 ---
 
@@ -544,11 +536,12 @@ Argus/
 
 | Panel | Description |
 |-------|-------------|
-| **Markets** | Real-time price table for top crypto assets. Triggers data sync and TimesFM batch forecast. Displays signals, % change estimates, and ATR values. |
-| **AI Analysis** | Runs the full 6-agent pipeline on a selected asset. Configures LLM provider, model, API key, debate rounds. Displays each agent's report and the final structured JSON decision. |
-| **Pattern Matching** | Runs the BTC KNN-DTW analysis. Displays match count, confidence score, expected move %, and historical chart overlay. |
-| **Portfolio** | Displays current Spot and Futures positions via CCXT. Shows leverage, entry price, current price, unrealized P&L, SL/TP. Allows manual order generation and execution. |
 | **Auto Trading** | Configures and controls the automated 5-step trading workflow. Run log shows each run's start time, duration, result, and detailed step-by-step output. |
+| **Portfolio** | Displays current Spot and Futures positions via CCXT. Shows leverage, entry price, current price, unrealized P&L, SL/TP. Allows manual order generation and execution. |
+| **Markets** | Real-time price table for top crypto assets. Triggers BTC history download and data sync. Displays current prices, % changes, and ATR values. |
+| **Pattern Matching** | Runs the BTC KNN-DTW analysis. Displays match count, confidence score, expected move %, and historical chart overlay. |
+| **Time-Series Analysis** | Runs TimesFM 2.5 batch inference on the locally cached BTC history. Displays forecasted price, directional signal, and ATR-based confidence bounds. |
+| **Advanced Analysis (AI)** | Runs the full 6-agent LLM pipeline on a selected asset. Configures LLM provider, model, API key, debate rounds. Displays each agent's report and the final structured JSON decision. |
 | **Config** | Global settings: TimesFM parameters, Ensemble weights, minimum return threshold, Portfolio Manager settings (API keys, exchange, sizing mode, risk %, leverage limits, pre-flight thresholds). |
 
 ---
