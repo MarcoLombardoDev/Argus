@@ -138,9 +138,48 @@ class PortfolioPanel(ctk.CTkFrame):
         r = 0
         section("Exchange Connection", r); r+=1
         
-        lbl("Exchange ID (e.g. bingx, binance)", r, 0)
-        self._exchange_var = ctk.StringVar(value=pm_settings.get("exchange_id", "bingx"))
-        ctk.CTkEntry(left_frame, textvariable=self._exchange_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
+        lbl("Exchange", r, 0)
+        _EXCHANGE_OPTIONS = [
+            ("Binance", "binance"),
+            ("Binance US", "binanceus"),
+            ("BingX", "bingx"),
+            ("Bitfinex", "bitfinex"),
+            ("Bitget", "bitget"),
+            ("BitMEX", "bitmex"),
+            ("Bitmart", "bitmart"),
+            ("Bybit", "bybit"),
+            ("Coinbase Advanced", "coinbase"),
+            ("Crypto.com", "cryptocom"),
+            ("Deribit", "deribit"),
+            ("Gate.io", "gate"),
+            ("HTX (Huobi)", "htx"),
+            ("Hyperliquid", "hyperliquid"),
+            ("Kraken", "kraken"),
+            ("KuCoin", "kucoin"),
+            ("KuCoin Futures", "kucoinfutures"),
+            ("MEXC", "mexc"),
+            ("OKX", "okx"),
+            ("Phemex", "phemex"),
+            ("WOO X", "woo"),
+        ]
+        self._exchange_id_map = {f"{n} ({i})": i for n, i in _EXCHANGE_OPTIONS}
+        _exc_labels = [f"{n} ({i})" for n, i in _EXCHANGE_OPTIONS]
+        _cur_id = pm_settings.get("exchange_id", "bingx")
+        _cur_label = next((f"{n} ({i})" for n, i in _EXCHANGE_OPTIONS if i == _cur_id), _cur_id)
+        self._exchange_var = ctk.StringVar(value=_cur_label)
+        ctk.CTkOptionMenu(
+            left_frame,
+            values=_exc_labels,
+            variable=self._exchange_var,
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+            fg_color=BG_INPUT,
+            button_color=COLOR_ACCENT,
+            button_hover_color=COLOR_HOVER,
+            dropdown_fg_color=BG_CARD,
+            dropdown_hover_color=("#2d3748", "#2d3748"),
+            text_color="white",
+            dropdown_text_color="white",
+        ).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
         
         lbl("API Key (or Key Name)", r, 0)
         self._api_key_var = ctk.StringVar(value=pm_settings.get("api_key", ""))
@@ -307,7 +346,7 @@ class PortfolioPanel(ctk.CTkFrame):
                 api_secret_val = self._api_secret_txt.get("1.0", "end-1c").strip()
 
             self.settings["portfolio_manager"] = {
-                "exchange_id": self._exchange_var.get(),
+                "exchange_id": self._exchange_id_map.get(self._exchange_var.get(), self._exchange_var.get()),
                 "useExchangeBalance": self._use_exchange_var.get(),
                 "api_key": self._api_key_var.get().strip(),
                 "api_secret": api_secret_val,

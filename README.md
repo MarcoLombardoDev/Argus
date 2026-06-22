@@ -658,7 +658,37 @@ TimesFM is downloaded **once** and cached locally. Subsequent launches will use 
 
 ## Supported Exchanges
 
-Argus uses CCXT and theoretically supports any exchange available in the CCXT library. The application has been primarily developed and tested with **BingX** (Futures/Swap). The following special handling is implemented:
+Argus uses [CCXT](https://github.com/ccxt/ccxt) to connect to cryptocurrency exchanges. The complete, official list of all exchanges supported by CCXT is available at:
+
+> 📋 **[CCXT — Exchange Markets](https://github.com/ccxt/ccxt/wiki/Exchange-Markets)**
+
+The in-app exchange selector includes the most popular derivatives-capable exchanges pre-configured for convenience:
+
+| Exchange | CCXT ID |
+|----------|---------|
+| Binance | `binance` |
+| Binance US | `binanceus` |
+| **BingX** *(primary, tested)* | `bingx` |
+| Bitfinex | `bitfinex` |
+| Bitget | `bitget` |
+| BitMEX | `bitmex` |
+| Bitmart | `bitmart` |
+| Bybit | `bybit` |
+| Coinbase Advanced | `coinbase` |
+| Crypto.com | `cryptocom` |
+| Deribit | `deribit` |
+| Gate.io | `gate` |
+| HTX (Huobi) | `htx` |
+| Hyperliquid | `hyperliquid` |
+| Kraken | `kraken` |
+| KuCoin | `kucoin` |
+| KuCoin Futures | `kucoinfutures` |
+| MEXC | `mexc` |
+| OKX | `okx` |
+| Phemex | `phemex` |
+| WOO X | `woo` |
+
+The application has been primarily developed and tested with **BingX** (Futures/Swap). The following special handling is implemented:
 
 | Exchange | Notes |
 |----------|-------|
@@ -667,6 +697,7 @@ Argus uses CCXT and theoretically supports any exchange available in the CCXT li
 | **Others** | Standard CCXT flow; multi-account-type balance fetching with deduplication |
 
 ---
+
 
 ## Requirements
 
