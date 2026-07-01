@@ -240,6 +240,8 @@ The Ensemble Engine is the single source of truth that fuses the three independe
 | TimesFM | `0.40` | `ensemble_w_tfm` |
 | AI Analyst | `0.25` | `ensemble_w_ai` |
 
+> **Note on Auto Trading:** You can disable the Advanced Analysis module in Auto Trading via the setting `enable_ai_auto_trade`. If disabled, the AI Analyst weight is distributed equally between Pattern Matching and TimesFM, and the AI module is bypassed to speed up execution and reduce API costs.
+
 #### Dynamic Weight Adjustment (Confidence-Based)
 
 Each weight is dynamically adjusted at runtime based on the reported confidence of each module. This ensures that a low-confidence module contributes less to the final signal, and a high-confidence module contributes more:

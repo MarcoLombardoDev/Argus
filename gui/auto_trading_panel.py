@@ -206,6 +206,9 @@ class AutoTradingPanel(ctk.CTkFrame):
             "💡 NOTE: Runs repeat automatically at the specified interval. The countdown shows the time remaining before the next cycle starts."
         )
         ctk.CTkLabel(info_card, text=info_text, font=ctk.CTkFont("Segoe UI", 11), text_color=("#c0c8e0", "#c0c8e0"), justify="left", anchor="w", wraplength=380).pack(fill="both", expand=True, padx=16, pady=16)
+        
+        # Populate logs on startup
+        self._refresh_logs_ui()
 
     def _save_settings(self):
         try:
@@ -361,17 +364,53 @@ class AutoTradingPanel(ctk.CTkFrame):
             sym = target_asset.get("symbol", "?")
             if self.stop_requested:
                 return False, 0
-            update_status(f"🤖 AI Analysis {label}: {sym}...")
-            try:
-                res = analyst_ref.analyze_single(
-                    target_asset,
-                    progress_callback=lambda msg: None
-                )
-                res["btc_expected_move"] = target_asset.get("btc_expected_move", 0.0)
-                res["btc_pred_confidence"] = target_asset.get("btc_pred_confidence", 0.0)
-            except Exception as e:
-                print(f"[AutoTrading] AI Analysis failed for {sym}: {e}")
-                return False, 0
+            enable_ai = self.settings.get("enable_ai_auto_trade", True)
+            def _build_ai_fallback_res(t_asset, reason="DISABLED", err_msg=""):
+                r = t_asset.copy()
+                from datetime import datetime
+                r["analyzed_at"] = datetime.now().isoformat()
+                r["btc_expected_move"] = t_asset.get("btc_expected_move", 0.0)
+                r["btc_pred_confidence"] = t_asset.get("btc_pred_confidence", 0.0)
+                r["tfm_confidence"] = t_asset.get("confidence", 50.0)
+                r["ai_change_pct_1d"] = 0.0
+                r["confidence"] = reason
+                r["signal"] = reason
+                r["ai_analysis_text"] = err_msg if err_msg else "Advanced Analysis is disabled in Auto Trading."
+                
+                curr_p = float(r.get("current_price", r.get("last_price", 1.0)))
+                w_t = float(self.settings.get("ensemble_w_tfm", 0.40))
+                w_p = float(self.settings.get("ensemble_w_pm", 0.35))
+                w_a = float(self.settings.get("ensemble_w_ai", 0.25))
+                w_p += w_a / 2.0
+                w_t += w_a / 2.0
+                t_pct = float(r.get("change_pct_1d", 0.0))
+                p_pct = float(r.get("btc_expected_move", 0.0))
+                e_ret = (t_pct * w_t) + (p_pct * w_p)
+                
+                if e_ret >= 0:
+                    r["stop_loss"] = curr_p * 0.97
+                    r["take_profit"] = curr_p * 1.06
+                else:
+                    r["stop_loss"] = curr_p * 1.03
+                    r["take_profit"] = curr_p * 0.94
+                return r
+
+            if not enable_ai:
+                update_status(f"Advanced Analysis skipped: Disabled in Auto Trading settings")
+                res = _build_ai_fallback_res(target_asset)
+            else:
+                update_status(f"🤖 AI Analysis {label}: {sym}...")
+                try:
+                    res = analyst_ref.analyze_single(
+                        target_asset,
+                        progress_callback=lambda msg: None
+                    )
+                    res["btc_expected_move"] = target_asset.get("btc_expected_move", 0.0)
+                    res["btc_pred_confidence"] = target_asset.get("btc_pred_confidence", 0.0)
+                except Exception as e:
+                    print(f"[AutoTrading] AI Analysis failed for {sym}: {e}")
+                    update_status(f"Advanced Analysis failed (API error). Fallback applied.")
+                    res = _build_ai_fallback_res(target_asset, reason="DISABLED", err_msg=f"Advanced Analysis failed: {e}. Fallback applied.")
 
             ai_results = [res]
             import core.ai_analysis_store as aistore
@@ -413,7 +452,9 @@ class AutoTradingPanel(ctk.CTkFrame):
             reason = "HOLD action or low confidence"
             if discarded_for_conf:
                 reason = "Insufficient AI confidence"
-            elif res.get("signal", "HOLD") != "HOLD":
+            elif res.get("signal_1d", "HOLD") not in ["HOLD", "NO TRADE"]:
+                reason = "Risk Management filter or Max positions reached"
+            elif res.get("signal", "HOLD") not in ["HOLD", "DISABLED"]:
                 reason = "Risk Management filter (e.g. SL too wide)"
             return True, [{"status": "REJECTED", "error": reason}]
 

@@ -272,7 +272,18 @@ def append_to_forecast_history(results: list[dict]):
         new_df = pd.DataFrame(results)
         if FORECAST_HISTORY_PATH.exists():
             old_df = pd.read_csv(FORECAST_HISTORY_PATH, encoding="utf-8")
-            combined_df = pd.concat([old_df, new_df], ignore_index=True)
+            
+            # Avoid DataFrame concatenation with all-NA entries FutureWarning
+            old_df = old_df.dropna(axis=1, how='all')
+            new_df = new_df.dropna(axis=1, how='all')
+            
+            if old_df.empty:
+                combined_df = new_df
+            elif new_df.empty:
+                combined_df = old_df
+            else:
+                combined_df = pd.concat([old_df, new_df], ignore_index=True)
+                
             # Keep the last 2500 rows to handle multiple runs with large lists
             combined_df = combined_df.tail(2500)
         else:

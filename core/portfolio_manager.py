@@ -21,44 +21,58 @@ class PortfolioManager:
         self.exchange = None
         self._init_exchange()
 
-    def calculate_sizing(self, tfm_pct: float, pm_pct: float, ai_pct: float, fng_value: float, funding_rate: float = 0.0, pm_conf: float = 50.0, ai_conf: float = 50.0, tfm_conf: float = 50.0) -> tuple[str, str, float, float]:
+    def calculate_sizing(self, tfm_pct: float, pm_pct: float, ai_pct: float, fng_value: float, funding_rate: float = 0.0, pm_conf: float = 50.0, ai_conf: float = 50.0, tfm_conf: float = 50.0, ai_disabled: bool = False) -> tuple[str, str, float, float]:
         """
-        Calculates and returns (rule_name, final_signal, size_multiplier, expected_return_pct)
-        based on quantitative Ensemble logic dynamically recalibrated based on confidence.
+        Calculates position sizing and ensemble weighting based on confidence scores.
         """
         w_tfm = float(self.settings.get("ensemble_w_tfm", 0.40))
         w_pm = float(self.settings.get("ensemble_w_pm", 0.35))
         w_ai = float(self.settings.get("ensemble_w_ai", 0.25))
 
+        enable_ai = self.settings.get("enable_ai_auto_trade", True)
+        if ai_disabled or not enable_ai:
+            w_tfm += w_ai / 2.0
+            w_pm += w_ai / 2.0
+            w_ai = 0.0
+            ai_pct = 0.0
+            active_models_count = 2
+        else:
+            active_models_count = 3
+
         # --- Dynamic adjustment based on Pattern Matching Confidence ---
         if pm_conf <= 33.0:
             w_pm -= 0.05
             w_tfm += 0.025
-            w_ai += 0.025
+            if enable_ai: w_ai += 0.025
+            else: w_tfm += 0.025
         elif pm_conf >= 66.0:
             w_pm += 0.05
             w_tfm -= 0.025
-            w_ai -= 0.025
+            if enable_ai: w_ai -= 0.025
+            else: w_tfm -= 0.025
             
         # --- Dynamic adjustment based on TimesFM (Temporal Analysis) Confidence ---
         if tfm_conf <= 33.0:
             w_tfm -= 0.05
             w_pm += 0.025
-            w_ai += 0.025
+            if enable_ai: w_ai += 0.025
+            else: w_pm += 0.025
         elif tfm_conf >= 66.0:
             w_tfm += 0.05
             w_pm -= 0.025
-            w_ai -= 0.025
+            if enable_ai: w_ai -= 0.025
+            else: w_pm -= 0.025
 
-        # --- Dynamic adjustment based on Advanced AI Analysis Confidence ---
-        if ai_conf <= 33.0:
-            w_ai -= 0.05
-            w_tfm += 0.025
-            w_pm += 0.025
-        elif ai_conf >= 66.0:
-            w_ai += 0.05
-            w_tfm -= 0.025
-            w_pm -= 0.025
+        if enable_ai:
+            # --- Dynamic adjustment based on Advanced AI Analysis Confidence ---
+            if ai_conf <= 33.0:
+                w_ai -= 0.05
+                w_tfm += 0.025
+                w_pm += 0.025
+            elif ai_conf >= 66.0:
+                w_ai += 0.05
+                w_tfm -= 0.025
+                w_pm -= 0.025
             
         # Ensure weights do not become negative
         w_tfm = max(0.0, w_tfm)
@@ -96,7 +110,7 @@ class PortfolioManager:
         if final_signal in ["BUY", "SELL"]:
             # Partial alignment
             max_agree = max(pos_count, neg_count)
-            if max_agree == 2:
+            if max_agree < active_models_count:
                 size_multiplier *= 0.60  # -40% size
                 rule_name += " (Partial)"
             
@@ -485,12 +499,15 @@ class PortfolioManager:
             if pm_conf is None: pm_conf = 50.0
             
             ai_conf = res.get("confidence", 50.0)
-            if ai_conf is None: ai_conf = 50.0
+            if ai_conf is None or str(ai_conf).upper() in ["N/A", "DISABLED"]: ai_conf = 50.0
+            else: ai_conf = float(ai_conf)
             
             tfm_conf = res.get("tfm_confidence") or res.get("confidence")
-            if tfm_conf is None or tfm_conf == "N/A": tfm_conf = 50.0
+            if tfm_conf is None or str(tfm_conf).upper() in ["N/A", "DISABLED"]: tfm_conf = 50.0
             else: tfm_conf = float(tfm_conf)
 
+            ai_disabled = (str(res.get("signal", "")).upper() == "DISABLED")
+            
             rule_name, final_signal, size_multiplier, exp_ret = self.calculate_sizing(
                 tfm_pct=tfm_pct,
                 pm_pct=pm_pct,
@@ -499,13 +516,17 @@ class PortfolioManager:
                 funding_rate=funding_rate,
                 pm_conf=pm_conf,
                 ai_conf=ai_conf,
-                tfm_conf=tfm_conf
+                tfm_conf=tfm_conf,
+                ai_disabled=ai_disabled
             )
             
             res["expected_return_pct"] = exp_ret
             res["signal_1d"] = final_signal
             
-            conf = res.get("confidence", 0)
+            if ai_disabled:
+                conf = (pm_conf + tfm_conf) / 2.0
+            else:
+                conf = float(res.get("confidence", 50.0) if str(res.get("confidence", "")).upper() not in ["DISABLED", "N/A"] else 50.0)
                 
             if final_signal in ["BUY", "SELL"] and size_multiplier > 0.0:
                 # Confidence now conditions the advanced analysis, no longer the ensemble sizing

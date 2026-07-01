@@ -651,14 +651,28 @@ class AIAnalysisPanel(ctk.CTkFrame):
                     pm_pct = float(r.get("btc_expected_move") or 0.0)
                 except (ValueError, TypeError):
                     pm_pct = 0.0
-                try:
-                    ai_pct = float(r.get("ai_change_pct_1d") or tfm_pct)
-                except (ValueError, TypeError):
-                    ai_pct = tfm_pct
+                enable_ai = self._app_settings.get("enable_ai_auto_trade", True)
+                ai_disabled = (r.get("signal") == "DISABLED") or not enable_ai
+                if ai_disabled:
+                    ai_pct = 0.0
+                    r["confidence"] = "DISABLED"
+                else:
+                    try:
+                        ai_pct = float(r.get("ai_change_pct_1d") or tfm_pct)
+                    except (ValueError, TypeError):
+                        ai_pct = tfm_pct
                 
                 w_tfm = float(self._app_settings.get("ensemble_w_tfm", 40.0)) / 100.0
                 w_pm = float(self._app_settings.get("ensemble_w_pm", 35.0)) / 100.0
                 w_ai = float(self._app_settings.get("ensemble_w_ai", 25.0)) / 100.0
+                
+                if ai_disabled:
+                    w_pm += w_ai / 2.0
+                    w_tfm += w_ai / 2.0
+                    w_ai = 0.0
+                    active_models = 2
+                else:
+                    active_models = 3
                 
                 exp_ret = (tfm_pct * w_tfm) + (pm_pct * w_pm) + (ai_pct * w_ai)
                 
@@ -666,12 +680,13 @@ class AIAnalysisPanel(ctk.CTkFrame):
                 neg_count = sum(1 for p in [tfm_pct, pm_pct, ai_pct] if p < 0)
                 
                 final_signal = "HOLD"
-                if pos_count >= 2 and exp_ret > 0.30: final_signal = "BUY"
-                elif neg_count >= 2 and exp_ret < -0.30: final_signal = "SELL"
+                min_ret = float(self._app_settings.get("ensemble_min_return_pct", 0.30))
+                if pos_count >= 2 and exp_ret > min_ret: final_signal = "BUY"
+                elif neg_count >= 2 and exp_ret < -min_ret: final_signal = "SELL"
                 
                 max_agree = max(pos_count, neg_count)
                 size_mult = 1.0 if final_signal in ["BUY", "SELL"] else 0.0
-                if final_signal in ["BUY", "SELL"] and max_agree == 2: size_mult *= 0.60
+                if final_signal in ["BUY", "SELL"] and max_agree < active_models: size_mult *= 0.60
                 
                 sizing_str = f"{int(size_mult * 100)}%" if size_mult > 0 else "0%"
                 
@@ -721,22 +736,25 @@ class AIAnalysisPanel(ctk.CTkFrame):
                 tfm_conf = r.get("tfm_confidence")
                 ai_conf = r.get("confidence")
 
-                self._res_tree.insert("", "end", iid=iid, values=(
-                    "☐",
-                    r.get("name", ""),
-                    r.get("symbol", ""),
-                    _fmt_price(r.get("current_price")),
-                    _fmt_pct_with_conf(pm_pct, pm_conf),
-                    _fmt_pct_with_conf(tfm_pct, tfm_conf),
-                    _fmt_pct_with_conf(ai_pct, ai_conf),
-                    _fmt_pct_with_conf(exp_ret, ai_conf),
-                    f"{leverage}x",
-                    sl_pct_str,
-                    tp_pct_str,
-                    scadenza,
-                    sizing_str,
-                ), tags=(tag,))
-                row_count += 1
+                try:
+                    self._res_tree.insert("", "end", iid=iid, values=(
+                        "☐",
+                        r.get("name", ""),
+                        r.get("symbol", ""),
+                        _fmt_price(r.get("current_price")),
+                        _fmt_pct_with_conf(pm_pct, pm_conf),
+                        _fmt_pct_with_conf(tfm_pct, tfm_conf),
+                        _fmt_pct_with_conf(ai_pct, ai_conf),
+                        _fmt_pct_with_conf(exp_ret, ai_conf),
+                        f"{leverage}x",
+                        sl_pct_str,
+                        tp_pct_str,
+                        scadenza,
+                        sizing_str,
+                    ), tags=(tag,))
+                    row_count += 1
+                except Exception as e:
+                    print(f"Error inserting row in results tree: {e}")
 
     def _on_res_tree_click(self, event):
         """Toggle selezione al click sulla riga dei risultati."""
@@ -1068,6 +1086,10 @@ class AIAnalysisPanel(ctk.CTkFrame):
         self._w_ai_label.grid(row=r, column=0, padx=16, pady=(2, 2), sticky="e"); r += 1
         ctk.CTkLabel(left_frame, text="Percentage influence of the AI agent committee in the final signal calculation.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
 
+        self._enable_ai_auto_trade_var = ctk.BooleanVar(value=self._app_settings.get("enable_ai_auto_trade", True))
+        ctk.CTkSwitch(left_frame, text="Enable Advanced Analysis in Auto Trading", variable=self._enable_ai_auto_trade_var, font=ctk.CTkFont("Segoe UI", 11, "bold"), progress_color=COLOR_ACCENT).grid(row=r, column=0, padx=16, pady=(8, 0), sticky="w"); r += 1
+        ctk.CTkLabel(left_frame, text="If disabled, Auto Trading will skip the AI analysis module. Its weight will be distributed equally between Pattern Matching and Time Series.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left", anchor="w", wraplength=400).grid(row=r, column=0, padx=16, pady=(4, 12), sticky="ew"); r += 1
+
         sep(left_frame, row=r); r += 1
 
         # --- Sezione Chiavi Esterne ---
@@ -1275,6 +1297,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
             "ensemble_w_tfm":         int(self._w_tfm_var.get()),
             "ensemble_w_pm":          int(self._w_pm_var.get()),
             "ensemble_w_ai":          int(self._w_ai_var.get()),
+            "enable_ai_auto_trade":   self._enable_ai_auto_trade_var.get(),
         }
         self._app_settings.update(updated)
         save_settings(self._app_settings)

@@ -653,6 +653,7 @@ class MarketsPanel(ctk.CTkFrame):
                     else:
                         # Quick fallback if exchange pagination fails (yfinance)
                         import yfinance as yf
+                        import pandas as pd
                         status("⚠️ Exchange failed, fallback history on yfinance (60 days)...", 0.7)
                         df_btc = yf.download("BTC-USD", period="60d", interval="15m", progress=False)
                         if df_btc is not None and not df_btc.empty:

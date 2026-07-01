@@ -131,7 +131,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
         col_ids = [c[0] for c in cols]
         
         self._tree = ttk.Treeview(
-            tree_frame, columns=col_ids, show="headings", style="Argus.Treeview", selectmode="none"
+            tree_frame, columns=col_ids, show="headings", style="Argus.Treeview", selectmode="browse"
         )
         self._tree.grid(row=0, column=0, sticky="nsew")
 
