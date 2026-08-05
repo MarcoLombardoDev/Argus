@@ -131,26 +131,46 @@ def results_to_dataframe(results: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(results)
 
 
-def format_price(price: float | None) -> str:
+def _to_float(value) -> float | None:
+    """Coerces a display value to float, or None when it is not a number.
+
+    Values reaching the formatters come from CSV reloads and LLM output as well
+    as from live computation, so they can be strings ("65000.0"), sentinels
+    ("N/A", "DISABLED") or NaN.
+    """
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return None if value != value else float(value)  # NaN -> None
+    try:
+        return float(str(value).strip().replace("%", "").replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+
+
+def format_price(price) -> str:
     """Formats the price for display (adapts precision to the value)."""
-    if price is None:
+    p = _to_float(price)
+    if p is None:
         return "N/A"
-    if price >= 1000:
-        return f"${price:,.2f}"
-    elif price >= 1:
-        return f"${price:.4f}"
-    elif price >= 0.001:
-        return f"${price:.6f}"
+    abs_p = abs(p)
+    if abs_p >= 1000:
+        return f"${p:,.2f}"
+    elif abs_p >= 1:
+        return f"${p:.4f}"
+    elif abs_p >= 0.001:
+        return f"${p:.6f}"
     else:
-        return f"${price:.8f}"
+        return f"${p:.8f}"
 
 
-def format_change_pct(change_pct: float | None) -> str:
+def format_change_pct(change_pct) -> str:
     """Formats the percentage change for display."""
-    if change_pct is None:
+    v = _to_float(change_pct)
+    if v is None:
         return "N/A"
-    sign = "+" if change_pct >= 0 else ""
-    return f"{sign}{change_pct:.2f}%"
+    sign = "+" if v >= 0 else ""
+    return f"{sign}{v:.2f}%"
 
 
 def verify_past_forecasts() -> list[dict]:
@@ -174,11 +194,24 @@ def verify_past_forecasts() -> list[dict]:
     verified_results = []
     
     # Load all unique symbols present in history
-    symbols = df_history["symbol"].unique()
+    if "symbol" not in df_history.columns:
+        return []
+
+    symbols = df_history["symbol"].dropna().unique()
     historical_dfs = {}
     for s in symbols:
-        historical_dfs[s] = load_historical(s)
-        
+        # load_historical() raises ValueError when the local cache is missing or
+        # stale — that must not abort the whole verification report.
+        try:
+            historical_dfs[s] = load_historical(s)
+        except ValueError as ve:
+            print(f"[Analyzer] Skipping {s}: {ve}")
+            historical_dfs[s] = None
+        except Exception as e:
+            print(f"[Analyzer] Unable to load history for {s}: {e}")
+            historical_dfs[s] = None
+
+
     for _, row in df_history.iterrows():
         symbol = row.get("symbol")
         run_date_str = row.get("run_date")

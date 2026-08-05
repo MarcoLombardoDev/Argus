@@ -16,18 +16,18 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from datetime import datetime
 import customtkinter as ctk
+import pandas as pd
 
-from core.ai_analyst import AIAnalyst, SUGGESTED_MODELS, PROVIDER_URLS
+from core.ai_analyst import AIAnalyst
 from core.ai_analysis_store import (
-    save_ai_session, load_all_sessions, load_session,
+    save_ai_session, load_all_sessions,
     export_session_csv, export_session_excel, export_session_pdf,
     delete_analysis
 )
-from core.portfolio_manager import PortfolioManager
-from core.data_manager import load_settings, save_settings
-from core.analyzer import format_price, format_change_pct, compute_expiry_date
-from datetime import datetime, timedelta
-from gui.utils import apply_binance_tab_style
+from core.portfolio_manager import normalize_ensemble_weights
+from core.data_manager import save_settings
+from core.analyzer import compute_expiry_date
+from gui.utils import apply_binance_tab_style, dark_scrollbar
 
 
 # ─────────────────────────────────────────────────────────────
@@ -362,7 +362,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         self._sel_tree.tag_configure("sel",  background="#1a2a4a", foreground="#c0d8ff")
         self._sel_tree.bind("<Button-1>", self._on_sel_tree_click)
 
-        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self._sel_tree.yview)
+        vsb = dark_scrollbar(tree_frame, "vertical", self._sel_tree.yview)
         vsb.grid(row=0, column=1, sticky="ns")
         self._sel_tree.configure(yscrollcommand=vsb.set)
 
@@ -558,8 +558,8 @@ class AIAnalysisPanel(ctk.CTkFrame):
             ("pm_1d",          "Var% 2h PM",    125, "center", False),
             ("timefm_sig_1d",  "Var% 2h TFM",   125, "center", False),
             ("pct_1d",         "Var% 2h AV",    125, "center", False),
-            ("target_1d",      "Final Forecast",  100, "e",      False),
-            ("leverage",       "Leverage",           55, "center", False),
+            ("target_1d",      "Final Forecast",  130, "e",      False),
+            ("leverage",       "Leverage",           80, "center", False),
             ("sl",             "SL (ROI%)",         160, "e",      False),
             ("tp",             "TP (ROI%)",         160, "e",      False),
             ("scadenza",       "Expiry",      130, "center", False),
@@ -586,7 +586,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         ]:
             self._res_tree.tag_configure(f"res_{sig}", background=bg, foreground=fg)
 
-        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self._res_tree.yview)
+        vsb = dark_scrollbar(tree_frame, "vertical", self._res_tree.yview)
         vsb.grid(row=0, column=1, sticky="ns")
         self._res_tree.configure(yscrollcommand=vsb.set)
 
@@ -662,10 +662,11 @@ class AIAnalysisPanel(ctk.CTkFrame):
                     except (ValueError, TypeError):
                         ai_pct = tfm_pct
                 
-                w_tfm = float(self._app_settings.get("ensemble_w_tfm", 40.0)) / 100.0
-                w_pm = float(self._app_settings.get("ensemble_w_pm", 35.0)) / 100.0
-                w_ai = float(self._app_settings.get("ensemble_w_ai", 25.0)) / 100.0
-                
+                # Single source of truth for weight normalisation (handles both the
+                # percentage form written by the sliders and a fractional form).
+                w_tfm, w_pm, w_ai = normalize_ensemble_weights(self._app_settings)
+
+
                 if ai_disabled:
                     w_pm += w_ai / 2.0
                     w_tfm += w_ai / 2.0

@@ -6,7 +6,6 @@ Top-N assets and provider configuration are now in the Markets section.
 """
 
 import customtkinter as ctk
-from tkinter import messagebox
 from gui.utils import apply_binance_tab_style
 
 

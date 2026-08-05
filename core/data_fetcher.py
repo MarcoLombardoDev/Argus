@@ -180,9 +180,16 @@ def download_historical_yahoo(symbol: str, days: int = 45) -> pd.DataFrame | Non
         
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
-        
-    df = df[["Open", "High", "Low", "Close", "Volume"]].copy()
+
+    if "Close" not in df.columns:
+        return None
+
+    # Keep only the OHLCV columns that Yahoo actually returned.
+    wanted = [c for c in ("Open", "High", "Low", "Close", "Volume") if c in df.columns]
+    df = df[wanted].copy()
     df = df.dropna(subset=["Close"])
+    if df.empty:
+        return None
     df.index = pd.to_datetime(df.index)
     df.index.name = "Date"
     return df
@@ -625,10 +632,13 @@ def fetch_order_book_imbalance(exchange, symbol: str, limit: int = 20) -> float 
         if not bids and not asks:
             return 0.0
             
-        # Calculate total volume (price * quantity) in the first limit levels
-        vol_bids = sum([price * qty for price, qty in bids[:limit]])
-        vol_asks = sum([price * qty for price, qty in asks[:limit]])
-        
+        # Calculate total volume (price * quantity) in the first limit levels.
+        # CCXT levels are [price, amount] but some venues append extra fields,
+        # so index explicitly instead of tuple-unpacking.
+        vol_bids = sum(float(lvl[0]) * float(lvl[1]) for lvl in bids[:limit] if len(lvl) >= 2)
+        vol_asks = sum(float(lvl[0]) * float(lvl[1]) for lvl in asks[:limit] if len(lvl) >= 2)
+
+
         total_vol = vol_bids + vol_asks
         if total_vol == 0:
             return 0.0

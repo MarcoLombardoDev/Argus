@@ -9,7 +9,6 @@ import time
 import datetime
 import customtkinter as ctk
 from tkinter import ttk, messagebox
-import pandas as pd
 
 from core.data_manager import save_autotrading_log, load_autotrading_logs, save_settings
 from gui.utils import apply_binance_tab_style
@@ -29,8 +28,6 @@ class AutoTradingPanel(ctk.CTkFrame):
         self.settings = settings
         self.app = app_instance
         
-        # Load interval from settings or default to 1 min
-        auto_settings = self.settings.get("auto_trading", {})
         self.last_candle_close_run = None
         
         self.is_running = False
@@ -250,7 +247,8 @@ class AutoTradingPanel(ctk.CTkFrame):
         self._status("Active. Waiting for next cycle...")
         # Force immediate execution for the first cycle
         self.last_run_time = None
-        self._scheduler_loop()
+        # The scheduler tick is self-perpetuating and started once in __init__,
+        # so do NOT kick off a second one here (that would double the ticks).
 
     def _stop_auto(self):
         self.stop_requested = True
@@ -267,10 +265,21 @@ class AutoTradingPanel(ctk.CTkFrame):
         self.after(100, self._check_queue)
 
     def _scheduler_loop(self):
+        """Single self-perpetuating 1s tick. Started once from __init__ and never
+        cancelled, so Start/Stop can be toggled freely without leaking timers."""
+        try:
+            self._scheduler_tick()
+        except Exception as e:
+            print(f"[AutoTrading] Scheduler tick error: {e}")
+        finally:
+            # Always rearm — a dead scheduler silently stops auto-trading.
+            self.after(1000, self._scheduler_loop)
+
+    def _scheduler_tick(self):
         if not self.is_running:
             self._countdown_lbl.configure(text="")
             return
-            
+
         if self.stop_requested:
             self.is_running = False
             self.stop_requested = False
@@ -294,18 +303,18 @@ class AutoTradingPanel(ctk.CTkFrame):
         if getattr(self, "workflow_running", False):
             self._countdown_lbl.configure(text="Running...")
         elif now_dt >= target_trigger_time and getattr(self, "last_candle_close_run", None) != last_candle_close:
-            # Weekend check
+            # Weekend check — skip this candle but keep the scheduler alive,
+            # otherwise auto-trading would stay dead until the next manual Start.
             auto_set = self.settings.get("auto_trading", {})
-            if not auto_set.get("run_weekend", True):
-                if now_dt.weekday() in (5, 6):
-                    self.last_candle_close_run = last_candle_close
-                    self._status("⏳ Weekend: auto-trading suspended (run_weekend = False).")
-                    return
-            
-            self.last_candle_close_run = last_candle_close
-            self.workflow_running = True
-            self._countdown_lbl.configure(text="Starting...")
-            threading.Thread(target=self._run_workflow, daemon=True).start()
+            if not auto_set.get("run_weekend", True) and now_dt.weekday() in (5, 6):
+                self.last_candle_close_run = last_candle_close
+                self._status("⏳ Weekend: auto-trading suspended (run_weekend = False).")
+                self._countdown_lbl.configure(text="Suspended (weekend)")
+            else:
+                self.last_candle_close_run = last_candle_close
+                self.workflow_running = True
+                self._countdown_lbl.configure(text="Starting...")
+                threading.Thread(target=self._run_workflow, daemon=True).start()
         else:
             # Calculate remaining time for the next trigger
             if now_dt < target_trigger_time:
@@ -320,9 +329,6 @@ class AutoTradingPanel(ctk.CTkFrame):
                 self._countdown_lbl.configure(text=f"Next run in {mins}m {secs}s")
             else:
                 self._countdown_lbl.configure(text="Starting...")
-            
-        # Check every 1 second to update countdown
-        self.after(1000, self._scheduler_loop)
 
     def _run_workflow(self):
         start_time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -377,14 +383,15 @@ class AutoTradingPanel(ctk.CTkFrame):
                 r["signal"] = reason
                 r["ai_analysis_text"] = err_msg if err_msg else "Advanced Analysis is disabled in Auto Trading."
                 
-                curr_p = float(r.get("current_price", r.get("last_price", 1.0)))
-                w_t = float(self.settings.get("ensemble_w_tfm", 0.40))
-                w_p = float(self.settings.get("ensemble_w_pm", 0.35))
-                w_a = float(self.settings.get("ensemble_w_ai", 0.25))
+                curr_p = float(r.get("current_price", r.get("last_price", 1.0)) or 1.0)
+                # Weights live in settings as percentages — normalise before use.
+                from core.portfolio_manager import normalize_ensemble_weights
+                w_t, w_p, w_a = normalize_ensemble_weights(self.settings)
+                # AI leg is inactive here, redistribute its weight evenly.
                 w_p += w_a / 2.0
                 w_t += w_a / 2.0
-                t_pct = float(r.get("change_pct_1d", 0.0))
-                p_pct = float(r.get("btc_expected_move", 0.0))
+                t_pct = float(r.get("change_pct_1d", 0.0) or 0.0)
+                p_pct = float(r.get("btc_expected_move", 0.0) or 0.0)
                 e_ret = (t_pct * w_t) + (p_pct * w_p)
                 
                 if e_ret >= 0:
@@ -438,7 +445,6 @@ class AutoTradingPanel(ctk.CTkFrame):
                 auto_set["low_conf_cooldowns"] = c_downs
                 self.settings["auto_trading"] = auto_set
                 dman.save_settings(self.settings)
-                dman.save_settings(self.settings)
 
             if orders:
                 executed = pm_ref.place_orders(orders)
@@ -459,7 +465,6 @@ class AutoTradingPanel(ctk.CTkFrame):
             return True, [{"status": "REJECTED", "error": reason}]
 
         try:
-            import core.data_fetcher as dfet
             import core.data_manager as dman
             
             _auto_set_cd = self.settings.get("auto_trading", {})
@@ -476,16 +481,17 @@ class AutoTradingPanel(ctk.CTkFrame):
             update_status("Running: 1/2 - Fetching Market Data...")
             
             from core.forecaster import CryptoForecaster
-            from core.analyzer import build_results
             
             cfg = self.settings
             market_type = cfg.get("market_type", "crypto")
             horizon = 8  # 8 candles of 15m = 2 hours
             threshold = cfg.get("signal_threshold_pct", 2.0)
-            history = 30
-            backend = cfg.get("backend", "cpu")
-            checkpoint = cfg.get("model_checkpoint", "google/timesfm-2.5-200m-pytorch")
-            
+            backend = cfg.get("backend") or "cpu"
+            # "model_checkpoint" is persisted as "" — a present-but-empty key, so
+            # the `.get(k, default)` fallback would never fire.
+            checkpoint = cfg.get("model_checkpoint") or "google/timesfm-2.5-200m-pytorch"
+
+
             cg_key     = cfg.get("coingecko_api_key", "")
             cg_plan    = cfg.get("coingecko_api_plan", "demo")
 
@@ -602,8 +608,8 @@ class AutoTradingPanel(ctk.CTkFrame):
             update_status("Running: BTC Pattern Matching (KNN-DTW)...")
             try:
                 from core.btc_pattern_matcher import BTCPatternMatcher
-                pm = BTCPatternMatcher()
-                pm_res = pm.run_analysis()
+                matcher = BTCPatternMatcher()
+                pm_res = matcher.run_analysis()
                 btc_target.update(pm_res)
                 
                 # --- HISTORY SAVE AND PATTERN MATCHING UI UPDATE ---
@@ -661,8 +667,19 @@ class AutoTradingPanel(ctk.CTkFrame):
                 expiry_dt = compute_expiry_date(2)
                 
                 if df is not None and not df.empty:
-                    forecaster = CryptoForecaster(backend=backend, checkpoint=checkpoint)
-                    forecaster.load_model(progress_callback=lambda m, f=None: update_status(f"🤖 {m}"))
+                    # Reuse the loaded model across cycles: TimesFM takes tens of
+                    # seconds to initialise and this runs every 15 minutes.
+                    forecaster = getattr(self, "_forecaster", None)
+                    if (forecaster is None
+                            or forecaster.checkpoint != checkpoint
+                            or forecaster.backend != backend):
+                        forecaster = CryptoForecaster(backend=backend, checkpoint=checkpoint)
+                        self._forecaster = forecaster
+
+                    if not forecaster._model_loaded:
+                        if not forecaster.load_model(progress_callback=lambda m, f=None: update_status(f"🤖 {m}")):
+                            update_status("⚠️ TimesFM model unavailable — proceeding without a time-series forecast.")
+
                     forecast_res = forecaster.forecast("BTC", df, horizon=horizon)
                     if forecast_res is not None:
                         pred, confidence = forecast_res

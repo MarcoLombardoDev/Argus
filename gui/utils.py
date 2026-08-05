@@ -1,5 +1,55 @@
 import types
+from tkinter import ttk
+
 import customtkinter as ctk
+
+# Shared ttk scrollbar style name. ttk.Scrollbar is a native widget and is NOT
+# themed by CustomTkinter, so without this it renders light grey against the
+# dark panels.
+SCROLLBAR_STYLE_V = "Argus.Vertical.TScrollbar"
+SCROLLBAR_STYLE_H = "Argus.Horizontal.TScrollbar"
+
+_SB_TROUGH = "#181a20"
+_SB_THUMB = "#474d57"
+_SB_THUMB_ACTIVE = "#5d6673"
+
+
+def setup_scrollbar_style():
+    """Registers the dark ttk scrollbar styles. Idempotent."""
+    style = ttk.Style()
+    try:
+        style.theme_use("clam")
+    except Exception:
+        pass
+    for name, orient in ((SCROLLBAR_STYLE_V, "vertical"), (SCROLLBAR_STYLE_H, "horizontal")):
+        opts = dict(
+            troughcolor=_SB_TROUGH,
+            background=_SB_THUMB,
+            bordercolor=_SB_TROUGH,
+            arrowcolor="#848e9c",
+            darkcolor=_SB_TROUGH,
+            lightcolor=_SB_TROUGH,
+            relief="flat",
+            borderwidth=0,
+        )
+        if orient == "vertical":
+            # `width` is only meaningful on the vertical scrollbar, and passing
+            # None to style.configure raises TclError.
+            opts["width"] = 12
+        style.configure(name, **opts)
+        style.map(
+            name,
+            background=[("active", _SB_THUMB_ACTIVE), ("pressed", _SB_THUMB_ACTIVE)],
+            arrowcolor=[("active", "#eaecef")],
+        )
+
+
+def dark_scrollbar(parent, orient: str, command) -> ttk.Scrollbar:
+    """Creates a ttk.Scrollbar using the shared dark style."""
+    setup_scrollbar_style()
+    style_name = SCROLLBAR_STYLE_V if orient == "vertical" else SCROLLBAR_STYLE_H
+    return ttk.Scrollbar(parent, orient=orient, command=command, style=style_name)
+
 
 def apply_binance_tab_style(segmented_button: ctk.CTkSegmentedButton):
     """

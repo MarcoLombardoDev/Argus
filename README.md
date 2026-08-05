@@ -623,6 +623,17 @@ All settings are stored in `config/settings.json`. Key parameters:
 
 ### Prerequisites
 - **Python 3.10 or higher**
+- **Tk bindings** — `tkinter` ships with the official CPython installers on
+  Windows and macOS, but on Linux it is a separate OS package and is **not**
+  installable via pip:
+  ```bash
+  # Debian / Ubuntu
+  sudo apt install python3-tk
+  # Fedora / RHEL
+  sudo dnf install python3-tkinter
+  # Arch
+  sudo pacman -S tk
+  ```
 - **RAM**: ≥ 8 GB recommended (TimesFM model requires significant memory)
 - Internet connection for data providers and LLM API calls
 
@@ -655,6 +666,27 @@ On first launch, Argus starts with no API keys configured. Navigate to the **Con
 4. Set your CoinGecko API key if you have a Demo or Pro plan.
 
 TimesFM is downloaded **once** and cached locally. Subsequent launches will use the cached model.
+
+### Running the Tests
+
+The test suite is offline — it never contacts an exchange, a data provider or an
+LLM — so it is safe to run at any time.
+
+```bash
+pip install pytest
+
+# Logic tests only (no display required)
+python -m pytest tests/test_core.py -q
+
+# Full suite, including the GUI smoke tests.
+# The GUI tests are skipped automatically when no display is available;
+# on a headless machine wrap them in a virtual framebuffer:
+xvfb-run -a python -m pytest tests/ -q
+```
+
+`tests/test_gui_smoke.py` boots the real application, switches through every
+view and drives the table-rendering and worker-thread error paths — the places
+where failures otherwise only surface at runtime.
 
 ---
 

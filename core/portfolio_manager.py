@@ -1,14 +1,47 @@
 import json
 import os
+import threading
 import ccxt
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
-from core.data_manager import load_settings, save_settings, BASE_DIR
+from core.data_manager import load_settings, BASE_DIR
 from core.pre_flight_checker import PreFlightChecker
 
 # Path for the portfolio audit file
 PORTFOLIO_AUDIT_PATH = os.path.join(BASE_DIR, "data", "portfolio_audit.json")
+
+# Default ensemble weights, expressed as percentages (they are stored that way
+# in settings.json and edited as percentages by the AI Settings sliders).
+DEFAULT_ENSEMBLE_WEIGHTS_PCT = {"tfm": 40.0, "pm": 35.0, "ai": 25.0}
+
+
+def normalize_ensemble_weights(settings: dict) -> tuple[float, float, float]:
+    """Reads the ensemble weights from *settings* and returns them as fractions.
+
+    Accepts both the percentage form used by the UI (``40``/``35``/``25``) and a
+    already-normalised fractional form (``0.40``/``0.35``/``0.25``); in either
+    case the returned triple ``(w_tfm, w_pm, w_ai)`` sums to 1.0.
+    """
+    def _f(key, default):
+        try:
+            v = float(settings.get(key, default))
+        except (TypeError, ValueError):
+            return float(default)
+        return v if v >= 0 else 0.0
+
+    w_tfm = _f("ensemble_w_tfm", DEFAULT_ENSEMBLE_WEIGHTS_PCT["tfm"])
+    w_pm = _f("ensemble_w_pm", DEFAULT_ENSEMBLE_WEIGHTS_PCT["pm"])
+    w_ai = _f("ensemble_w_ai", DEFAULT_ENSEMBLE_WEIGHTS_PCT["ai"])
+
+    total = w_tfm + w_pm + w_ai
+    if total <= 0:
+        d = DEFAULT_ENSEMBLE_WEIGHTS_PCT
+        w_tfm, w_pm, w_ai = d["tfm"], d["pm"], d["ai"]
+        total = w_tfm + w_pm + w_ai
+
+    return w_tfm / total, w_pm / total, w_ai / total
+
 
 class PortfolioManager:
     """
@@ -16,18 +49,44 @@ class PortfolioManager:
     Interacts with CCXT to execute orders on the exchange.
     """
     
-    def __init__(self, settings: dict = None):
+    def __init__(self, settings: dict = None, defer_network: bool = True, connect: bool = True):
+        """
+        Args:
+            settings: configuration dict; loaded from disk when omitted.
+            defer_network: when True (default) the clock sync and market catalogue
+                are fetched on a background thread so constructing a
+                PortfolioManager never blocks the caller — this class is
+                instantiated from the Tk main thread during app start-up, and a
+                slow or unreachable exchange used to freeze the whole window for
+                the length of the CCXT timeout. Pass False when you need the
+                markets to be populated as soon as the constructor returns.
+            connect: set False to skip exchange creation entirely. Useful for the
+                pure-computation entry points (``calculate_sizing``) used by the
+                exporters, which never touch the network.
+        """
         self.settings = settings if settings is not None else load_settings()
         self.exchange = None
-        self._init_exchange()
+        self._markets_ready = threading.Event()
+        self._markets_lock = threading.Lock()
+        if connect:
+            self._init_exchange(defer_network=defer_network)
+        else:
+            self._markets_ready.set()
+
+    @classmethod
+    def for_sizing(cls, settings: dict = None) -> "PortfolioManager":
+        """Offline instance for ensemble/sizing maths only — no exchange, no I/O."""
+        return cls(settings, connect=False)
 
     def calculate_sizing(self, tfm_pct: float, pm_pct: float, ai_pct: float, fng_value: float, funding_rate: float = 0.0, pm_conf: float = 50.0, ai_conf: float = 50.0, tfm_conf: float = 50.0, ai_disabled: bool = False) -> tuple[str, str, float, float]:
         """
         Calculates position sizing and ensemble weighting based on confidence scores.
         """
-        w_tfm = float(self.settings.get("ensemble_w_tfm", 0.40))
-        w_pm = float(self.settings.get("ensemble_w_pm", 0.35))
-        w_ai = float(self.settings.get("ensemble_w_ai", 0.25))
+        # The GUI stores the ensemble weights as percentages (40 / 35 / 25).
+        # Normalise them to fractions summing to 1.0 up front, otherwise the
+        # ±0.05 confidence adjustments below are lost in the rounding noise of
+        # values two orders of magnitude larger.
+        w_tfm, w_pm, w_ai = normalize_ensemble_weights(self.settings)
 
         enable_ai = self.settings.get("enable_ai_auto_trade", True)
         if ai_disabled or not enable_ai:
@@ -129,6 +188,8 @@ class PortfolioManager:
     def get_funding_rate(self, symbol: str) -> float:
         if not self.exchange: return 0.0
         try:
+            if not self.ensure_markets():
+                return 0.0
             market = self.exchange.market(symbol) if symbol in self.exchange.markets else {}
             # If it is spot, search for perp
             if not market.get('swap', False) and not market.get('future', False):
@@ -143,7 +204,7 @@ class PortfolioManager:
         except Exception as e:
             return 0.0
         
-    def _init_exchange(self):
+    def _init_exchange(self, defer_network: bool = True):
         """Initializes the CCXT instance based on settings."""
         # Retrieve settings or set defaults
         pm_settings = self.settings.get("portfolio_manager", {})
@@ -172,7 +233,21 @@ class PortfolioManager:
             # does not subtract 'timeDifference' in ccxt.bingx.nonce()
             if exchange_id == "bingx":
                 self.exchange.nonce = lambda: self.exchange.milliseconds() - self.exchange.options.get('timeDifference', 0)
-            
+
+            if defer_network:
+                threading.Thread(target=self._warmup_exchange, daemon=True).start()
+            else:
+                self._warmup_exchange()
+        else:
+            if exchange_id:
+                print(f"[PortfolioManager] Unknown exchange id '{exchange_id}' — no exchange configured.")
+            self._markets_ready.set()
+
+    def _warmup_exchange(self):
+        """Syncs the exchange clock and loads the market catalogue (blocking)."""
+        try:
+            if self.exchange is None:
+                return
             # Force synchronization of local time with the exchange server time
             try:
                 if hasattr(self.exchange, 'load_time'):
@@ -181,13 +256,34 @@ class PortfolioManager:
                     self.exchange.load_time_difference()
             except Exception as e:
                 print(f"[PortfolioManager] Unable to execute load_time / load_time_difference: {e}")
-                
+
             # Try to load markets to populate currencies
             try:
                 self.exchange.load_markets()
             except Exception as e:
                 print(f"[PortfolioManager] Could not load markets: {e}")
-                
+        finally:
+            self._markets_ready.set()
+
+    def ensure_markets(self, timeout: float = 30.0) -> bool:
+        """Blocks until the market catalogue is available. Safe to call from
+        worker threads; returns True when markets are populated."""
+        if self.exchange is None:
+            return False
+        self._markets_ready.wait(timeout=timeout)
+        if getattr(self.exchange, "markets", None):
+            return True
+        # The warm-up may have failed (offline at start-up) — retry once, guarded
+        # so concurrent callers do not stampede the endpoint.
+        with self._markets_lock:
+            if getattr(self.exchange, "markets", None):
+                return True
+            try:
+                self.exchange.load_markets()
+            except Exception as e:
+                print(f"[PortfolioManager] ensure_markets failed: {e}")
+        return bool(getattr(self.exchange, "markets", None))
+
     def get_balance(self, positions: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         """Retrieves the balance via the exchange. If not configured, does not attempt download."""
         if self.exchange and self.exchange.apiKey:
@@ -268,6 +364,8 @@ class PortfolioManager:
     def get_positions(self) -> List[Dict[str, Any]]:
         """Retrieves open positions via the exchange."""
         if self.exchange and self.exchange.apiKey:
+            # Called from worker threads; markets may still be warming up.
+            self.ensure_markets()
             positions = []
             try:
                 tickers = {}
@@ -454,8 +552,7 @@ class PortfolioManager:
         min_confidence = float(pm_settings.get("minimumConfidence", 50.0))
         max_open_pos = int(pm_settings.get("maxOpenPositions", 5))
         max_pos_pct = float(pm_settings.get("maxPositionPercent", 20.0)) / 100.0
-        max_leverage = int(pm_settings.get("maxLeverage", 10))
-        
+
         balance_info = self.get_balance()
         total_capital = balance_info["total"]
         available_capital = balance_info["available"]
@@ -529,12 +626,25 @@ class PortfolioManager:
                 conf = float(res.get("confidence", 50.0) if str(res.get("confidence", "")).upper() not in ["DISABLED", "N/A"] else 50.0)
                 
             if final_signal in ["BUY", "SELL"] and size_multiplier > 0.0:
-                # Confidence now conditions the advanced analysis, no longer the ensemble sizing
-                
-                base_qty = investable_capital / max_open_pos
-                position_value = min(base_qty * size_multiplier, total_capital * max_pos_pct)
                 asset_sym = res.get("symbol", "")
-                
+
+                # Minimum-confidence gate. This threshold is exposed in the
+                # Portfolio settings and documented as "orders are sent only if
+                # the confidence is above the set threshold", but it was only
+                # ever used to scale the position size — signals below it were
+                # still sent. Enforce it, and notify the caller so Auto Trading
+                # can apply its low-confidence cooldown.
+                if conf < min_confidence:
+                    print(f"[PortfolioManager] Signal on {asset_sym} discarded: "
+                          f"confidence {conf:.0f}% < minimum {min_confidence:.0f}%.")
+                    if discarded_callback:
+                        try:
+                            discarded_callback(asset_sym, "low_confidence")
+                        except Exception as e:
+                            print(f"[PortfolioManager] discarded_callback error: {e}")
+                    continue
+
+
                 # Portfolio asset management
                 if asset_sym in active_assets:
                     positions_for_asset = active_assets[asset_sym]
@@ -851,7 +961,10 @@ class PortfolioManager:
         """
         pm_settings = self.settings.get("portfolio_manager", {})
         use_exchange = pm_settings.get("useExchangeBalance", False)
-        
+
+        if use_exchange and self.exchange is not None:
+            self.ensure_markets()
+
         executed = []
         for order in orders:
             if not use_exchange or not self.exchange:
@@ -1022,16 +1135,22 @@ class PortfolioManager:
         executed = []
         if not self.exchange or not self.exchange.apiKey:
             return executed
-            
+        self.ensure_markets()
+
         for item in items:
             asset = item.get("asset")
-            qty = float(item.get("quantity", 0))
+            try:
+                qty = float(item.get("quantity", 0) or 0)
+            except (TypeError, ValueError):
+                qty = 0.0
             if qty <= 0:
                 continue
-                
+
+            # Bound before the try so the except handler can always reference it.
+            asset_type = item.get("type", "Spot")
+
             try:
-                asset_type = item.get("type", "Spot")
-                
+
                 # If derivative
                 if "Futures" in asset_type:
                     symbol = f"{asset}/USDT:USDT"

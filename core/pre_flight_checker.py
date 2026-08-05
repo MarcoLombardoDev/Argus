@@ -1,5 +1,3 @@
-import time
-
 class PreFlightChecker:
     """
     Manages real-time order validation before sending it to the exchange,

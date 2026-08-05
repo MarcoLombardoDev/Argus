@@ -2,7 +2,6 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import requests
-from datetime import datetime, timedelta
 
 def get_market_context(symbol: str, is_crypto: bool = True) -> dict:
     """
@@ -14,34 +13,40 @@ def get_market_context(symbol: str, is_crypto: bool = True) -> dict:
     benchmark_symbol = "BTC-USD"
     alt_proxy_symbol = "ETH-USD"
     ticker_sym = f"{symbol.upper()}-USD"
-    
+
+    # Fetch Fear & Greed Index first: it is independent of the price downloads,
+    # so a benchmark failure must not discard it.
+    fng_value = 50
+    fng_class = "Neutral"
+    try:
+        fng_resp = requests.get("https://api.alternative.me/fng/?limit=1", timeout=5)
+        fng_resp.raise_for_status()
+        fng_data = fng_resp.json()["data"][0]
+        fng_value = int(fng_data["value"])
+        fng_class = fng_data["value_classification"]
+    except Exception as e:
+        print(f"[MarketEnrichment] Fallback FNG: Error {e}")
+
     try:
         # 1. Download Benchmark (BTC) and Altcoin proxy (ETH) data - 1h for 7 days
         bench_data = yf.download(benchmark_symbol, period="7d", interval="1h", progress=False)
         alt_data = yf.download(alt_proxy_symbol, period="7d", interval="1h", progress=False)
-        
-        # Fetch Fear & Greed Index
-        fng_value = 50
-        fng_class = "Neutral"
-        try:
-            fng_resp = requests.get("https://api.alternative.me/fng/?limit=1", timeout=5)
-            fng_resp.raise_for_status()
-            fng_data = fng_resp.json()["data"][0]
-            fng_value = int(fng_data["value"])
-            fng_class = fng_data["value_classification"]
-        except Exception as e:
-            print(f"[MarketEnrichment] Fallback FNG: Error {e}")
-        
-        if bench_data.empty:
+
+        if bench_data is None or bench_data.empty:
             raise ValueError(f"No data found for benchmark: {benchmark_symbol}")
-            
+
         bench_close = bench_data['Close']
         if isinstance(bench_close, pd.DataFrame): bench_close = bench_close.squeeze()
         bench_close = bench_close.dropna()
-        
-        alt_close = alt_data['Close']
-        if isinstance(alt_close, pd.DataFrame): alt_close = alt_close.squeeze()
-        alt_close = alt_close.dropna()
+
+        # The alt proxy is optional: without it we simply cannot infer dominance.
+        if alt_data is not None and not alt_data.empty and 'Close' in alt_data:
+            alt_close = alt_data['Close']
+            if isinstance(alt_close, pd.DataFrame): alt_close = alt_close.squeeze()
+            alt_close = alt_close.dropna()
+        else:
+            print(f"[MarketEnrichment] Alt proxy {alt_proxy_symbol} unavailable — dominance unknown.")
+            alt_close = pd.Series(dtype="float64")
 
         if len(bench_close) < 24:
             raise ValueError(f"Not enough data to calculate VWAP for benchmark: {benchmark_symbol}")
@@ -135,9 +140,18 @@ def get_market_context(symbol: str, is_crypto: bool = True) -> dict:
         if "No data found for ticker" in str(e):
             raise
         print(f"[MarketEnrichment] Fallback: Error calculating macro context for {symbol}: {e}")
+        # Keep the key set identical to the success path so callers can rely on
+        # market_context["fng_value"] / ["fng_class"] existing. The Fear & Greed
+        # reading is fetched independently above, so report the real value even
+        # when the price download failed.
         return {
             "benchmark": benchmark_symbol,
             "regime": "UNKNOWN",
             "correlation": None,
-            "summary": "MACRO CRYPTO CONTEXT: Error calculating data. Assume NEUTRAL regime."
+            "fng_value": fng_value,
+            "fng_class": fng_class,
+            "summary": (
+                "MACRO CRYPTO CONTEXT: Error calculating data. Assume NEUTRAL regime.\n"
+                f"- FEAR & GREED INDEX: {fng_value} ({fng_class})"
+            ),
         }

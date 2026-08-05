@@ -21,14 +21,14 @@ import customtkinter as ctk
 from tkinter import messagebox
 
 from core.data_manager import (
-    load_settings, save_settings, save_historical,
-    save_forecast_log, load_forecast_log, get_last_run_info, load_forecast_history,
+    load_settings, save_settings,
+    save_forecast_log, get_last_run_info, load_forecast_history,
     load_market_list,
 )
 
 from core.forecaster import CryptoForecaster
 from core.analyzer import build_results
-from gui.config_panel import ConfigPanel, ConfigWindow
+from gui.config_panel import ConfigPanel
 from gui.results_table import ResultsTable
 from gui.ai_analysis_panel import AIAnalysisPanel
 from gui.markets_panel import MarketsPanel
@@ -40,6 +40,10 @@ from gui.utils import apply_binance_tab_style
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
+
+# Forecast horizon: 8 candles of 15 minutes = 2 hours.
+FORECAST_HORIZON_CANDLES = 8
+DEFAULT_TIMESFM_CHECKPOINT = "google/timesfm-2.5-200m-pytorch"
 
 # ─── Colori tema ────────────────────────────────────────────────
 _BG_ROOT   = ("#181a20", "#181a20")
@@ -74,7 +78,29 @@ class ArgusApp(ctk.CTk):
         self._poll_queue()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.bind("<Configure>", self._on_window_configure)
-        self.after(250, lambda: self.state("zoomed"))
+        self.after(250, self._maximize)
+
+    def _maximize(self):
+        """Maximises the window in a cross-platform way.
+
+        The 'zoomed' state only exists on Windows (and some Linux WMs); on
+        macOS/X11 it raises TclError, so fall back to the '-zoomed' attribute
+        and finally to resizing to the screen dimensions.
+        """
+        try:
+            self.state("zoomed")
+            return
+        except Exception:
+            pass
+        try:
+            self.attributes("-zoomed", True)
+            return
+        except Exception:
+            pass
+        try:
+            self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
+        except Exception as e:
+            print(f"[ArgusApp] Unable to maximise the window: {e}")
 
     # ─────────────────────────────────────────────────────────────
     # Window setup
@@ -620,6 +646,26 @@ class ArgusApp(ctk.CTk):
         self._stop_requested = True
         self._update_status("⏹ Stop requested...")
 
+    def _get_market_asset_list(self, market_type: str) -> list[dict]:
+        """Returns the asset list to analyse.
+
+        Prefers the list currently held by the Markets panel (it carries the
+        freshest prices), then the in-memory cache, then the list persisted on
+        disk. Returns [] when nothing is available.
+        """
+        panel = getattr(self, "_markets_panel", None)
+        if panel is not None:
+            live = (getattr(panel, "_loaded_lists", None) or {}).get(market_type) or []
+            if live:
+                self._cached_market_list = live
+                return live
+
+        if self._cached_market_list:
+            return self._cached_market_list
+
+        full_list = load_market_list(market_type)
+        return [full_list[0]] if full_list else []
+
     def _analysis_thread(self, cfg: dict):
         """Thread background che esegue l'intera pipeline di analisi temporale."""
 
@@ -631,25 +677,15 @@ class ArgusApp(ctk.CTk):
 
         try:
             market_type = "crypto"
-            horizon    = 4
             threshold  = cfg.get("signal_threshold_pct", 2.0)
-            history    = 30
-            backend    = cfg.get("backend", "cpu")
-            checkpoint = cfg.get("model_checkpoint", "google/timesfm-2.5-200m-pytorch")
-            cg_key     = cfg.get("coingecko_api_key", "")
-            cg_plan    = cfg.get("coingecko_api_plan", "demo")
+            backend    = cfg.get("backend") or "cpu"
+            # settings.json ships "model_checkpoint": "" — an empty string is a
+            # present key, so `.get(k, default)` would hand "" to from_pretrained().
+            checkpoint = cfg.get("model_checkpoint") or DEFAULT_TIMESFM_CHECKPOINT
 
             # Step 1: Carica lista asset dalla cache (Mercato) o la rigenera
             status(f"📂 Loading {market_type.upper()} list from Market section...", 0.01)
-            asset_list = self._cached_market_list
-
-            if not asset_list:
-                # Prova a caricare dal file
-                from core.data_manager import load_market_list
-                full_list = load_market_list(market_type)
-                asset_list = [full_list[0]] if full_list else []
-
-
+            asset_list = self._get_market_asset_list(market_type)
 
             if not asset_list:
                 self._post(type="error", text="Unable to retrieve asset list.")
@@ -674,7 +710,7 @@ class ArgusApp(ctk.CTk):
                     if df is not None and not df.empty:
                         historical_data[sym] = df
                 except ValueError as ve:
-                    status(f"⚠️ Historical data missing/obsolete for {sym}.", 0.04 + (i / len(asset_list)) * 0.36)
+                    status(f"⚠️ {sym}: {ve}", 0.04 + (i / len(asset_list)) * 0.36)
             
             if should_stop():
                 status("⏹ Analysis interrupted by user.", 0.0)
@@ -711,11 +747,11 @@ class ArgusApp(ctk.CTk):
                 self._set_running_safe(False)
                 return
 
-            # Step 4: Forecast (orizzonte fisso 8 candele)
-            status("🔮 Running TimesFM forecasting (8 candles horizon)...", 0.50)
+            # Step 4: Forecast (orizzonte fisso 8 candele = 2 ore a 15m)
+            status(f"🔮 Running TimesFM forecasting ({FORECAST_HORIZON_CANDLES} candles horizon)...", 0.50)
             forecasts = self._forecaster.forecast_batch(
                 historical_data,
-                horizon=8,
+                horizon=FORECAST_HORIZON_CANDLES,
                 progress_callback=lambda m, f=None: status(m, 0.50 + (f or 0) * 0.40),
                 stop_flag=should_stop,
             )
@@ -730,7 +766,7 @@ class ArgusApp(ctk.CTk):
             results = build_results(
                 crypto_list=asset_list,
                 forecasts=forecasts,
-                horizon_days=horizon,
+                horizon_days=1,
                 threshold_pct=threshold,
             )
 

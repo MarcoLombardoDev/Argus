@@ -1,10 +1,9 @@
 import customtkinter as ctk
 import threading
 from tkinter import ttk
-from typing import Callable, Optional
 from core.btc_pattern_matcher import BTCPatternMatcher
 from core.data_manager import save_pm_history, load_pm_history, save_settings
-from gui.utils import apply_binance_tab_style
+from gui.utils import apply_binance_tab_style, dark_scrollbar
 
 _BG_PANEL = "#181a20"
 _ACCENT = "#f0b90b"
@@ -143,7 +142,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
         self._tree.tag_configure("negative", background="#2e0d0d", foreground="#ff5252")
         self._tree.tag_configure("neutral", background="#1a1e2e", foreground="#b0b8d0")
 
-        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self._tree.yview)
+        vsb = dark_scrollbar(tree_frame, "vertical", self._tree.yview)
         vsb.grid(row=0, column=1, sticky="ns")
         self._tree.configure(yscrollcommand=vsb.set)
 
@@ -397,7 +396,11 @@ class PatternMatchingPanel(ctk.CTkFrame):
             
             self.after(0, lambda: self._update_ui_success(matches, conf_str, target_str, move_str, tag))
         except Exception as e:
-            self.after(0, lambda: self._update_ui_error(str(e)))
+            # `e` is unbound once the except block exits — capture it eagerly,
+            # otherwise the scheduled callback raises NameError instead of showing
+            # the error.
+            err = str(e)
+            self.after(0, lambda m=err: self._update_ui_error(m))
             
     def _update_ui_success(self, matches, conf, target, move, tag):
         from datetime import datetime, timedelta

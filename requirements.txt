@@ -1,16 +1,31 @@
+# --- GUI ---
 customtkinter>=5.2.0
-yfinance>=0.2.40
-requests>=2.31.0
+# NOTE: tkinter ships with CPython but on Linux it is a separate OS package
+#       (Debian/Ubuntu: sudo apt install python3-tk).
+
+# --- Data & numerics ---
 pandas>=2.0.0
 numpy>=1.24.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# --- Market data sources ---
+yfinance>=0.2.40
+ccxt>=4.2.0
+
+# --- Time-series forecasting (TimesFM) ---
 huggingface-hub>=0.23.0
 torch>=2.1.0
 timesfm[torch]
-# AI Advanced Analysis
+
+# --- Pattern matching (KNN on normalised log-returns) ---
+scikit-learn>=1.3.0
+
+# --- AI Advanced Analysis ---
 openai>=1.0.0
+beautifulsoup4>=4.12.0
+vectorbt>=1.0.0
+
+# --- Export (Excel / PDF) ---
 openpyxl>=3.1.0
 reportlab>=4.0.0
-vectorbt>=1.0.0
-ccxt>=4.2.0
-python-dotenv>=1.0.0
-

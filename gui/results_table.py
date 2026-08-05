@@ -8,7 +8,8 @@ import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
 import pandas as pd
-from core.analyzer import format_price, format_change_pct
+from core.analyzer import format_price
+from gui.utils import dark_scrollbar
 
 
 # Signal colors
@@ -110,12 +111,12 @@ class ResultsTable(ctk.CTkFrame):
         self._tree = self._build_treeview(tree_frame)
 
         # Vertical scrollbar
-        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self._tree.yview)
+        vsb = dark_scrollbar(tree_frame, "vertical", self._tree.yview)
         vsb.grid(row=0, column=1, sticky="ns")
         self._tree.configure(yscrollcommand=vsb.set)
 
         # Horizontal scrollbar
-        hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=self._tree.xview)
+        hsb = dark_scrollbar(tree_frame, "horizontal", self._tree.xview)
         hsb.grid(row=1, column=0, sticky="ew")
         self._tree.configure(xscrollcommand=hsb.set)
 
@@ -258,8 +259,10 @@ class ResultsTable(ctk.CTkFrame):
             self._tree.delete(item)
 
         for i, row in enumerate(data):
-            pct = row.get("change_pct_1d", 0)
-            if pct is None: pct = 0
+            try:
+                pct = float(row.get("change_pct_1d") or 0)
+            except (TypeError, ValueError):
+                pct = 0.0
             if pct > 0: signal = "BUY"
             elif pct < 0: signal = "SELL"
             else: signal = "HOLD"
@@ -280,11 +283,20 @@ class ResultsTable(ctk.CTkFrame):
             else:
                 expiry_display = ""
 
+            # Confidence can arrive as a float, a CSV-loaded string or a sentinel
+            # such as "N/A"/"DISABLED" — never let formatting raise.
             conf_val = row.get("confidence")
-            conf_display = f"{int(conf_val)}%" if conf_val is not None else "N/A"
+            try:
+                conf_display = "N/A" if conf_val is None else f"{int(float(conf_val))}%"
+            except (TypeError, ValueError):
+                conf_display = str(conf_val)
 
             # Format change percentage without confidence
-            pct_val = row.get("change_pct_1d")
+            try:
+                pct_val = row.get("change_pct_1d")
+                pct_val = None if pct_val is None else float(pct_val)
+            except (TypeError, ValueError):
+                pct_val = None
             if pct_val is not None:
                 sign = "+" if pct_val >= 0 else ""
                 pct_display = f"{sign}{pct_val:.2f}%"

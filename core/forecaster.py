@@ -5,8 +5,6 @@ price forecasts for cryptos.
 """
 
 import pandas as pd
-import numpy as np
-from datetime import datetime
 
 MIN_CONTEXT_POINTS = 96   # minimum historical points required by TimesFM (set to 96 for 15m granularity)
 

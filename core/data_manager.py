@@ -5,8 +5,10 @@ Management of reading/writing CSV (historical and forecast log) and JSON (settin
 
 import json
 import os
+import time
+
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv, set_key
 
@@ -140,6 +142,22 @@ def load_settings() -> dict:
     return settings
 
 
+def _write_env_key(env_key: str, value, attempts: int = 3) -> bool:
+    """Writes a single key to .env, retrying briefly if the file is locked
+    (another process — or an editor — may hold it open on Windows)."""
+    last_error = None
+    for _ in range(attempts):
+        try:
+            set_key(str(ENV_PATH), env_key, str(value))
+            return True
+        except Exception as e:
+            last_error = e
+            time.sleep(0.1)
+    print(f"[DataManager] Error writing key {env_key} in .env "
+          f"(file locked or access denied): {last_error}")
+    return False
+
+
 def save_settings(settings: dict):
     """Saves configuration to settings.json, keeping sensitive keys in .env."""
     ensure_dirs()
@@ -163,38 +181,17 @@ def save_settings(settings: dict):
         
     # Save sensitive keys in the .env file
     for settings_key, env_key in sensitive_keys.items():
-        val = settings_to_save.get(settings_key, "")
-        success = False
-        import time
-        for attempt in range(3):
-            try:
-                set_key(str(ENV_PATH), env_key, str(val))
-                success = True
-                break
-            except Exception as e:
-                time.sleep(0.1)
-        if not success:
-            print(f"[DataManager] Error writing key {env_key} in .env: file locked or access denied.")
+        _write_env_key(env_key, settings_to_save.get(settings_key, ""))
         settings_to_save[settings_key] = ""
-        
+
     # Portfolio manager management
     pm_settings = settings_to_save.setdefault("portfolio_manager", {})
     for pm_key in ["api_key", "api_secret"]:
         env_key = f"PORTFOLIO_MANAGER_{pm_key.upper()}"
-        val = pm_settings.get(pm_key, "")
-        success = False
-        import time
-        for attempt in range(3):
-            try:
-                set_key(str(ENV_PATH), env_key, str(val))
-                success = True
-                break
-            except Exception as e:
-                time.sleep(0.1)
-        if not success:
-            print(f"[DataManager] Error writing key {env_key} in .env: file locked or access denied.")
+        _write_env_key(env_key, pm_settings.get(pm_key, ""))
         pm_settings[pm_key] = ""
-        
+
+
     try:
         with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
             json.dump(settings_to_save, f, indent=2, default=str)
@@ -224,15 +221,17 @@ def load_historical(symbol: str) -> pd.DataFrame | None:
         df = pd.read_csv(path, index_col=0, parse_dates=True)
         # Obsolescence check
         if not df.empty:
-            last_time = df.index[-1]
-            # Ensure last_time is tz-naive for comparison
+            last_time = pd.Timestamp(df.index[-1])
+            # Normalise to tz-naive UTC. For a tz-aware timestamp `tz_localize(None)`
+            # alone would keep the *wall* time of its own zone, which skews the age
+            # by the UTC offset; convert first.
             if last_time.tzinfo is not None:
-                last_time = last_time.tz_localize(None)
-            
-            # The timestamps saved by CCXT are in UTC (tz-naive). 
+                last_time = last_time.tz_convert("UTC").tz_localize(None)
+
+            # The timestamps saved by CCXT are in UTC (tz-naive).
             # We must compare them with the current UTC time, not local time.
-            now_utc = datetime.utcnow()
-            
+            now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+
             if (now_utc - last_time).total_seconds() > 7200:
                 raise ValueError(f"Obsolete historical data for {symbol} (older than 2 hours). Go to the Markets tab and click Update Prices.")
         return df

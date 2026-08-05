@@ -1,11 +1,8 @@
-import yfinance as yf
 import numpy as np
-import pandas as pd
-from sklearn.neighbors import NearestNeighbors
-from datetime import datetime, timedelta
 import logging
 
 logger = logging.getLogger("BTCPatternMatcher")
+
 
 class BTCPatternMatcher:
     def __init__(self, query_window=None, history_years=None, projection_window=None, interval=None):
@@ -15,7 +12,7 @@ class BTCPatternMatcher:
         """
         from core.data_manager import load_settings
         cfg = load_settings()
-        
+
         self.symbol = "BTC-USD"
         self.query_window = 8  # 2 hours (8 candles of 15m)
         self.projection_window = 8  # 2 hours (8 candles of 15m)
@@ -48,10 +45,13 @@ class BTCPatternMatcher:
             return False
 
     def _empty_result(self):
+        # Same key set as a successful run so callers never have to guess.
         return {
             "btc_pred_confidence": 0.0,
             "btc_expected_move": 0.0,
-            "matches_count": 0
+            "matches_count": 0,
+            "btc_current_price": 0.0,
+            "btc_target_price": 0.0,
         }
 
     def get_query_pattern(self):
@@ -61,13 +61,16 @@ class BTCPatternMatcher:
         recent_returns = self.df['LogReturn'].iloc[-self.query_window:].values
         return self._normalize(recent_returns)
         
-    def _normalize(self, sequence):
-        """Z-Score normalization via StandardScaler."""
-        from sklearn.preprocessing import StandardScaler
-        if len(sequence) == 0:
-            return sequence
-        scaler = StandardScaler()
-        return scaler.fit_transform(sequence.reshape(-1, 1)).flatten()
+    @staticmethod
+    def _normalize(sequence):
+        """Z-Score normalisation. Returns zeros for a constant (zero-variance) window."""
+        seq = np.asarray(sequence, dtype=float)
+        if seq.size == 0:
+            return seq
+        std = seq.std()
+        if std == 0 or not np.isfinite(std):
+            return np.zeros_like(seq)
+        return (seq - seq.mean()) / std
 
     def prepare_historical_windows(self):
         """Prepares sliding historical windows for KNN."""
@@ -102,8 +105,20 @@ class BTCPatternMatcher:
         if n_neighbors is None:
             from core.data_manager import load_settings
             cfg = load_settings()
-            n_neighbors = int(cfg.get("pm_n_neighbors", 5))
-            
+            try:
+                n_neighbors = int(cfg.get("pm_n_neighbors", 5))
+            except (TypeError, ValueError):
+                n_neighbors = 5
+        n_neighbors = max(1, int(n_neighbors))
+
+        # Imported lazily so a missing scikit-learn degrades to an empty result
+        # instead of breaking the import of every module that touches this one.
+        try:
+            from sklearn.neighbors import NearestNeighbors
+        except ImportError as e:
+            logger.error(f"scikit-learn is required for Pattern Matching ({e}). Run: pip install scikit-learn")
+            return self._empty_result()
+
         if not self.fetch_data():
             return self._empty_result()
             
@@ -152,12 +167,7 @@ class BTCPatternMatcher:
             "btc_current_price": round(current_price, 2),
             "btc_target_price": round(current_price * (1.0 + avg_move / 100.0), 2) if current_price > 0 else 0.0
         }
-        
-        return {
-            "btc_pred_confidence": 0.0,
-            "btc_expected_move": 0.0,
-            "matches_count": 0
-        }
+
 
 if __name__ == "__main__":
     # Quick execution test

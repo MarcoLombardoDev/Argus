@@ -552,7 +552,7 @@ class PortfolioPanel(ctk.CTkFrame):
             ("leverage", "Leverage", 50),
             ("qty", "Quantity", 90),
             ("price", "Price", 80),
-            ("val", "Estimated Value", 100),
+            ("val", "Estimated Value", 130),
             ("sl", "SL (ROI%)", 80),
             ("tp", "TP (ROI%)", 80),
             ("pnl_pct", "% PNL", 70),
@@ -583,7 +583,11 @@ class PortfolioPanel(ctk.CTkFrame):
                 bal = self.pm.get_balance(positions=pos)
                 self._queue.put(lambda: self._refresh_portfolio_ui(bal, pos))
             except Exception as e:
-                self._queue.put(lambda: self._status(f"❌ Error updating portfolio: {e}"))
+                # Bind the message now: Python unbinds `e` when the except block
+                # ends, so a lambda closing over it would raise NameError when the
+                # GUI queue later runs it.
+                msg = f"❌ Error updating portfolio: {e}"
+                self._queue.put(lambda m=msg: self._status(m))
             finally:
                 self._queue.put(lambda: setattr(self, "_is_updating", False))
                 
@@ -693,16 +697,33 @@ class PortfolioPanel(ctk.CTkFrame):
         if not messagebox.askyesno("Confirmation", f"Are you sure you want to market sell the entire position of the {len(selected_iids)} selected assets?"):
             return
             
+        # Read straight from the position records instead of re-parsing the
+        # formatted tree cells (the iid is the index into _current_positions).
+        positions = getattr(self, "_current_positions", []) or []
         items_to_sell = []
         for iid in selected_iids:
-            values = self._tree_port.item(iid, "values")
-            if values:
-                items_to_sell.append({
-                    "asset": values[1],
-                    "type": values[2],
-                    "quantity": float(values[4])
-                })
-                
+            try:
+                pos = positions[int(iid)]
+            except (ValueError, IndexError):
+                continue
+            try:
+                qty = float(pos.get("quantity", 0) or 0)
+            except (TypeError, ValueError):
+                qty = 0.0
+            if qty <= 0:
+                continue
+            items_to_sell.append({
+                "asset": pos.get("asset", ""),
+                "type": pos.get("type", "Spot"),
+                "direction": pos.get("direction", "LONG"),
+                "quantity": qty,
+            })
+
+        if not items_to_sell:
+            messagebox.showwarning("Nothing to sell", "The selected rows have no sellable quantity.")
+            return
+
+
         self._btn_sell.configure(state="disabled")
         self._status("🚀 Selling assets in progress...")
         

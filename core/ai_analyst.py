@@ -71,6 +71,42 @@ SUGGESTED_MODELS = {
 
 
 # ─────────────────────────────────────────────────────────────
+# Helpers
+# ─────────────────────────────────────────────────────────────
+
+def _regime_bias(regime: str) -> str:
+    """Maps a market-regime label to a directional bias bucket.
+
+    ``core.market_enrichment.get_market_context`` returns labels such as
+    ``ALTSEASON``, ``BTC_ACCUMULATION``, ``CRYPTO_WINTER / BEARISH`` or
+    ``UNKNOWN``. Downstream logic only needs to know whether the macro backdrop
+    is constructive, hostile or unknown.
+
+    Returns one of ``"BULLISH"``, ``"BEARISH"``, ``"UNKNOWN"``.
+    """
+    label = (regime or "").upper()
+    if "BEAR" in label or "WINTER" in label:
+        return "BEARISH"
+    if "ALTSEASON" in label or "ACCUMULATION" in label or "BULL" in label:
+        return "BULLISH"
+    return "UNKNOWN"
+
+
+def _safe_float(value, default: float = 0.0) -> float:
+    """float() that never raises — returns *default* for None/""/"N/A"/"DISABLED"."""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, (int, float)):
+        return default if value != value else float(value)  # NaN -> default
+    try:
+        return float(str(value).strip().replace("%", "").replace(",", "."))
+    except (TypeError, ValueError):
+        return default
+
+
+# ─────────────────────────────────────────────────────────────
 # Additional Data Fetching
 # ─────────────────────────────────────────────────────────────
 
@@ -162,8 +198,11 @@ def _fetch_yahoo_details(symbol: str, is_crypto: bool = False) -> dict:
         if not price_found:
             return {}
         
-        # Estimate percentage changes from recent historical prices
-        hist = ticker.history(period="30d", progress=False)
+        # Estimate percentage changes from recent historical prices.
+        # NOTE: Ticker.history() does NOT accept a `progress` kwarg (that belongs
+        # to yf.download); passing it raises TypeError and silently killed this
+        # whole fallback path.
+        hist = ticker.history(period="30d")
         if hist is None or hist.empty:
             return {}  # Force failure for delisted assets or missing data
             
@@ -263,7 +302,9 @@ def _fetch_investing_news(symbol: str, name: str = "") -> list[str]:
             rss_url = "https://www.investing.com/rss/news.rss"
             rss_resp = requests.get(rss_url, headers=headers, timeout=8)
             if rss_resp.status_code == 200:
-                items = re.findall(r"<title><![CDATA[([^\]]+)\]\]></title>", rss_resp.text)
+                # The '[' characters of "<![CDATA[" must be escaped, otherwise the
+                # pattern is parsed as a character class and re.compile() raises.
+                items = re.findall(r"<title><!\[CDATA\[(.*?)\]\]></title>", rss_resp.text, re.DOTALL)
                 if not items:
                     items = re.findall(r"<title>([^<]+)</title>", rss_resp.text)
                 for title in items[1:]:
@@ -296,7 +337,7 @@ def _fetch_yahoo_news(symbol: str, is_crypto: bool = False) -> list[str]:
         if not news_list:
             return []
             
-        now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+        now_utc = datetime.now(timezone.utc)
         recent_headlines = []
         all_headlines = []
         
@@ -349,7 +390,7 @@ def _fetch_finnhub_news(symbol: str, api_key: str = "", is_crypto: bool = True) 
         if resp.status_code == 200:
             import pandas as pd
             from datetime import timezone
-            now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+            now_utc = datetime.now(timezone.utc)
             
             recent_headlines = []
             all_headlines = []
@@ -1058,11 +1099,15 @@ Always respond in English. Be brief and direct."""
         market_type = self._settings.get("market_type", "crypto").lower()
         is_crypto = (market_type == "crypto")
         
-        # Extract macro regime
+        # Extract macro regime.
+        # get_market_context() emits ALTSEASON / BTC_ACCUMULATION / "CRYPTO_WINTER / BEARISH"
+        # / UNKNOWN, so the reporting below is driven by a normalised bias derived from it
+        # rather than by the raw label (which never equalled "BULLISH"/"BEARISH").
         regime = "UNKNOWN"
         if market_context and isinstance(market_context, dict):
-            regime = market_context.get("regime", "UNKNOWN")
-        
+            regime = market_context.get("regime", "UNKNOWN") or "UNKNOWN"
+        regime_bias = _regime_bias(regime)
+
         # LLM call to extract or generate strategy parameters
         extract_prompt = f"""You are the Backtest Strategy Parameters Extractor for Argus.
 Read these analysis reports for {name} ({symbol}):
@@ -1240,9 +1285,9 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
             protected_max_dd = np.nan
             mitigation_str = "N/A"
             
-            if regime == "BULLISH":
+            if regime_bias == "BULLISH":
                 alpha = total_ret - bench_ret
-            elif regime == "BEARISH":
+            elif regime_bias == "BEARISH":
                 try:
                     if params["direction"] == "long_short":
                         pf_protected = vbt.Portfolio.from_signals(
@@ -1288,23 +1333,23 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
                     print(f"[AIAnalyst] Error running protected backtest: {epf}")
 
             # Construct structured backtest_metrics report
-            if regime == "BULLISH":
+            if regime_bias == "BULLISH":
                 outperformed = alpha > 0 if not np.isnan(alpha) else False
                 comparison_str = "YES (Strategy beats Buy & Hold)" if outperformed else "NO (Strategy underperforms)"
-                backtest_metrics = f"""Strategy performance in current regime (BULLISH):
+                backtest_metrics = f"""Strategy performance in current regime ({regime}):
 - Strategy Return: {clean_val(total_ret, pct=True)}
 - Benchmark Return (Buy & Hold): {clean_val(bench_ret, pct=True)}
 - Alpha vs Benchmark: {clean_val(alpha, pct=True)}
 - Does strategy beat market in bullish conditions? {comparison_str}"""
-            elif regime == "BEARISH":
-                backtest_metrics = f"""Strategy performance in current regime (BEARISH):
+            elif regime_bias == "BEARISH":
+                backtest_metrics = f"""Strategy performance in current regime ({regime}):
 - Strategy Return (Base): {clean_val(total_ret, pct=True)}
 - Strategy Return (With 3% Protective SL): {clean_val(protected_total_ret, pct=True)}
 - Max Drawdown (Base): {clean_val(max_dd)}%
 - Max Drawdown (With 3% Protective SL): {clean_val(protected_max_dd)}%
 - Loss Mitigation: {mitigation_str}"""
             else:
-                backtest_metrics = f"""Strategy performance in current regime (UNKNOWN):
+                backtest_metrics = f"""Strategy performance in current regime ({regime}):
 - Strategy Return: {clean_val(total_ret, pct=True)}
 - Benchmark Return (Buy & Hold): {clean_val(bench_ret, pct=True)}
 - Max Drawdown: {clean_val(max_dd)}%"""

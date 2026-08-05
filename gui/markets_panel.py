@@ -9,11 +9,11 @@ import queue
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import ttk, messagebox
-from gui.utils import apply_binance_tab_style
+from gui.utils import apply_binance_tab_style, dark_scrollbar
 
 from core.data_manager import (
-    load_settings, save_settings,
-    save_market_list, load_market_list, delete_market_list, get_market_list_info,
+    save_settings,
+    save_market_list, load_market_list, get_market_list_info,
 )
 
 # Theme colors (aligned with app.py)
@@ -221,7 +221,7 @@ class MarketsPanel(ctk.CTkFrame):
         tree.tag_configure("hold_alt", background="#161a28", foreground="#b0b8d0")
 
         # Vertical scrollbar
-        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
+        vsb = dark_scrollbar(tree_frame, "vertical", tree.yview)
         vsb.grid(row=0, column=1, sticky="ns")
         tree.configure(yscrollcommand=vsb.set)
 
