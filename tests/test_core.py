@@ -325,6 +325,17 @@ def test_decision_json_parsing():
     assert junk["rationale"]
 
 
+def test_describe_span_labels_the_real_window():
+    """The backtest header used to claim a fixed '6 months' / '30 days' while
+    actually running over whatever 15m history the Markets panel had cached."""
+    from core.ai_analyst import _describe_span
+    mk = lambda n, freq="15min": pd.date_range("2026-01-01", periods=n, freq=freq)
+    assert "days" in _describe_span(mk(96 * 10))          # ~10 days
+    assert "months" in _describe_span(mk(96 * 90))        # ~3 months
+    assert "years" in _describe_span(mk(96 * 400))        # >1 year
+    assert _describe_span([]) == "local 15m history"      # never raises
+
+
 def test_safe_float_helper():
     from core.ai_analyst import _safe_float
     assert _safe_float(None, 5.0) == 5.0
@@ -442,6 +453,35 @@ def test_settings_round_trip_keeps_secrets_out_of_json(monkeypatch, tmp_path):
     assert on_disk["portfolio_manager"]["api_secret"] == ""
     assert on_disk["backend"] == "cpu"
     assert "sk-secret" in (tmp_path / ".env").read_text()
+
+
+def test_settings_template_is_valid_and_documented():
+    """The template must stay loadable and must not introduce keys the code does
+    not know about — the README documents the two side by side."""
+    import core.data_manager as dm
+
+    template_path = Path(dm.__file__).resolve().parent.parent / "config" / "settings.template.json"
+    assert template_path.exists(), "config/settings.template.json is missing"
+
+    template = json.loads(template_path.read_text(encoding="utf-8"))
+    defaults = dm.DEFAULT_SETTINGS
+
+    unknown = sorted(set(template) - set(defaults))
+    assert not unknown, f"template has keys absent from DEFAULT_SETTINGS: {unknown}"
+
+    for section in ("portfolio_manager", "auto_trading"):
+        unknown_sub = sorted(set(template.get(section, {})) - set(defaults[section]))
+        assert not unknown_sub, f"template.{section} has unknown keys: {unknown_sub}"
+
+    # The template is the conservative starting point: it must never ship with
+    # live order execution enabled.
+    assert template["portfolio_manager"]["useExchangeBalance"] is False
+    # ...nor with credentials baked in.
+    assert template["portfolio_manager"]["api_key"] == ""
+    assert template["portfolio_manager"]["api_secret"] == ""
+    for secret in ("hf_token", "ai_api_key", "coingecko_api_key",
+                   "ai_finnhub_key", "ai_coingecko_key"):
+        assert template.get(secret, "") == "", f"template leaks a value for {secret}"
 
 
 def test_market_list_round_trip(monkeypatch, tmp_path):

@@ -92,6 +92,28 @@ def _regime_bias(regime: str) -> str:
     return "UNKNOWN"
 
 
+def _describe_span(index) -> str:
+    """Human-readable description of the period covered by a DatetimeIndex.
+
+    Used to label the instant backtest honestly: the window is whatever the
+    Markets panel cached locally, not a fixed figure.
+    """
+    try:
+        start, end = index[0], index[-1]
+        days = max(0, (end - start).days)
+        if days >= 365:
+            amount = f"{days / 365.0:.1f} years"
+        elif days >= 60:
+            amount = f"{days / 30.0:.0f} months"
+        elif days >= 1:
+            amount = f"{days} days"
+        else:
+            amount = "less than a day"
+        return f"Last {amount} @ 15m"
+    except Exception:
+        return "local 15m history"
+
+
 def _safe_float(value, default: float = 0.0) -> float:
     """float() that never raises — returns *default* for None/""/"N/A"/"DISABLED"."""
     if value is None:
@@ -632,7 +654,7 @@ def _build_decision_prompt(coin: dict, market_analysis: str, news_analysis: str,
     
     backtest_section = ""
     if backtest_results:
-        backtest_section = f"\nINSTANT BACKTEST (Last 6 Months):\n{backtest_results}\n"
+        backtest_section = f"\nINSTANT BACKTEST:\n{backtest_results}\n"
 
     return f"""You are the Portfolio Manager of Argus. You must make the FINAL trading decision for {coin['name']} ({coin['symbol']}), a {asset_type_label}.
 Current price: ${current_price}
@@ -670,7 +692,7 @@ COHERENCE CHECK — Before outputting, verify:
 4. stop_loss MUST be tighter than take_profit distance (favorable risk/reward)
 5. HORIZON IS STRICTLY 2 HOURS (INTRADAY). Avoid extreme price targets. Typical intraday SL is between 0.5% to 2% from current price. TP is typically 1% to 4%. 
 6. IMPORTANT DISTINCTION: Your predicted `change_pct_2h` is the STATISTICAL EXPECTED MEAN MOVE in 2 hours, NOT your Take Profit. While TP can be 3%, the expected mean move is usually very small (e.g., 0.1% to 0.8% or -0.1% to -0.8%). Do NOT output your TP percentage as the expected change.
-7. BACKTEST NOTE: The Instant Backtest Strategy Return is over the LAST 30 DAYS, do NOT confuse it with a 2-hour expected return.
+7. BACKTEST NOTE: The Instant Backtest Strategy Return covers the whole historical window stated in its header, do NOT confuse it with a 2-hour expected return.
 
 TEAM DEBATE:
 MARKET ANALYST: {market_analysis}
@@ -755,7 +777,7 @@ def _build_decision_debate_prompt(coin: dict, market_analysis: str, news_analysi
     
     backtest_section = ""
     if backtest_results:
-        backtest_section = f"\nINSTANT BACKTEST (Last 6 Months):\n{backtest_results}\n"
+        backtest_section = f"\nINSTANT BACKTEST:\n{backtest_results}\n"
 
     return f"""You are the Portfolio Manager of Argus. You must make the FINAL trading decision for {coin['name']} ({coin['symbol']}), a {asset_type_label}.
 Current price: ${current_price}
@@ -793,7 +815,7 @@ COHERENCE CHECK — Before outputting, verify:
 4. stop_loss MUST be tighter than take_profit distance (favorable risk/reward)
 5. HORIZON IS STRICTLY 2 HOURS (INTRADAY). Avoid extreme price targets. Typical intraday SL is between 0.5% to 2% from current price. TP is typically 1% to 4%.
 6. IMPORTANT DISTINCTION: Your predicted `change_pct_2h` is the STATISTICAL EXPECTED MEAN MOVE in 2 hours, NOT your Take Profit. While TP can be 3%, the expected mean move is usually very small (e.g., 0.1% to 0.8% or -0.1% to -0.8%). Do NOT output your TP percentage as the expected change.
-7. BACKTEST NOTE: The Instant Backtest Strategy Return is over the LAST 30 DAYS, do NOT confuse it with a 2-hour expected return.
+7. BACKTEST NOTE: The Instant Backtest Strategy Return covers the whole historical window stated in its header, do NOT confuse it with a 2-hour expected return.
 
 PRELIMINARY DATA:
 MARKET ANALYST: {market_analysis}
@@ -1093,7 +1115,8 @@ Always respond in English. Be brief and direct."""
         return res
 
     def _run_instant_backtest(self, coin: dict, market_analysis: str, news_analysis: str, fundamentals_analysis: str, market_context: dict = None) -> tuple:
-        """Runs an instant backtest of the last 6 months using vectorbt with regime-conditional logic."""
+        """Runs an instant backtest over the locally cached 15m history using vectorbt,
+        with regime-conditional reporting."""
         symbol = coin.get("symbol", "?")
         name = coin.get("name", symbol)
         market_type = self._settings.get("market_type", "crypto").lower()
@@ -1116,7 +1139,7 @@ NEWS ANALYST: {news_analysis}
 FUNDAMENTALS ANALYST: {fundamentals_analysis}
 CURRENT REGIME: {regime}
 
-Based on these analyses AND the current market regime, decide on the best numeric parameters to backtest a strategy over the last 6 months.
+Based on these analyses AND the current market regime, decide on the best numeric parameters to backtest a strategy on 15-minute candles.
 
 REGIME-AWARE PARAMETER RULES:
 - If regime is "CRYPTO_WINTER / BEARISH": Prefer wider RSI bands (rsi_lower=20, rsi_upper=80) and consider "long_short" direction.
@@ -1180,7 +1203,13 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
             
             if len(close) < params["ema_slow"] + 5:
                 raise ValueError("Insufficient data points for indicators.")
-                
+
+            # Describe the window actually covered by the local cache rather than
+            # asserting a fixed "6 months"/"30 days" — the Markets panel decides
+            # how much 15m history is stored (up to 365 days).
+            span_label = _describe_span(close.index)
+
+
             # Calculate indicators
             ema_fast = close.ewm(span=params["ema_fast"], adjust=False).mean()
             ema_slow = close.ewm(span=params["ema_slow"], adjust=False).mean()
@@ -1354,7 +1383,7 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
 - Benchmark Return (Buy & Hold): {clean_val(bench_ret, pct=True)}
 - Max Drawdown: {clean_val(max_dd)}%"""
 
-            report = f"""### 📊 Instant Backtest (Last 30 Days @ 15m)
+            report = f"""### 📊 Instant Backtest ({span_label})
 - **Backtest Strategy**: EMA Cross ({params['ema_fast']}/{params['ema_slow']}) + RSI ({params['rsi_lower']}/{params['rsi_upper']})
 - **Direction**: {"Long/Short" if params['direction'] == 'long_short' else "Long Only"}
 - **Initial vs Final Value**: ${start_val:,.2f} ➔ ${end_val:,.2f}
@@ -1372,7 +1401,7 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
             if "No price data returned" in str(e) or "Insufficient data points" in str(e):
                 raise  # Abort analysis if asset does not exist or is delisted
             print(f"[AIAnalyst] Backtest error: {e}")
-            err_report = f"### 📊 Instant Backtest (Last 6 Months)\n⚠️ Cannot execute backtest for {symbol}: {e}"
+            err_report = f"### 📊 Instant Backtest\n⚠️ Cannot execute backtest for {symbol}: {e}"
             err_metrics = f"Strategy performance in current regime (UNKNOWN):\n⚠️ Backtest error: {e}"
             return err_report, err_metrics
 

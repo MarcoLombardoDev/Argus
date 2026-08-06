@@ -1523,7 +1523,7 @@ class AgentDebateWindow(ctk.CTkToplevel):
         backtest_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            backtest_card, text="📈 Instant Backtest (Last 6 Months)",
+            backtest_card, text="📈 Instant Backtest",
             font=ctk.CTkFont("Segoe UI", 12, "bold"), text_color=COLOR_ACCENT, anchor="w",
         ).grid(row=0, column=0, padx=14, pady=(10, 4), sticky="w")
 
