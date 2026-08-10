@@ -187,7 +187,7 @@ The model is compiled with `use_continuous_quantile_head=True`, so alongside the
 
 $$\text{Spread}_{\text{rel}} = \frac{q_{90} - q_{10}}{q_{50}}$$
 
-$$\text{Confidence}_{\text{tfm}} = \operatorname{clip}\!\left(100 \times \left(1 - \frac{\text{Spread}_{\text{rel}}}{0.10}\right),\ 0,\ 100\right)$$
+$$\text{Confidence}_{\text{tfm}} = \text{clip}\!\left(100 \times \left(1 - \frac{\text{Spread}_{\text{rel}}}{0.10}\right),\ 0,\ 100\right)$$
 
 The `0.10` divisor is a calibration constant for 15-minute micro-volatility over a 2-hour horizon: a relative spread of 10% or more collapses confidence to `0`. This score is what feeds the Ensemble's dynamic weighting — see [Ensemble Engine](#4-ensemble-engine--mathematical-formulas).
 
@@ -295,7 +295,7 @@ $$w_i^{\text{norm}} = \frac{w_i'}{\sum_j w_j'}$$
 
 #### Weighted Expected Return
 
-$$\boxed{\Delta P_{\text{ensemble}} = w_{\text{tfm}}^{\text{norm}} \cdot \Delta P_{\text{tfm}} + w_{\text{pm}}^{\text{norm}} \cdot \Delta P_{\text{pm}} + w_{\text{ai}}^{\text{norm}} \cdot \Delta P_{\text{ai}}}$$
+$$\Delta P_{\text{ensemble}} = w_{\text{tfm}}^{\text{norm}} \cdot \Delta P_{\text{tfm}} + w_{\text{pm}}^{\text{norm}} \cdot \Delta P_{\text{pm}} + w_{\text{ai}}^{\text{norm}} \cdot \Delta P_{\text{ai}}$$
 
 #### Signal Generation Rules
 
@@ -412,13 +412,13 @@ $$\text{MarginRequired} = \frac{\text{NominalSize} \times \text{ScaleFactor} \ti
 
 $$\text{Margin} = \min(\text{MarginRequired},\ \text{InvestableCapital} \times \text{MaxPositionPercent})$$
 
-> Example: With capital=$10,000, risk=1.5%, SL=2% away, leverage=10x → NominalSize = $7,500 → Margin = $750
+> Example: With capital=\$10,000, risk=1.5%, SL=2% away, leverage=10x → NominalSize = \$7,500 → Margin = \$750
 
 #### Dynamic Leverage Calculation
 
 Leverage is calculated dynamically but capped at `maxLeverage`. The safe leverage is determined by ensuring the stop-loss distance absorbs at least an 80% portfolio move before liquidation:
 
-$$\text{SafeLeverage} = \left\lfloor \frac{0.80}{\text{SL Distance\%}} \right\rfloor$$
+$$\text{SafeLeverage} = \text{floor}\!\left(\frac{0.80}{\text{SL Distance\%}}\right)$$
 
 $$\text{Leverage} = \min(\text{maxLeverage},\ \max(1,\ \text{SafeLeverage}))$$
 
