@@ -252,7 +252,9 @@ The Portfolio Manager Agent is asked for a strict JSON object describing the **2
 
 > **Naming note:** for backward compatibility with earlier logs and CSV exports, those fields are stored internally under the legacy `*_1d` keys (`target_price_1d`, `ai_change_pct_1d`). Despite the name, **the horizon is 2 hours, not 1 day** — every panel and export labels it "2h".
 
-$$\Delta P_{\text{ai}} = \text{change_pct_2h}$$
+$$\Delta P_{\text{ai}} = \Delta P_{\text{2h}}$$
+
+i.e. the model's own `change_pct_2h` field, taken as-is.
 
 The parser is defensive: it strips markdown fences and trailing commas, accepts comma decimals and `$`/`%` symbols, and falls back to regex extraction if the JSON is malformed. If nothing can be recovered, the target defaults to the current price (i.e. a neutral contribution) rather than raising.
 
