@@ -12,6 +12,23 @@ On top of the analysis engine, Argus features a full **Portfolio Manager** modul
 
 ---
 
+## Screenshots
+
+> The prices, balances and positions below are **synthetic sample data** generated purely to illustrate the layout — not a real account, not real market data, and not investment advice.
+
+| | |
+|---|---|
+| **Auto Trading** — run log, live countdown to the next 15-minute cycle | **Portfolio** — Spot/Futures positions, leverage, SL/TP as ROI% |
+| ![Auto Trading panel](docs/screenshots/01_auto_trading.png) | ![Portfolio panel](docs/screenshots/02_portfolio.png) |
+| **Market** — live price table feeding the local 15m OHLCV cache | **Pattern Matching** — KNN move/confidence history on BTC |
+| ![Market panel](docs/screenshots/03_markets.png) | ![Pattern Matching panel](docs/screenshots/04_pattern_matching.png) |
+| **Time-Series Analysis** — TimesFM 2-hour forecast | **Advanced Analysis** — multi-agent AI verdict, ensemble sizing |
+| ![Time-Series Analysis panel](docs/screenshots/05_time_series_analysis.png) | ![Advanced Analysis panel](docs/screenshots/06_advanced_analysis.png) |
+
+<sub>Generated with [`docs/generate_screenshots.py`](docs/generate_screenshots.py), which boots the real app under Xvfb with in-memory sample data (no disk writes, no network calls). Regenerate after a UI change with `SHOTDIR=docs/screenshots xvfb-run -a python docs/generate_screenshots.py`.</sub>
+
+---
+
 ## Table of Contents
 
 1. [Architecture Overview](#architecture-overview)
@@ -235,7 +252,7 @@ The Portfolio Manager Agent is asked for a strict JSON object describing the **2
 
 > **Naming note:** for backward compatibility with earlier logs and CSV exports, those fields are stored internally under the legacy `*_1d` keys (`target_price_1d`, `ai_change_pct_1d`). Despite the name, **the horizon is 2 hours, not 1 day** — every panel and export labels it "2h".
 
-$$\Delta P_{\text{ai}} = \text{change\_pct\_2h}$$
+$$\Delta P_{\text{ai}} = \text{change_pct_2h}$$
 
 The parser is defensive: it strips markdown fences and trailing commas, accepts comma decimals and `$`/`%` symbols, and falls back to regex extraction if the JSON is malformed. If nothing can be recovered, the target defaults to the current price (i.e. a neutral contribution) rather than raising.
 
