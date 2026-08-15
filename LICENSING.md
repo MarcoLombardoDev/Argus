@@ -116,31 +116,25 @@ a commercial Argus licence cannot and does not relicense them.
 | requests, yfinance, openai, huggingface-hub, timesfm | Apache-2.0 | ✅ Permissive |
 | CustomTkinter, BeautifulSoup4, openpyxl, Pillow | MIT / HPND | ✅ Permissive |
 | reportlab | BSD | ✅ Permissive |
-| **vectorbt** | **Apache-2.0 + Commons Clause** | ⚠️ **Restricted — see below** |
 
-With one exception, every dependency is permissively licensed and safe to
-redistribute in a commercial product.
+**Every dependency is permissively licensed and safe to redistribute in a
+commercial product.** No dependency imposes copyleft, field-of-use or
+anti-commercial conditions.
 
-> ### ⚠️ vectorbt and the Commons Clause
+> ### Resolved: the vectorbt / Commons Clause problem
 >
-> `vectorbt` (all published versions, 0.26 through 1.1) is **not** plain
-> Apache-2.0: it carries the **Commons Clause**, which withholds the right to
-> *"Sell"* the software — defined as providing to third parties, for a fee, *"a
-> product or service whose value derives, entirely or substantially, from the
-> functionality of the Software."*
+> Until recently the Instant Backtest depended on `vectorbt`, which ships under
+> Apache-2.0 **plus the Commons Clause** — a condition withholding the right to
+> *"Sell"* software whose value derives substantially from it. Every published
+> vectorbt release (0.26 through 1.1) carries it, so pinning an older version
+> was not a way out, and the clause is one AGPL-3.0 §7 does not permit a
+> licensee to impose.
 >
-> The Commons Clause is not an OSI-approved open-source licence, and the
-> restriction it adds is one that AGPL-3.0 §7 does not permit a licensee to
-> impose.
->
-> In Argus, `vectorbt` powers **one feature** — the Instant Backtest — via a
-> single API call (`Portfolio.from_signals`) plus four metrics. Argus's value
-> plainly does not derive *substantially* from it: forecasting, pattern matching,
-> the multi-agent pipeline, risk management and order routing are all independent
-> of it. **However, this has not been legally assessed**, and any commercial
-> offering should either remove the dependency or obtain counsel's opinion first.
->
-> **Status: to be resolved before the first commercial sale.**
+> It has been **removed**. The backtest now runs on
+> [`core/backtest.py`](core/backtest.py), written for this project and covered
+> by the same dual licence as the rest of Argus, with no dependencies beyond
+> pandas and NumPy. Nothing in the dependency tree now restricts commercial
+> sale.
 
 > **Model weights are licensed separately from model code.** The `timesfm`
 > *package* is Apache-2.0, but the TimesFM *checkpoints* downloaded from

@@ -3,7 +3,7 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Commercial License Available](https://img.shields.io/badge/Commercial%20License-Available-green.svg)](#license--commercial-licensing)
 
-Argus is an advanced Python desktop application for **quantitative price forecasting and AI-driven analysis** of cryptocurrency assets. It combines Google Research's **TimesFM 2.5** foundation model for temporal prediction, a cooperative **Multi-Agent LLM pipeline** for qualitative analysis and debate, and a **VectorBT instant backtester** to constrain AI decisions with real mathematical evidence.
+Argus is an advanced Python desktop application for **quantitative price forecasting and AI-driven analysis** of cryptocurrency assets. It combines Google Research's **TimesFM 2.5** foundation model for temporal prediction, a cooperative **Multi-Agent LLM pipeline** for qualitative analysis and debate, and a **built-in instant backtester** to constrain AI decisions with real mathematical evidence.
 
 On top of the analysis engine, Argus features a full **Portfolio Manager** module integrated with [CCXT](https://github.com/ccxt/ccxt) for generating and executing orders on derivatives exchanges (e.g., BingX), with an institutional-grade Money Management framework and a fully autonomous **Auto-Trading Scheduler**.
 
@@ -37,7 +37,7 @@ On top of the analysis engine, Argus features a full **Portfolio Manager** modul
    - [TimesFM Temporal Forecast](#2-timesfm-temporal-forecast)
    - [Multi-Agent AI Analysis](#3-multi-agent-ai-analysis-pipeline)
    - [Ensemble Engine](#4-ensemble-engine--mathematical-formulas)
-   - [Instant Backtest (VectorBT)](#5-instant-backtest-vectorbt)
+   - [Instant Backtest](#5-instant-backtest)
    - [Portfolio Manager & CCXT](#6-portfolio-manager--ccxt-integration)
    - [Pre-Flight Checker](#7-pre-flight-checker-slippage-guard--flash-ob)
    - [Auto-Trading Workflow](#8-auto-trading-workflow)
@@ -339,13 +339,29 @@ Signals that clear the gate are additionally scaled by the confidence within the
 
 ---
 
-### 5. Instant Backtest (VectorBT)
+### 5. Instant Backtest
 
-**File:** [`core/ai_analyst.py`](core/ai_analyst.py)
+**Files:** [`core/backtest.py`](core/backtest.py), [`core/ai_analyst.py`](core/ai_analyst.py)
 
-Before the Portfolio Manager Agent makes its final decision, an **instant historical backtest** is run with [VectorBT](https://vectorbt.dev/) over the **locally cached 15-minute history** (the same `data/historical/<SYMBOL>.csv` every other module reads — up to 365 days, downloaded by the Markets panel). No network call is made here.
+Before the Portfolio Manager Agent makes its final decision, an **instant historical backtest** is run over the **locally cached 15-minute history** (the same `data/historical/<SYMBOL>.csv` every other module reads — up to 365 days, downloaded by the Markets panel). No network call is made here.
 
 > The report header states the window it actually covered (e.g. *“Last 1.0 years @ 15m”*), computed from the cached data rather than asserted as a fixed figure.
+
+#### Engine and its assumptions
+
+The backtester is [`core/backtest.py`](core/backtest.py) — written for this project, with no dependencies beyond pandas and NumPy. It replaced `vectorbt`, whose Commons Clause forbids selling software that derives substantially from it and was therefore incompatible with Argus's [dual licensing](LICENSING.md).
+
+Its modelling choices are deliberately conservative to state, so the numbers are interpretable rather than flattering:
+
+| Choice | Consequence |
+|---|---|
+| Fills at the bar **close**, adjusted for slippage | No intrabar precision is invented |
+| Stops checked against the **close**, not intrabar high/low | Real stops would trigger earlier and worse — **treat drawdowns as optimistic** |
+| No lookahead: a signal on bar *i* acts at bar *i*'s close | Results are not inflated by future information |
+| Full-equity sizing, 1x, no pyramiding | Position sizing is out of scope here; that is the Portfolio Manager's job |
+| Fees and slippage at 5 bps per side | Round-trip cost ≈ 0.2% |
+
+Sharpe is annualised over 35,040 bars/year (15m on a 24/7 market).
 
 #### Strategy Parameters
 
@@ -578,7 +594,8 @@ Argus/
 │   └── settings.json             # Live configuration — generated, never committed
 ├── core/
 │   ├── __init__.py
-│   ├── ai_analyst.py             # Multi-agent LLM pipeline + VectorBT backtest
+│   ├── ai_analyst.py             # Multi-agent LLM pipeline + instant backtest
+│   ├── backtest.py               # Dependency-free signal backtester
 │   ├── ai_analysis_store.py      # AI session persistence + CSV/Excel/PDF export
 │   ├── analyzer.py               # Signal building, formatting, forecast verification
 │   ├── btc_pattern_matcher.py    # KNN BTC pattern matching engine
@@ -930,7 +947,6 @@ Key dependencies (see [`requirements.txt`](requirements.txt) for the full list):
 | `customtkinter` | Modern dark-mode GUI framework |
 | `timesfm` | Google Research TimesFM 2.5 foundation model |
 | `ccxt` | Unified crypto exchange API library |
-| `vectorbt` | High-performance backtesting |
 | `yfinance` | Historical OHLCV data |
 | `scikit-learn` | KNN for Pattern Matching |
 | `numpy`, `pandas` | Numerical computing |

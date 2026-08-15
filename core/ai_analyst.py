@@ -1115,7 +1115,7 @@ Always respond in English. Be brief and direct."""
         return res
 
     def _run_instant_backtest(self, coin: dict, market_analysis: str, news_analysis: str, fundamentals_analysis: str, market_context: dict = None) -> tuple:
-        """Runs an instant backtest over the locally cached 15m history using vectorbt,
+        """Runs an instant backtest over the locally cached 15m history,
         with regime-conditional reporting."""
         symbol = coin.get("symbol", "?")
         name = coin.get("name", symbol)
@@ -1232,9 +1232,8 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
             entries = entries | ((rsi < params["rsi_lower"]) & (rsi.shift(1) >= params["rsi_lower"]))
             exits = exits | ((rsi > params["rsi_upper"]) & (rsi.shift(1) <= params["rsi_upper"]))
             
-            # Run backtest with vectorbt
-            import vectorbt as vbt
-            
+            from core.backtest import run_signal_backtest
+
             # Calculate dynamic SL/TP based on asset volatility (15m ATR)
             atr_period = 14
             daily_returns = close.pct_change().abs()
@@ -1247,57 +1246,29 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
             sl_stop = float(np.clip(atr_pct * 1, 0.002, 0.05))  # min 0.2%, max 5%
             tp_stop = float(np.clip(atr_pct * 2, 0.004, 0.10))  # min 0.4%, max 10%
             
-            if params["direction"] == "long_short":
-                pf = vbt.Portfolio.from_signals(
-                    close,
-                    entries=entries,
-                    exits=exits,
-                    short_entries=exits,
-                    short_exits=entries,
-                    init_cash=10000.0,
-                    fees=0.0005,      # 0.05% Taker fee
-                    slippage=0.0005,  # 0.05% slippage
-                    freq='15m',
-                    sl_stop=sl_stop,
-                    tp_stop=tp_stop
-                )
-            else:
-                pf = vbt.Portfolio.from_signals(
-                    close,
-                    entries=entries,
-                    exits=exits,
-                    init_cash=10000.0,
-                    fees=0.0005,
-                    slippage=0.0005,
-                    freq='15m',
-                    sl_stop=sl_stop,
-                    tp_stop=tp_stop
-                )
-                
-            # Extract metrics
             start_val = 10000.0
-            end_val = float(pf.final_value())
-            total_ret = float(pf.total_return() * 100.0)
+            pf = run_signal_backtest(
+                close,
+                entries=entries,
+                exits=exits,
+                allow_short=(params["direction"] == "long_short"),
+                init_cash=start_val,
+                fees=0.0005,      # 0.05% Taker fee
+                slippage=0.0005,  # 0.05% slippage
+                sl_stop=sl_stop,
+                tp_stop=tp_stop,
+            )
+
+            # Extract metrics. The engine returns fractions; the report is in %.
+            # max_drawdown comes back positive, and is negated for display.
+            end_val = pf.final_value
+            total_ret = pf.total_return * 100.0
             bench_ret = float((close.iloc[-1] - close.iloc[0]) / close.iloc[0] * 100.0)
-            
-            try:
-                sharpe = float(pf.sharpe_ratio())
-            except Exception:
-                sharpe = np.nan
-                
-            try:
-                max_dd = float(pf.max_drawdown() * -100.0)
-            except Exception:
-                max_dd = np.nan
-                
-            try:
-                trades_count = int(pf.trades.count())
-            except Exception:
-                try:
-                    trades_count = int(len(pf.trades.records))
-                except Exception:
-                    trades_count = 0
-                    
+            sharpe = pf.sharpe_ratio
+            max_dd = -pf.max_drawdown * 100.0
+            trades_count = pf.trades_count
+
+
             import math
             def clean_val(v, pct=False):
                 if v is None or (isinstance(v, float) and math.isnan(v)):
@@ -1312,47 +1283,42 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
             pf_protected = None
             protected_total_ret = np.nan
             protected_max_dd = np.nan
+            protective_sl = min(0.01, sl_stop)
             mitigation_str = "N/A"
             
             if regime_bias == "BULLISH":
                 alpha = total_ret - bench_ret
             elif regime_bias == "BEARISH":
                 try:
-                    if params["direction"] == "long_short":
-                        pf_protected = vbt.Portfolio.from_signals(
-                            close,
-                            entries=entries,
-                            exits=exits,
-                            short_entries=exits,
-                            short_exits=entries,
-                            init_cash=10000.0,
-                            fees=0.0005,
-                            slippage=0.0005,
-                            freq='15m',
-                            sl_stop=min(0.01, sl_stop),  # Use even tighter SL for bear market
-                            tp_stop=tp_stop
-                        )
-                    else:
-                        pf_protected = vbt.Portfolio.from_signals(
-                            close,
-                            entries=entries,
-                            exits=exits,
-                            init_cash=10000.0,
-                            fees=0.0005,
-                            slippage=0.0005,
-                            freq='15m',
-                            sl_stop=min(0.01, sl_stop),
-                            tp_stop=tp_stop
-                        )
+                    # Tighter stop for a bear market. Bound to a variable so the
+                    # report can state the figure actually applied — the label
+                    # used to claim a fixed "3%" while this is 1% or less.
+                    protective_sl = min(0.01, sl_stop)
+                    pf_protected = run_signal_backtest(
+                        close,
+                        entries=entries,
+                        exits=exits,
+                        allow_short=(params["direction"] == "long_short"),
+                        init_cash=start_val,
+                        fees=0.0005,
+                        slippage=0.0005,
+                        sl_stop=protective_sl,
+                        tp_stop=tp_stop,
+                    )
                     if pf_protected is not None:
-                        protected_total_ret = float(pf_protected.total_return() * 100.0)
-                        protected_max_dd = float(pf_protected.max_drawdown() * -100.0)
+                        protected_total_ret = pf_protected.total_return * 100.0
+                        protected_max_dd = -pf_protected.max_drawdown * 100.0
                         
                         # Mitigation: if the protected drawdown is less severe (e.g. -8.00% vs -15.00% base)
                         drawdown_mitigated = protected_max_dd > max_dd
                         returns_improved = protected_total_ret > total_ret
                         
-                        if drawdown_mitigated and returns_improved:
+                        if protective_sl >= sl_stop:
+                            mitigation_str = (
+                                f"N/A (base SL is already {sl_stop*100:.2f}%, "
+                                "no tighter stop to test)"
+                            )
+                        elif drawdown_mitigated and returns_improved:
                             mitigation_str = "YES (Tight SL reduces Drawdown and improves return)"
                         elif drawdown_mitigated:
                             mitigation_str = "PARTIAL (Tight SL reduces Drawdown but impacts return)"
@@ -1373,9 +1339,9 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
             elif regime_bias == "BEARISH":
                 backtest_metrics = f"""Strategy performance in current regime ({regime}):
 - Strategy Return (Base): {clean_val(total_ret, pct=True)}
-- Strategy Return (With 3% Protective SL): {clean_val(protected_total_ret, pct=True)}
+- Strategy Return (With {protective_sl*100:.2f}% Protective SL): {clean_val(protected_total_ret, pct=True)}
 - Max Drawdown (Base): {clean_val(max_dd)}%
-- Max Drawdown (With 3% Protective SL): {clean_val(protected_max_dd)}%
+- Max Drawdown (With {protective_sl*100:.2f}% Protective SL): {clean_val(protected_max_dd)}%
 - Loss Mitigation: {mitigation_str}"""
             else:
                 backtest_metrics = f"""Strategy performance in current regime ({regime}):
@@ -1532,7 +1498,7 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
         market_context_str = market_context_data['summary']
 
         # ── Instant Backtest ─────────────────────────────────────
-        log(f"📊 [{symbol}] Running instant backtest with vectorbt...")
+        log(f"📊 [{symbol}] Running instant backtest...")
         backtest_results, backtest_metrics = self._run_instant_backtest(
             coin, market_analysis, news_analysis, fundamentals_analysis, market_context=market_context_data
         )

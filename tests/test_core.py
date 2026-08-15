@@ -348,6 +348,129 @@ def test_safe_float_helper():
 
 
 # ─────────────────────────────────────────────────────────────
+# Backtest engine (in-house replacement for vectorbt)
+# ─────────────────────────────────────────────────────────────
+
+def test_backtest_buy_and_hold_matches_price_move():
+    """With no costs, holding from first to last bar must reproduce the price
+    return exactly."""
+    from core.backtest import run_signal_backtest
+    close = pd.Series([100.0, 110.0, 120.0, 130.0])
+    r = run_signal_backtest(close, [True, False, False, False], [False] * 4,
+                            fees=0.0, slippage=0.0)
+    assert r.total_return == pytest.approx(0.30)
+    assert r.final_value == pytest.approx(13000.0)
+
+
+def test_backtest_applies_fees_and_slippage_exactly():
+    """Hand-computed round trip: buy at 100, sell at 110, 1% fee, 1% slippage."""
+    from core.backtest import run_signal_backtest
+    r = run_signal_backtest(pd.Series([100.0, 110.0]), [True, False], [False, True],
+                            fees=0.01, slippage=0.01)
+    fill_in = 100 * 1.01
+    qty = 10_000 / (fill_in * 1.01)
+    expected = qty * (110 * 0.99) * 0.99
+    assert r.final_value == pytest.approx(expected)
+    assert r.trades_count == 1
+    # Costs must make it strictly worse than the frictionless case.
+    free = run_signal_backtest(pd.Series([100.0, 110.0]), [True, False], [False, True],
+                               fees=0.0, slippage=0.0)
+    assert r.final_value < free.final_value
+
+
+def test_backtest_stop_loss_caps_the_loss():
+    from core.backtest import run_signal_backtest
+    # -10% on bar 2, then a huge rally the stopped-out position must NOT capture.
+    close = pd.Series([100.0, 100.0, 90.0, 200.0])
+    r = run_signal_backtest(close, [True, False, False, False], [False] * 4,
+                            fees=0.0, slippage=0.0, sl_stop=0.05)
+    assert r.total_return == pytest.approx(-0.10)
+    assert r.trades_count == 1
+
+
+def test_backtest_take_profit_locks_the_gain():
+    from core.backtest import run_signal_backtest
+    # +10% on bar 2, then a crash the closed position must NOT suffer.
+    close = pd.Series([100.0, 100.0, 110.0, 50.0])
+    r = run_signal_backtest(close, [True, False, False, False], [False] * 4,
+                            fees=0.0, slippage=0.0, tp_stop=0.05)
+    assert r.total_return == pytest.approx(0.10)
+
+
+def test_backtest_short_profits_when_price_falls():
+    from core.backtest import run_signal_backtest
+    close = pd.Series([100.0, 100.0, 90.0])
+    r = run_signal_backtest(close, [False, False, False], [False, True, False],
+                            allow_short=True, fees=0.0, slippage=0.0)
+    assert r.total_return == pytest.approx(0.10)
+    # Without allow_short the same signals must do nothing at all.
+    flat = run_signal_backtest(close, [False, False, False], [False, True, False],
+                               allow_short=False, fees=0.0, slippage=0.0)
+    assert flat.total_return == pytest.approx(0.0)
+
+
+def test_backtest_max_drawdown_is_positive_peak_to_trough():
+    from core.backtest import run_signal_backtest
+    close = pd.Series([100.0, 150.0, 75.0, 80.0])
+    r = run_signal_backtest(close, [True, False, False, False], [False] * 4,
+                            fees=0.0, slippage=0.0)
+    assert r.max_drawdown == pytest.approx(0.5)   # 150 -> 75
+    assert r.max_drawdown >= 0
+
+
+def test_backtest_ambiguous_and_degenerate_inputs():
+    from core.backtest import run_signal_backtest
+    # Entry and exit on the same bar cancel out rather than raising.
+    r = run_signal_backtest(pd.Series([100.0, 110.0]), [True, True], [True, True],
+                            fees=0.0, slippage=0.0)
+    assert r.trades_count == 0
+    assert r.total_return == pytest.approx(0.0)
+
+    # Too few points: metrics degrade, nothing raises.
+    empty = run_signal_backtest(pd.Series([], dtype=float), [], [])
+    assert empty.trades_count == 0
+    assert empty.final_value == pytest.approx(10_000.0)
+
+    # NaNs in the price series are dropped, not propagated into the result.
+    nan_series = pd.Series([100.0, float("nan"), 110.0])
+    r2 = run_signal_backtest(nan_series, [True, False, False], [False, False, True],
+                             fees=0.0, slippage=0.0)
+    assert np.isfinite(r2.final_value)
+
+
+def test_backtest_sharpe_is_nan_on_flat_equity():
+    """A never-traded account has zero variance; Sharpe must be nan, not inf."""
+    from core.backtest import run_signal_backtest
+    r = run_signal_backtest(pd.Series([100.0] * 50), [False] * 50, [False] * 50)
+    assert np.isnan(r.sharpe_ratio)
+
+
+def test_no_commons_clause_dependency_remains():
+    """Regression: vectorbt is Apache-2.0 + Commons Clause, which forbids selling
+    software deriving substantially from it and blocks Argus's dual licensing."""
+    root = Path(__file__).resolve().parent.parent
+    offenders = []
+    for path in list((root / "core").glob("*.py")) + list((root / "gui").glob("*.py")):
+        text = path.read_text(encoding="utf-8")
+        for lineno, line in enumerate(text.splitlines(), 1):
+            stripped = line.strip()
+            if stripped.startswith("#") or stripped.startswith("*"):
+                continue          # explanatory comments may name it
+            if "import vectorbt" in line or "vbt." in line:
+                offenders.append(f"{path.name}:{lineno}")
+    assert not offenders, f"vectorbt is back in: {offenders}"
+
+    # Check declared dependencies only — the explanatory comment names it on purpose.
+    req_lines = [
+        line.strip()
+        for line in (root / "requirements.txt").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    assert not [l for l in req_lines if "vectorbt" in l], \
+        "vectorbt reintroduced into requirements.txt"
+
+
+# ─────────────────────────────────────────────────────────────
 # Pattern matcher
 # ─────────────────────────────────────────────────────────────
 

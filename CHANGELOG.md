@@ -8,6 +8,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Licensing
+
+- **Removed the `vectorbt` dependency**, which shipped under Apache-2.0 **plus
+  the Commons Clause** — a condition withholding the right to sell software
+  whose value derives substantially from it, incompatible with Argus's
+  dual-licensing model. All published releases (0.26 through 1.1) carry the
+  clause, so pinning an older version was not a way out.
+  - Replaced by `core/backtest.py`: a dependency-free signal backtester
+    (pandas/NumPy only) covering the surface actually used — long-only and
+    stop-and-reverse long/short, proportional fees and slippage, percentage
+    SL/TP, reporting total return, max drawdown, annualised Sharpe and a trade
+    count. Validated against hand-computed cases, including exact fee and
+    slippage arithmetic.
+  - Side benefit: drops the numba/llvmlite toolchain from the install.
+- Added `LICENSING.md` with commercial tiers, indicative pricing, an explicit
+  statement of what a commercial licence does *not* include, and a
+  dependency-by-dependency licence table. Every remaining dependency is
+  permissive (MIT / BSD-3 / Apache-2.0 / HPND).
+- Corrected the README's AGPL summary: "modify & redistribute privately | no
+  obligation" was wrong — distributing a modified copy, even privately, obliges
+  you to provide that recipient the source under AGPL-3.0.
+
+### Fixed
+
+- The bearish-regime backtest report labelled its protective stop "3%" while
+  the code applied `min(0.01, sl_stop)` — 1% or less. The label now states the
+  figure actually used, and when the base stop is already tighter than the
+  protective one (making both runs identical) the report says so instead of
+  presenting the same number twice as a comparison.
+
+---
+
 A full audit of the application: every fix below was reproduced before being
 changed, and is covered by a regression test.
 

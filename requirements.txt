@@ -24,7 +24,10 @@ scikit-learn>=1.3.0
 # --- AI Advanced Analysis ---
 openai>=1.0.0
 beautifulsoup4>=4.12.0
-vectorbt>=1.0.0
+# NOTE: the instant backtest used to rely on vectorbt, which is Apache-2.0 plus
+# the Commons Clause — a "no selling" condition incompatible with Argus's
+# dual-licensing model. It was replaced by core/backtest.py, which has no
+# dependencies beyond pandas/numpy. Do not reintroduce it; see LICENSING.md.
 
 # --- Export (Excel / PDF) ---
 openpyxl>=3.1.0
