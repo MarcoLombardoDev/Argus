@@ -221,5 +221,52 @@ def test_auto_trading_scheduler_survives_the_weekend_branch(app):
     panel.settings["auto_trading"]["run_weekend"] = True
 
 
+# ─────────────────────────────────────────────────────────────
+# Commercial licensing contact
+# ─────────────────────────────────────────────────────────────
+
+def test_the_footer_shows_the_licensing_address(app):
+    """The person running the app is the one who may need to buy a licence, so
+    the address is spelled out rather than promised 'on request'."""
+    from core.version import CONTACT_EMAIL
+
+    assert app._footer_email.cget("text") == CONTACT_EMAIL
+    assert "AGPL-3.0" in app._footer_label.cget("text")
+
+
+def test_the_address_looks_clickable(app):
+    """A bare label that happens to react to clicks is undiscoverable: the hand
+    cursor is what tells the user it can be clicked at all."""
+    assert app._footer_email.cget("cursor") == "hand2"
+
+
+def test_clicking_the_address_opens_the_mail_client(app, monkeypatch):
+    from gui import app as app_mod
+    from core.version import CONTACT_EMAIL
+
+    opened = []
+    monkeypatch.setattr(app_mod.webbrowser, "open", opened.append)
+
+    app.open_licensing_email()
+
+    assert len(opened) == 1
+    assert opened[0].startswith(f"mailto:{CONTACT_EMAIL}?subject=")
+
+
+def test_a_missing_mail_client_does_not_crash(app, monkeypatch):
+    """No mail client configured is a normal state on a headless or locked-down
+    box; the address stays readable on screen, so it must not raise."""
+    from gui import app as app_mod
+
+    def explode(url):
+        raise OSError("no mail client")
+
+    monkeypatch.setattr(app_mod.webbrowser, "open", explode)
+
+    app.open_licensing_email()
+
+    assert app.winfo_exists()
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))

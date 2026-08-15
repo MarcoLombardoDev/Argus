@@ -16,9 +16,13 @@ Layout:
 import threading
 import queue
 import time
+import webbrowser
 from datetime import datetime
+from urllib.parse import quote
 import customtkinter as ctk
 from tkinter import messagebox
+
+from core.version import APP_TITLE, CONTACT_EMAIL
 
 from core.data_manager import (
     load_settings, save_settings,
@@ -182,16 +186,43 @@ class ArgusApp(ctk.CTk):
         footer.grid_columnconfigure(0, weight=1)
         footer.grid_rowconfigure(0, weight=1)
 
-        ctk.CTkLabel(
-            footer,
+        # Chi sta usando l'applicazione è esattamente la persona che potrebbe
+        # dover comprare una licenza commerciale: l'indirizzo è scritto per
+        # esteso e cliccabile, invece di un generico "available on request".
+        # Un frame interno senza sticky resta centrato nella cella.
+        center = ctk.CTkFrame(footer, fg_color="transparent")
+        center.grid(row=0, column=0, padx=20)
+
+        self._footer_label = ctk.CTkLabel(
+            center,
             text=(
                 "© 2026 Marco Lombardo — Argus  |  Licensed under AGPL-3.0  |  "
-                "Commercial licensing: marco.lombardo@gmail.com"
+                "Commercial licensing:"
             ),
             font=ctk.CTkFont(family="Segoe UI", size=9),
             text_color=("#4a5568", "#4a5568"),
-            anchor="center",
-        ).grid(row=0, column=0, sticky="ew", padx=20)
+        )
+        self._footer_label.pack(side="left")
+
+        self._footer_email = ctk.CTkLabel(
+            center,
+            text=CONTACT_EMAIL,
+            font=ctk.CTkFont(family="Segoe UI", size=9, underline=True),
+            text_color=("#4a9eff", "#4a9eff"),
+            cursor="hand2",
+        )
+        self._footer_email.pack(side="left", padx=(4, 0))
+        self._footer_email.bind("<Button-1>", self.open_licensing_email)
+
+    def open_licensing_email(self, event=None):
+        """Apre il client di posta su una richiesta di licenza commerciale."""
+        subject = quote(f"{APP_TITLE} — commercial licence enquiry")
+        try:
+            webbrowser.open(f"mailto:{CONTACT_EMAIL}?subject={subject}")
+        except Exception:
+            # Nessun client di posta configurato: l'indirizzo resta comunque
+            # leggibile a schermo, quindi non vale un dialog di errore.
+            pass
 
     # ─────────────────────────────────────────────────────────────
     # Topbar — Logo + Status + Navigazione

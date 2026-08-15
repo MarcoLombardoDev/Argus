@@ -39,7 +39,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `CLA.md`: contact was "via the repository's GitHub Issues" — wrong for a
     binding agreement, and unusable for a Corporate CLA;
   - app footer: advertised "Commercial licensing available" with no way to act
-    on it; it now carries the address.
+    on it. It now shows the address in full, underlined and in link blue with a
+    hand cursor, and clicking it opens the mail client on a pre-filled
+    enquiry (same pattern as Iris). A missing mail client is swallowed — the
+    address stays readable on screen either way.
   - `LICENSING.md`: the quote request now lists what to include, so a quote
     takes one round rather than three.
 
