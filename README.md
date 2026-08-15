@@ -955,23 +955,38 @@ Argus is open-source software released under the **[GNU Affero General Public Li
 
 | Use Case | Allowed? | Obligation |
 |---|---|---|
-| Personal / research use | ✅ Yes | None |
-| Modify & redistribute privately | ✅ Yes | None |
-| Deploy modified version on a server | ✅ Yes | Must publish source code of your modified version |
+| Personal / research use, trading your own capital | ✅ Yes | None |
+| Modify it and keep it to yourself | ✅ Yes | None — obligations start only on distribution or network use |
+| Modify it and **give copies to others** | ✅ Yes | Must provide those recipients the modified source, under AGPL-3.0 |
+| Deploy a modified version others can reach over a network | ✅ Yes | Must offer those users the modified source (AGPL §13) |
 | Fork & publish on GitHub | ✅ Yes | Must use AGPL-3.0 license |
 | Integrate into a **closed-source commercial product** | ⚠️ Restricted | Requires a commercial license (see below) |
 | Offer as a **proprietary SaaS** without sharing source | ❌ Not allowed under AGPL | Requires a commercial license |
 
 ### Commercial Licensing
 
-If you need to use Argus in a **proprietary application**, **closed-source SaaS**, or **enterprise deployment** without being bound by the AGPL-3.0 copyleft requirements, a **commercial license** is available.
+If AGPL-3.0 does not work for you — because you need to embed Argus in a
+closed-source product, operate it as a hosted service, or simply because your
+organisation's policy forbids AGPL code internally — a **commercial licence** is
+available.
 
-A commercial license grants you the right to:
-- Embed Argus in closed-source software
-- Run Argus as a service without disclosing your source code
-- Use Argus in commercial products without AGPL obligations
+**➡️ Tiers, indicative pricing and terms: [LICENSING.md](LICENSING.md)**
 
-For commercial licensing inquiries, please contact **Marco Lombardo** at [marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com).
+| Tier | Indicative price | Covers |
+|---|---|---|
+| **Community** (AGPL-3.0) | Free | Any use, including trading your own capital |
+| **Commercial — Internal** | €490 / year | Closed-source internal use, 1 legal entity |
+| **Commercial — OEM** | €4,900 / year | Redistribution, hosted service for customers |
+| **Enterprise** | from €14,000 / year | Group-wide, SLA, roadmap influence |
+
+Free commercial licences are granted to non-profits, academic institutions and
+published research on request.
+
+📧 **marco.lombardo@gmail.com**
+
+> **Running Argus on your own machine to trade your own money?** You owe nothing,
+> and never will — the AGPL only creates obligations when you distribute modified
+> copies or expose the software to others over a network.
 
 ### Contributing
 
