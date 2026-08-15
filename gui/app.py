@@ -184,7 +184,10 @@ class ArgusApp(ctk.CTk):
 
         ctk.CTkLabel(
             footer,
-            text="© 2026 Marco Lombardo — Argus  |  Licensed under AGPL-3.0  |  Commercial licensing available",
+            text=(
+                "© 2026 Marco Lombardo — Argus  |  Licensed under AGPL-3.0  |  "
+                "Commercial licensing: marco.lombardo@gmail.com"
+            ),
             font=ctk.CTkFont(family="Segoe UI", size=9),
             text_color=("#4a5568", "#4a5568"),
             anchor="center",

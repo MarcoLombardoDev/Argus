@@ -9,6 +9,7 @@ On top of the analysis engine, Argus features a full **Portfolio Manager** modul
 
 > 📋 Recent changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 > ⚠️ The autonomous workflow currently trades **BTC only** — see [Scope & Current Limitations](#scope--current-limitations) before relying on it.
+> 💼 Commercial, OEM or enterprise use? See [LICENSING.md](LICENSING.md), or write to [marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry).
 
 ---
 
@@ -998,7 +999,9 @@ available.
 Free commercial licences are granted to non-profits, academic institutions and
 published research on request.
 
-📧 **marco.lombardo@gmail.com**
+📧 **[marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry)** — email is the only
+commercial channel; GitHub Issues are for bugs and features, not for quotes or
+contract terms.
 
 > **Running Argus on your own machine to trade your own money?** You owe nothing,
 > and never will — the AGPL only creates obligations when you distribute modified

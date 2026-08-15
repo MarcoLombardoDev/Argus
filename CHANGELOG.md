@@ -29,6 +29,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Corrected the README's AGPL summary: "modify & redistribute privately | no
   obligation" was wrong — distributing a modified copy, even privately, obliges
   you to provide that recipient the source under AGPL-3.0.
+- **Made the commercial contact channel reachable.** Email is now stated as the
+  only commercial channel, and reachable from every surface a prospect actually
+  lands on rather than only from the foot of two long documents:
+  - README: a contact line in the header block, not just at line ~1000;
+  - `.github/ISSUE_TEMPLATE/config.yml`: new-issue chooser links routing
+    licence enquiries, CLA questions and security reports to email instead of
+    into a public thread;
+  - `CLA.md`: contact was "via the repository's GitHub Issues" — wrong for a
+    binding agreement, and unusable for a Corporate CLA;
+  - app footer: advertised "Commercial licensing available" with no way to act
+    on it; it now carries the address.
+  - `LICENSING.md`: the quote request now lists what to include, so a quote
+    takes one round rather than three.
 
 ### Fixed
 

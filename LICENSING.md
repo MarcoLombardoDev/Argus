@@ -158,8 +158,21 @@ The figures above are **indicative list prices for a first commercial release**,
 not a fixed tariff. Real quotes depend on deployment scale, support expectations,
 and whether custom development is involved.
 
-📧 **marco.lombardo@gmail.com** — include your company, intended use, and rough
-deployment scale, and you will get a concrete quote.
+**Email is the only commercial channel.** GitHub Issues are for bugs and feature
+requests; pricing, contract terms and Corporate CLAs are handled privately.
+
+📧 **[marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry)**
+
+To get a concrete quote in one round instead of three, include:
+
+- your **company** and the legal entity that would hold the licence;
+- the **intended use** — internal only, embedded in a product you sell, or operated as a hosted service;
+- **deployment scale** — seats, instances, or customers exposed to it;
+- which **tier** you think fits, and any support or SLA expectation;
+- whether you need **custom development** or exchange/strategy integration work.
+
+Expect a reply within a few business days. Non-profits, academic institutions and
+published research: say so, and ask for the free commercial licence.
 
 ---
 
