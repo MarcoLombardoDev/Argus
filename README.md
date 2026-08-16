@@ -1003,10 +1003,10 @@ barred by internal policy from using AGPL code.
 | Tier | Price | Scope |
 |---|---:|---|
 | **Community** | **Free** | Everything Argus does, under AGPL-3.0. Unlimited internal use. |
-| **Internal** | **€490 / year** | Closed-source internal use, one legal entity. No redistribution. |
+| **Internal** | **€2,900 / year** | Closed-source internal use, one legal entity. No redistribution. |
 | **OEM / Redistribution** | **€4,900 / year** | Embed it in a product you sell, or run it as a hosted service. |
 | **Enterprise** | **from €14,000 / year** | Group-wide, unlimited products, procurement and legal questionnaires answered. |
-| **Perpetual** | **€1,490** / **from €14,900** one-off | Internal or OEM scope, bought once, for the major version current at purchase. |
+| **Perpetual** | **€8,700** / **from €14,900** one-off | Internal or OEM scope, bought once, for the major version current at purchase. |
 
 The same commitments apply at every paid tier:
 

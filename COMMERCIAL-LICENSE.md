@@ -74,10 +74,10 @@ per user or per installation.
 | Tier | Price | Scope |
 |---|---:|---|
 | **Community** | **Free** | Everything Argus does, under AGPL-3.0. Unlimited internal use. |
-| **Internal** | **€490 / year** | Closed-source internal use, one legal entity. No redistribution. |
+| **Internal** | **€2,900 / year** | Closed-source internal use, one legal entity. No redistribution. |
 | **OEM / Redistribution** | **€4,900 / year** | Embed it in a product you sell, or run it as a hosted service for your customers. |
 | **Enterprise** | **from €14,000 / year** | Group-wide. Unlimited products and services. Written answers to procurement and legal questionnaires. |
-| **Perpetual — Internal scope** | **€1,490** one-off | Internal scope, bought once. Covers the major version current at purchase. |
+| **Perpetual — Internal scope** | **€8,700** one-off | Internal scope, bought once. Covers the major version current at purchase. |
 | **Perpetual — OEM scope** | **from €14,900** one-off | OEM scope, bought once. Covers the major version current at purchase. Priced per case. |
 
 ### What every paid licence includes
