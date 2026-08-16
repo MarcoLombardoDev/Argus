@@ -15,5 +15,5 @@ APP_NAME = "Argus"
 APP_TITLE = "Argus — Advanced Market Forecast & AI Analysis"
 
 # Commercial licensing, quotes, OEM and enterprise enquiries. Email is the
-# only commercial channel — see LICENSING.md.
+# only commercial channel — see COMMERCIAL-LICENSE.md.
 CONTACT_EMAIL = "marco.lombardo@gmail.com"

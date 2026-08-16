@@ -6,7 +6,7 @@ A small, dependency-free vectorised-signal backtester.
 This exists to replace `vectorbt`, which ships under Apache-2.0 **plus the
 Commons Clause** — a condition that withholds the right to sell software whose
 value derives substantially from it, and which is incompatible with Argus's
-dual-licensing model (see LICENSING.md). Every published vectorbt release
+dual-licensing model (see COMMERCIAL-LICENSE.md). Every published vectorbt release
 carries the clause, so pinning an older version was not an option.
 
 Only the surface Argus actually used is reimplemented here: a long-only or

@@ -8,6 +8,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- **The commercial offer is now identical across Iris, Argus and Proteus**, with only
+  the price list, the scope wording and the third-party review differing per product.
+  Same document (`COMMERCIAL-LICENSE.md`), same eleven sections, same tier ladder —
+  Community / Internal / OEM / Enterprise, plus a perpetual option on Internal or OEM
+  scope — and the same commitments at every paid tier:
+  - **email support always included** (5 / 3 / 2 business days by tier), never sold
+    separately to a paying customer;
+  - **custom development never included and always quoted separately**, per project, at
+    a fixed price agreed before work starts;
+  - email as the only commercial channel, GitHub Issues for bugs and features;
+  - perpetual fallback, no retroactive price rise, cancel any time, no licence key;
+  - 50% off under 10 employees and €1M revenue; free licences for non-profits,
+    academia and published research.
+- README licensing section, badge and CLA contact line aligned to the same wording.
+- `LICENSING.md` renamed to `COMMERCIAL-LICENSE.md`, matching the other two products.
+  References in `README.md`, `core/backtest.py` and `core/version.py` updated.
+
+
+## [Unreleased]
+
 ### Licensing
 
 - **Removed the `vectorbt` dependency**, which shipped under Apache-2.0 **plus

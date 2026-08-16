@@ -106,6 +106,4 @@ Your GitHub username and the PR submission date serve as your electronic signatu
 
 ---
 
-*For questions about this agreement — including Corporate CLAs, which should not
-be negotiated in public — contact the Project Owner directly at
-[marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20CLA).*
+*For questions about this agreement, open a GitHub Issue on the repository — or, if the matter is not one to discuss in public (an employer's rights over your work, a Corporate CLA, a licensing question), email the Project Owner at [marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20CLA).*

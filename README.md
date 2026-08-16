@@ -1,7 +1,7 @@
 # 👁️ Argus — Advanced Market Forecast & AI Analysis
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Commercial License Available](https://img.shields.io/badge/Commercial%20License-Available-green.svg)](#license--commercial-licensing)
+[![Commercial Licence Available](https://img.shields.io/badge/Commercial%20Licence-Available-green.svg)](COMMERCIAL-LICENSE.md)
 
 Argus is an advanced Python desktop application for **quantitative price forecasting and AI-driven analysis** of cryptocurrency assets. It combines Google Research's **TimesFM 2.5** foundation model for temporal prediction, a cooperative **Multi-Agent LLM pipeline** for qualitative analysis and debate, and a **built-in instant backtester** to constrain AI decisions with real mathematical evidence.
 
@@ -9,7 +9,7 @@ On top of the analysis engine, Argus features a full **Portfolio Manager** modul
 
 > 📋 Recent changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 > ⚠️ The autonomous workflow currently trades **BTC only** — see [Scope & Current Limitations](#scope--current-limitations) before relying on it.
-> 💼 Commercial, OEM or enterprise use? See [LICENSING.md](LICENSING.md), or write to [marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry).
+> 💼 Commercial, OEM or enterprise use? See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md), or write to [marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry).
 
 ---
 
@@ -350,7 +350,7 @@ Before the Portfolio Manager Agent makes its final decision, an **instant histor
 
 #### Engine and its assumptions
 
-The backtester is [`core/backtest.py`](core/backtest.py) — written for this project, with no dependencies beyond pandas and NumPy. It replaced `vectorbt`, whose Commons Clause forbids selling software that derives substantially from it and was therefore incompatible with Argus's [dual licensing](LICENSING.md).
+The backtester is [`core/backtest.py`](core/backtest.py) — written for this project, with no dependencies beyond pandas and NumPy. It replaced `vectorbt`, whose Commons Clause forbids selling software that derives substantially from it and was therefore incompatible with Argus's [dual licensing](COMMERCIAL-LICENSE.md).
 
 Its modelling choices are deliberately conservative to state, so the numbers are interpretable rather than flattering:
 
@@ -966,46 +966,75 @@ Key dependencies (see [`requirements.txt`](requirements.txt) for the full list):
 
 ## License & Commercial Licensing
 
-Argus is open-source software released under the **[GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE)**.
+Argus is open-source software released under the
+**[GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE)**.
+
+Copyright © 2026 Marco Lombardo.
+
+**The free build is the whole product.** Every feature documented above is in it. There is
+no paid edition, no feature gate, no licence key, no seat limit and no phone-home. If
+AGPL-3.0 works for you, you are done reading — Argus is yours to use.
 
 ### What AGPL-3.0 Means for You
 
 | Use Case | Allowed? | Obligation |
 |---|---|---|
-| Personal / research use, trading your own capital | ✅ Yes | None |
-| Modify it and keep it to yourself | ✅ Yes | None — obligations start only on distribution or network use |
-| Modify it and **give copies to others** | ✅ Yes | Must provide those recipients the modified source, under AGPL-3.0 |
-| Deploy a modified version others can reach over a network | ✅ Yes | Must offer those users the modified source (AGPL §13) |
-| Fork & publish on GitHub | ✅ Yes | Must use AGPL-3.0 license |
-| Integrate into a **closed-source commercial product** | ⚠️ Restricted | Requires a commercial license (see below) |
-| Offer as a **proprietary SaaS** without sharing source | ❌ Not allowed under AGPL | Requires a commercial license |
+| Internal use, any number of machines and users | ✅ Yes | None |
+| Modify it and keep the changes to yourself | ✅ Yes | None |
+| Fork & publish on GitHub | ✅ Yes | Must stay AGPL-3.0 |
+| Redistribute it, modified or not, under AGPL-3.0 | ✅ Yes | Must ship the source |
+| Deploy a modified version as a network service | ✅ Yes | Must publish the source of your modified version |
+| Integrate into a **closed-source product** | ⚠️ Restricted | Requires a commercial licence |
+| Offer as a **proprietary SaaS** without sharing source | ❌ Not under AGPL | Requires a commercial licence |
+| **Resell** it, or ship it inside a product you sell | ❌ Not under AGPL | Requires a commercial licence |
+
+The dividing line is one rule: **AGPL-3.0 is free as long as the source stays open.**
+
+> **Running Argus on your own machine to trade your own money?** You owe nothing, and never will — the AGPL only creates obligations when you distribute modified copies or expose the software to others over a network.
+
 
 ### Commercial Licensing
 
-If AGPL-3.0 does not work for you — because you need to embed Argus in a
-closed-source product, operate it as a hosted service, or simply because your
-organisation's policy forbids AGPL code internally — a **commercial licence** is
-available.
+The commercial licence removes the copyleft obligation, and nothing else. It is for
+organisations embedding Argus in a proprietary product, running a modified version as a
+service without publishing the source, reselling it under their own terms — or simply
+barred by internal policy from using AGPL code.
 
-**➡️ Tiers, indicative pricing and terms: [LICENSING.md](LICENSING.md)**
+| Tier | Price | Scope |
+|---|---:|---|
+| **Community** | **Free** | Everything Argus does, under AGPL-3.0. Unlimited internal use. |
+| **Internal** | **€490 / year** | Closed-source internal use, one legal entity. No redistribution. |
+| **OEM / Redistribution** | **€4,900 / year** | Embed it in a product you sell, or run it as a hosted service. |
+| **Enterprise** | **from €14,000 / year** | Group-wide, unlimited products, procurement and legal questionnaires answered. |
+| **Perpetual** | **€1,490** / **from €14,900** one-off | Internal or OEM scope, bought once, for the major version current at purchase. |
 
-| Tier | Indicative price | Covers |
-|---|---|---|
-| **Community** (AGPL-3.0) | Free | Any use, including trading your own capital |
-| **Commercial — Internal** | €490 / year | Closed-source internal use, 1 legal entity |
-| **Commercial — OEM** | €4,900 / year | Redistribution, hosted service for customers |
-| **Enterprise** | from €14,000 / year | Group-wide, SLA, roadmap influence |
+The same commitments apply at every paid tier:
 
-Free commercial licences are granted to non-profits, academic institutions and
-published research on request.
+- **Email support is always included** — 5 business days at Internal, 3 at OEM, 2 at
+  Enterprise. It is never sold separately to a paying customer.
+- **Custom development is never included**, at any tier. It is available on request and
+  **quoted separately**, per project, at a fixed price agreed before work starts
+  (indicative day rate: **€1,200 / day**).
+- **Perpetual fallback, no retroactive price rise, cancel any time.** Versions released
+  during your term stay licensed to you forever.
+- **50% off** for organisations under 10 employees and €1M revenue. **Free** commercial
+  licences for non-profits, academia and published research — ask.
 
-📧 **[marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry)** — email is the only
-commercial channel; GitHub Issues are for bugs and features, not for quotes or
-contract terms.
+Prices are per organisation, excluding VAT. **Seats are never counted.** Full terms, what is
+*not* included, and the third-party component review:
+**[COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)**.
 
-> **Running Argus on your own machine to trade your own money?** You owe nothing,
-> and never will — the AGPL only creates obligations when you distribute modified
-> copies or expose the software to others over a network.
+### How to get in touch
+
+Everything commercial — buying a licence, asking for a quote, commissioning custom
+development, or checking whether you need a licence at all (the answer is often *no*) —
+goes to one address:
+
+> **[marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry)** — Marco Lombardo
+
+The same address is shown in the application's footer, and clicking it opens your mail
+client on a pre-filled enquiry. Please keep **GitHub Issues for bugs and feature
+requests**, not for licensing.
 
 ### Contributing
 
