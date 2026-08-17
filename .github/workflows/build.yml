@@ -5,13 +5,25 @@
 # Argus.spec, CLAUDE.md). This workflow is the way to get a real .exe
 # without owning a Windows machine: GitHub provides one on demand.
 #
-# Manual trigger only (Actions tab > Build Windows Executable > Run
-# workflow). It is not wired to push or pull_request — a multi-minute,
-# multi-hundred-MB build has no reason to run on every commit.
+# Two triggers, two purposes:
+# - workflow_dispatch: an ad-hoc test build. Uploads Argus.exe as a workflow
+#   artifact, which is fine for trying the build but is neither permanent
+#   (artifacts expire on GitHub's retention schedule) nor a clean public
+#   download link.
+# - push of a "v*" tag: a release build. Additionally publishes a GitHub
+#   Release with Argus.exe attached — release assets do not expire and are
+#   downloadable by anyone, logged in or not, for as long as the release
+#   exists. This is the one to use for a link worth handing out.
 name: Build Windows Executable
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # only used to create the Release on a tag push
 
 jobs:
   build:
@@ -41,9 +53,22 @@ jobs:
       - name: Build Argus.exe
         run: python build.py
 
-      - name: Upload Argus.exe
+      - name: Upload Argus.exe as a workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: Argus-windows-exe
           path: dist/Argus.exe
           if-no-files-found: error
+
+      # Only on a "v*" tag push: turns the build into a permanent, public
+      # download. gh is preinstalled on GitHub-hosted runners; no extra
+      # action or token beyond the job's own GITHUB_TOKEN is needed.
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" dist/Argus.exe \
+            --title "Argus ${{ github.ref_name }}" \
+            --generate-notes

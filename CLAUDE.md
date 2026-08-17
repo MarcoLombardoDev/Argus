@@ -52,11 +52,16 @@ or any CI step — generate it on demand.
 **PyInstaller does not cross-compile.** The binary is native to whatever platform runs the
 build: Windows in, `.exe` out; Linux in, ELF out. There is no way to produce a Windows
 executable from a Linux or macOS machine, or vice versa. `.github/workflows/build.yml` is
-the escape hatch for that: a manually-triggered (`workflow_dispatch` only, never on push)
-job on a real `windows-latest` GitHub Actions runner, which is the only way to get a
-genuine `.exe` without owning or renting a Windows machine. It also sidesteps the
-CPU-vs-CUDA torch problem below, since a hosted runner has unrestricted internet access to
-install the CPU wheel explicitly — some sandboxed dev environments do not.
+the escape hatch for that: a real `windows-latest` GitHub Actions runner, which is the only
+way to get a genuine `.exe` without owning or renting a Windows machine. It also sidesteps
+the CPU-vs-CUDA torch problem below, since a hosted runner has unrestricted internet access
+to install the CPU wheel explicitly — some sandboxed dev environments do not.
+
+Two triggers, two purposes: `workflow_dispatch` (manual, from the Actions tab) is an ad-hoc
+test build whose output is a workflow artifact — good enough to try, but artifacts expire
+on GitHub's retention schedule. Pushing a `v*` tag additionally publishes a **GitHub
+Release** with `Argus.exe` attached; release assets don't expire and need no GitHub account
+to download. Neither trigger fires on an ordinary push.
 
 **The build bundles whatever `torch` is already installed** in the environment you build
 from — there is no separate pin in `Argus.spec`. A CPU-only wheel keeps the executable in

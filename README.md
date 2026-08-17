@@ -867,11 +867,21 @@ machine.
 
 **No Windows machine available?** The
 [`Build Windows Executable`](.github/workflows/build.yml) GitHub Actions
-workflow runs the same build on a real, GitHub-hosted Windows runner —
-trigger it manually from the repo's *Actions* tab (*Build Windows
-Executable* → *Run workflow*) and download `Argus.exe` from the run's
-artifacts once it finishes. It is not wired to run on every push; a
-multi-minute build has no reason to fire on every commit.
+workflow runs the same build on a real, GitHub-hosted Windows runner, two ways:
+
+- **Ad-hoc test build** — trigger it manually from the repo's *Actions* tab
+  (*Build Windows Executable* → *Run workflow*) and download `Argus.exe`
+  from the run's artifacts once it finishes. Fine for trying the build, but
+  workflow artifacts expire on GitHub's retention schedule — not a link
+  worth handing out.
+- **Public, permanent release** — push a tag matching `v*` (e.g. `v1.0.0`).
+  The same build runs and additionally publishes a
+  [GitHub Release](../../releases) with `Argus.exe` attached; release
+  assets don't expire and are downloadable by anyone, no GitHub account
+  needed.
+
+Neither trigger fires on an ordinary push — a multi-minute build has no
+reason to run on every commit.
 
 The build picks up whatever `torch` is already installed in the environment
 you build from. A CPU-only wheel keeps the result in the low hundreds of MB
