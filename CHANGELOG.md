@@ -8,6 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **Standalone executable build.** `python build.py` (after
+  `pip install -r requirements-build.txt`) runs PyInstaller against the new
+  `Argus.spec` and produces a single-file `dist/Argus` / `Argus.exe`. Not run
+  automatically anywhere — generate it on demand.
+  - Fixed the two bugs that would have made a frozen build silently lose
+    data: `core/data_manager.py` and `core/ai_analysis_store.py` derived
+    their base directory from `Path(__file__)`, which resolves *inside*
+    PyInstaller's temporary extraction folder in a `--onefile` build and is
+    deleted on exit — settings, the price cache and saved AI sessions would
+    vanish between runs. New `core/paths.py::writable_base_dir()` resolves
+    to the executable's own directory when frozen instead.
+  - `gui/app.py`'s window title derived a version by walking the source tree
+    for the newest `.py` file's mtime — meaningless once there are no `.py`
+    files on disk to walk, and it would have printed "v. 1970.01.01" out of
+    a frozen build. Now uses `core.version.__version__` when frozen, and
+    keeps the mtime scan only as a source-run convenience.
+  - `requirements-build.txt` isolates PyInstaller as a build-time-only
+    dependency; it was never needed to run Argus from source.
+
 ### Changed
 - **The commercial offer is now identical across Iris, Argus and Proteus**, with only
   the price list, the scope wording and the third-party review differing per product.

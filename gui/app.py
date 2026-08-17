@@ -13,6 +13,8 @@ Layout:
   └─────────────────────────────────────────────────────────────┘
 """
 
+import os
+import sys
 import threading
 import queue
 import time
@@ -22,7 +24,7 @@ from urllib.parse import quote
 import customtkinter as ctk
 from tkinter import messagebox
 
-from core.version import APP_TITLE, CONTACT_EMAIL
+from core.version import APP_TITLE, CONTACT_EMAIL, __version__
 
 from core.data_manager import (
     load_settings, save_settings,
@@ -111,22 +113,29 @@ class ArgusApp(ctk.CTk):
     # ─────────────────────────────────────────────────────────────
 
     def _configure_window(self):
-        import os
-        try:
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            max_mtime = 0
-            for root, dirs, files in os.walk(base_dir):
-                if '.git' in root or '__pycache__' in root or 'data' in root:
-                    continue
-                for file in files:
-                    if file.endswith('.py'):
-                        mtime = os.path.getmtime(os.path.join(root, file))
-                        if mtime > max_mtime:
-                            max_mtime = mtime
-            v_date = datetime.fromtimestamp(max_mtime).strftime("%Y.%m.%d")
-        except Exception:
-            v_date = datetime.now().strftime("%Y.%m.%d")
-            
+        # A frozen (PyInstaller) build has no .py sources on disk to derive a
+        # "last changed" date from — walking for one here would silently
+        # settle on the epoch, printing "v. 1970.01.01" in the title bar.
+        # Running from source, the mtime scan is left in as a convenience so
+        # the title reflects the last edit without a manual version bump.
+        if getattr(sys, "frozen", False):
+            v_date = __version__
+        else:
+            try:
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                max_mtime = 0
+                for root, dirs, files in os.walk(base_dir):
+                    if '.git' in root or '__pycache__' in root or 'data' in root:
+                        continue
+                    for file in files:
+                        if file.endswith('.py'):
+                            mtime = os.path.getmtime(os.path.join(root, file))
+                            if mtime > max_mtime:
+                                max_mtime = mtime
+                v_date = datetime.fromtimestamp(max_mtime).strftime("%Y.%m.%d")
+            except Exception:
+                v_date = __version__
+
         self.title(f"Argus — v. {v_date}")
         self.geometry("1300x840")
         self.minsize(1100, 680)

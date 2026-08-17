@@ -845,6 +845,29 @@ TimesFM is downloaded **once** (~800 MB) and cached locally; subsequent launches
 
 > **Paper trading:** orders are only simulated while `portfolio_manager.useExchangeBalance` is `false` — the value shipped in the template, and the *Enable Real Trading* switch in **Portfolio → ⚙️ Settings**. Leaving the API keys empty is **not** by itself a paper-trading guarantee; see [Two sets of starting values](#two-sets-of-starting-values).
 
+### Building a Standalone Executable
+
+For anyone who wants a single file to run instead of a Python environment:
+
+```bash
+pip install -r requirements-build.txt   # PyInstaller — build-time only
+python build.py
+```
+
+This produces `dist/Argus` (`Argus.exe` on Windows). Copy it anywhere — on
+first launch it creates its own `data/` and `config/` next to itself, so the
+executable stays portable. **PyInstaller does not cross-compile**: build on
+Windows for a `.exe`, on Linux for an ELF binary, on macOS for a Mach-O
+binary — there is no way to produce a Windows executable from a non-Windows
+machine.
+
+The build picks up whatever `torch` is already installed in the environment
+you build from. A CPU-only wheel keeps the result in the low hundreds of MB
+and runs on any machine; a CUDA build pulls in its (multi-GB) CUDA runtime
+libraries too, which only pays off on a machine with a matching NVIDIA GPU —
+see the comments in [`Argus.spec`](Argus.spec) before choosing which to
+build with.
+
 ## Testing
 
 The suite is fully **offline** — it never contacts an exchange, a data provider or an LLM — so it is safe to run at any time, with or without API keys configured.

@@ -9,11 +9,12 @@ import time
 
 import pandas as pd
 from datetime import datetime, timezone
-from pathlib import Path
 from dotenv import load_dotenv, set_key
 
+from core.paths import writable_base_dir
+
 # Project directories
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = writable_base_dir()
 ENV_PATH = BASE_DIR / ".env"
 DATA_DIR = BASE_DIR / "data"
 HISTORICAL_DIR = DATA_DIR / "historical"

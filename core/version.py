@@ -14,6 +14,12 @@ does not have to.
 APP_NAME = "Argus"
 APP_TITLE = "Argus — Advanced Market Forecast & AI Analysis"
 
+# Shown in the window title. Bump by hand on a release; a frozen executable
+# has no .py sources on disk to derive a date from (see gui/app.py, which
+# used to walk the source tree for this and would have printed 1970.01.01
+# out of a PyInstaller bundle).
+__version__ = "1.0.0"
+
 # Commercial licensing, quotes, OEM and enterprise enquiries. Email is the
 # only commercial channel — see COMMERCIAL-LICENSE.md.
 CONTACT_EMAIL = "marco.lombardo@gmail.com"

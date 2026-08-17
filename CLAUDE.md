@@ -42,6 +42,31 @@ files and go stale silently:
 SHOTDIR=docs/screenshots xvfb-run -a python docs/generate_screenshots.py
 ```
 
+## Building the standalone executable
+
+`python build.py` (after `pip install -r requirements-build.txt`) runs PyInstaller against
+`Argus.spec` and produces a single-file `dist/Argus` (`Argus.exe` on Windows). It is not
+part of the test suite or any CI step — generate it on demand.
+
+**PyInstaller does not cross-compile.** The binary is native to whatever platform runs the
+build: Windows in, `.exe` out; Linux in, ELF out. There is no way to produce a Windows
+executable from a Linux or macOS machine, or vice versa.
+
+**The build bundles whatever `torch` is already installed** in the environment you build
+from — there is no separate pin in `Argus.spec`. A CPU-only wheel keeps the executable in
+the low hundreds of MB; the default CUDA wheel from PyPI drags in several GB of NVIDIA
+runtime libraries that only pay off on a machine with a matching GPU. Check which one is
+installed before building a binary meant for general distribution.
+
+**User data must live beside the executable, not inside the temp bundle.** A PyInstaller
+`--onefile` build unpacks itself into a fresh `sys._MEIPASS` temp directory on every launch
+and deletes it on exit; `Path(__file__)` inside a frozen module resolves *into that temp
+directory*. `core/paths.py::writable_base_dir()` is the one place that tells frozen and
+source runs apart — every module that persists data (`core/data_manager.py`,
+`core/ai_analysis_store.py`) must import `BASE_DIR` from there rather than recomputing
+`Path(__file__).resolve().parent.parent` on its own, or settings and caches would silently
+vanish between runs of the built executable.
+
 ## Things worth knowing before changing code
 
 - **The backtester is deliberately in-house.** `core/backtest.py` was written for this

@@ -8,19 +8,19 @@ with name YYYYMMDD_HHMMSS_<n_crypto>crypto.json
 
 import json
 from datetime import datetime
-from pathlib import Path
 from typing import Optional
 
 import pandas as pd
 
 from core.portfolio_manager import PortfolioManager
 from core.data_manager import load_settings
+from core.paths import writable_base_dir
 
 # ─────────────────────────────────────────────────────────────
 # Paths
 # ─────────────────────────────────────────────────────────────
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = writable_base_dir()
 AI_ANALYSIS_DIR = BASE_DIR / "data" / "ai_analysis"
 
 
