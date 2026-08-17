@@ -18,6 +18,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   exe to the existing release, and unconditionally runs `gh release edit
   --draft=false` afterwards — a draft release is invisible to anonymous
   visitors, which would have quietly defeated the point of publishing one.
+- **The release title and notes were wrong on both paths.** `--generate-notes`
+  lists every commit since the last release, which for a first release is
+  the entire project history — not a description of what's being downloaded.
+  And the fallback (`gh release upload`, taken whenever a release already
+  existed for the tag) left that release's title/notes exactly as GitHub's
+  UI had set them, uncorrected. Replaced `--generate-notes` with a fixed,
+  readable description, and added `--title`/`--notes` to the unconditional
+  `gh release edit` call so both paths converge on the same result instead
+  of the fallback silently keeping a stale title. Two regression tests in
+  `tests/test_build.py` guard against reintroducing either.
 
 ### Added
 - **Standalone executable build.** `python build.py` (after

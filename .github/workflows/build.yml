@@ -64,14 +64,22 @@ jobs:
       # download. gh is preinstalled on GitHub-hosted runners; no extra
       # action or token beyond the job's own GITHUB_TOKEN is needed.
       #
+      # Fixed title and notes, not --generate-notes: GitHub's auto-generated
+      # notes list every commit since the last release, which for a first
+      # release is the entire project history - not a description of what's
+      # being downloaded.
+      #
       # `gh release create` fails outright if a release already exists for
       # this tag - which happens whenever the tag was made through GitHub's
       # own "Draft a new release" UI, since that flow creates the tag and a
-      # release object (often left as a draft) together. Falling back to
-      # `gh release upload --clobber` attaches the exe to that existing
-      # release instead of giving up, and the unconditional `release edit`
-      # publishes it if it was left as a draft - a draft is invisible to
-      # anonymous visitors, which would defeat the point of this step.
+      # release object (often left as a draft, sometimes with a title/body
+      # GitHub filled in on its own) together. Falling back to `gh release
+      # upload --clobber` attaches the exe to that existing release instead
+      # of giving up, and the unconditional `gh release edit` afterwards
+      # both publishes it (a draft is invisible to anonymous visitors) and
+      # overwrites whatever title/notes it already had - so the two paths
+      # converge on the same result instead of the fallback path silently
+      # keeping a stale or empty title.
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
@@ -79,8 +87,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ github.ref_name }}"
-          gh release create "$TAG" dist/Argus.exe \
-            --title "Argus $TAG" \
-            --generate-notes \
+          TITLE="Argus $TAG"
+          NOTES="Standalone Windows build of Argus, packaged with a CPU-only PyTorch (no NVIDIA GPU required).
+
+          - Download \`Argus.exe\` below and run it directly - no Python install needed.
+          - On first launch it creates its own \`data/\` and \`config/\` folders next to itself.
+          - See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for what changed, and [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for setup and usage."
+
+          gh release create "$TAG" dist/Argus.exe --title "$TITLE" --notes "$NOTES" \
             || gh release upload "$TAG" dist/Argus.exe --clobber
-          gh release edit "$TAG" --draft=false
+          gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" --draft=false
