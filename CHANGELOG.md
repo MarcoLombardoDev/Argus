@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **`build.yml`'s release step failed whenever a release already existed for
+  the pushed tag** — which is exactly what happens when the tag is made
+  through GitHub's own "Draft a new release" UI, since that flow creates the
+  tag and a release object (often left as a draft) together. `gh release
+  create` only creates, so it errored instead of using what was already
+  there. It now falls back to `gh release upload --clobber` to attach the
+  exe to the existing release, and unconditionally runs `gh release edit
+  --draft=false` afterwards — a draft release is invisible to anonymous
+  visitors, which would have quietly defeated the point of publishing one.
+
 ### Added
 - **Standalone executable build.** `python build.py` (after
   `pip install -r requirements-build.txt`) runs PyInstaller against the new

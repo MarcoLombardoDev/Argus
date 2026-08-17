@@ -63,12 +63,24 @@ jobs:
       # Only on a "v*" tag push: turns the build into a permanent, public
       # download. gh is preinstalled on GitHub-hosted runners; no extra
       # action or token beyond the job's own GITHUB_TOKEN is needed.
+      #
+      # `gh release create` fails outright if a release already exists for
+      # this tag - which happens whenever the tag was made through GitHub's
+      # own "Draft a new release" UI, since that flow creates the tag and a
+      # release object (often left as a draft) together. Falling back to
+      # `gh release upload --clobber` attaches the exe to that existing
+      # release instead of giving up, and the unconditional `release edit`
+      # publishes it if it was left as a draft - a draft is invisible to
+      # anonymous visitors, which would defeat the point of this step.
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ github.ref_name }}" dist/Argus.exe \
-            --title "Argus ${{ github.ref_name }}" \
-            --generate-notes
+          TAG="${{ github.ref_name }}"
+          gh release create "$TAG" dist/Argus.exe \
+            --title "Argus $TAG" \
+            --generate-notes \
+            || gh release upload "$TAG" dist/Argus.exe --clobber
+          gh release edit "$TAG" --draft=false
