@@ -1,0 +1,49 @@
+# Builds the genuine Windows .exe on a real Windows runner.
+#
+# PyInstaller does not cross-compile — build.py run on this Linux/macOS
+# machine only ever produces this machine's own native binary (see
+# Argus.spec, CLAUDE.md). This workflow is the way to get a real .exe
+# without owning a Windows machine: GitHub provides one on demand.
+#
+# Manual trigger only (Actions tab > Build Windows Executable > Run
+# workflow). It is not wired to push or pull_request — a multi-minute,
+# multi-hundred-MB build has no reason to run on every commit.
+name: Build Windows Executable
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      # A GitHub-hosted runner has unrestricted internet access, unlike some
+      # sandboxed dev environments — so, unlike there, the CPU-only wheel is
+      # actually reachable here. Installed before requirements.txt so pip
+      # finds torch already satisfied and does not pull the default (much
+      # larger, GPU-only-useful) CUDA build from PyPI instead.
+      - name: Install CPU-only PyTorch
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install runtime dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install build dependencies
+        run: pip install -r requirements-build.txt
+
+      - name: Build Argus.exe
+        run: python build.py
+
+      - name: Upload Argus.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: Argus-windows-exe
+          path: dist/Argus.exe
+          if-no-files-found: error

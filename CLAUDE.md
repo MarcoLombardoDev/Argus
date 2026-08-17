@@ -45,12 +45,18 @@ SHOTDIR=docs/screenshots xvfb-run -a python docs/generate_screenshots.py
 ## Building the standalone executable
 
 `python build.py` (after `pip install -r requirements-build.txt`) runs PyInstaller against
-`Argus.spec` and produces a single-file `dist/Argus` (`Argus.exe` on Windows). It is not
-part of the test suite or any CI step — generate it on demand.
+`Argus.spec` and produces a single-file `dist/Argus` (`Argus.exe` on Windows). `compile.bat`
+is the same thing as a double-click launcher on Windows. Neither is part of the test suite
+or any CI step — generate it on demand.
 
 **PyInstaller does not cross-compile.** The binary is native to whatever platform runs the
 build: Windows in, `.exe` out; Linux in, ELF out. There is no way to produce a Windows
-executable from a Linux or macOS machine, or vice versa.
+executable from a Linux or macOS machine, or vice versa. `.github/workflows/build.yml` is
+the escape hatch for that: a manually-triggered (`workflow_dispatch` only, never on push)
+job on a real `windows-latest` GitHub Actions runner, which is the only way to get a
+genuine `.exe` without owning or renting a Windows machine. It also sidesteps the
+CPU-vs-CUDA torch problem below, since a hosted runner has unrestricted internet access to
+install the CPU wheel explicitly — some sandboxed dev environments do not.
 
 **The build bundles whatever `torch` is already installed** in the environment you build
 from — there is no separate pin in `Argus.spec`. A CPU-only wheel keeps the executable in

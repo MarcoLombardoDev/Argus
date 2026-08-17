@@ -854,6 +854,10 @@ pip install -r requirements-build.txt   # PyInstaller — build-time only
 python build.py
 ```
 
+On Windows, double-clicking [`compile.bat`](compile.bat) does the same thing
+and keeps the console window open afterwards, so a failure is readable
+instead of vanishing with the window.
+
 This produces `dist/Argus` (`Argus.exe` on Windows). Copy it anywhere — on
 first launch it creates its own `data/` and `config/` next to itself, so the
 executable stays portable. **PyInstaller does not cross-compile**: build on
@@ -861,12 +865,23 @@ Windows for a `.exe`, on Linux for an ELF binary, on macOS for a Mach-O
 binary — there is no way to produce a Windows executable from a non-Windows
 machine.
 
+**No Windows machine available?** The
+[`Build Windows Executable`](.github/workflows/build.yml) GitHub Actions
+workflow runs the same build on a real, GitHub-hosted Windows runner —
+trigger it manually from the repo's *Actions* tab (*Build Windows
+Executable* → *Run workflow*) and download `Argus.exe` from the run's
+artifacts once it finishes. It is not wired to run on every push; a
+multi-minute build has no reason to fire on every commit.
+
 The build picks up whatever `torch` is already installed in the environment
 you build from. A CPU-only wheel keeps the result in the low hundreds of MB
 and runs on any machine; a CUDA build pulls in its (multi-GB) CUDA runtime
 libraries too, which only pays off on a machine with a matching NVIDIA GPU —
 see the comments in [`Argus.spec`](Argus.spec) before choosing which to
-build with.
+build with. The GitHub Actions workflow installs the CPU-only wheel
+explicitly, since a hosted runner can always reach it — some sandboxed dev
+environments cannot, and fall back to whatever `torch` build PyPI serves by
+default.
 
 ## Testing
 

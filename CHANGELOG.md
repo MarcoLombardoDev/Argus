@@ -27,6 +27,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
     keeps the mtime scan only as a source-run convenience.
   - `requirements-build.txt` isolates PyInstaller as a build-time-only
     dependency; it was never needed to run Argus from source.
+  - `compile.bat`: double-click launcher for `build.py` on Windows, kept
+    open on failure so the console output stays readable.
+  - `.github/workflows/build.yml`: manually-triggered (`workflow_dispatch`
+    only) build on a real `windows-latest` GitHub Actions runner, for a
+    genuine `.exe` without owning a Windows machine — PyInstaller cannot
+    cross-compile one from Linux or macOS. Installs the CPU-only torch
+    wheel explicitly, since a hosted runner can reach it even where a
+    sandboxed dev environment cannot.
 
 ### Changed
 - **The commercial offer is now identical across Iris, Argus and Proteus**, with only
