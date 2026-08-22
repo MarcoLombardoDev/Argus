@@ -8,6 +8,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- **Restructured the commercial licence from a single tier ladder into two axes:
+  Commercial and Redistribution.** Previously Internal/OEM/Enterprise implied a single
+  scale from small to large; now "does anything built on Argus leave your organisation?"
+  decides the axis first, and size decides the tier within it:
+  - **Commercial** (closed-source internal use only) is now four employee-count tiers —
+    Small (1–49), Medium (50–249), Large (250–999), Enterprise (1,000+ or a Corporate
+    Group) — each explicitly excluding redistribution, OEM, embedding, sublicensing and
+    use by other group companies unless the certificate says otherwise.
+  - **Redistribution** (Argus, or something built on it, reaching third parties — OEM,
+    embedding, reselling, a hosted service for customers) is now Standard and Enterprise,
+    scoped by distribution scale rather than employee count. OEM is documented as an
+    example scenario, not a category of its own.
+  - New **Employee Count** and **Corporate Group** definitions (`COMMERCIAL-LICENSE.md`
+    §4–5): a small subsidiary of a large group cannot use a Small-tier licence to cover
+    the rest of the group — group-wide scope requires explicit authorisation on the
+    Enterprise / Group certificate.
+  - `COMMERCIAL-LICENSE.md` grew from 11 to 17 sections; the third-party component review
+    that used to be §9 is now §15 — updated the one cross-reference to it in `CLAUDE.md`.
+  - README's price table, "What AGPL-3.0 Means for You" table, and the header banner
+    line updated to match; `.github/ISSUE_TEMPLATE/config.yml`'s contact link reworded
+    to lead with "Commercial or Redistribution" instead of "OEM".
+  - **This was done on Argus only.** Iris and Proteus still run the old single-ladder
+    model; `CLAUDE.md` now flags the resulting cross-product misalignment explicitly
+    rather than silently drifting.
+
 ### Fixed
 - **`build.yml`'s release step failed whenever a release already existed for
   the pushed tag** — which is exactly what happens when the tag is made

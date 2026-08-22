@@ -126,21 +126,32 @@ Heading anchors follow GitHub's slug rules: lowercase, punctuation stripped, spa
 mapped to `-` and **not collapsed** — so `## A & B` is `#a--b`, with two hyphens. The
 table of contents breaks quietly when a heading is reworded.
 
-## Commercial model — keep it aligned with the other two products
+## Commercial model — two axes, not one tier ladder
 
-Argus is one of three dual-licensed products (**Iris**, **Argus**, **Proteus**) that
-deliberately share **the same commercial offer**, differing only in price, scope wording
-and the third-party review. Changing the shape of the offer here means changing it in all
-three, or the alignment is lost.
+The commercial offer is **Commercial vs. Redistribution**, not a single ladder from
+Internal up to Enterprise. The two axes answer different questions:
 
-The parts that must stay identical:
+- **Commercial** — closed-source **internal use only**, nothing built on Argus leaves the
+  licensee's organisation. Scaled by **employee count** into four tiers: Small (1–49),
+  Medium (50–249), Large (250–999), Enterprise (1,000+ or a Corporate Group).
+- **Redistribution** — Argus, or something built on it, reaches **third parties**:
+  embedding, OEM, reselling, a hosted service for external customers. Scaled by
+  distribution scale, not employee count, into Standard and Enterprise.
 
-- **`COMMERCIAL-LICENSE.md`, same eleven sections**, same tier ladder: Community /
-  Internal / OEM & Redistribution / Enterprise, plus a perpetual option on Internal or
-  OEM scope.
+**A Commercial licence, at any tier, does not include redistribution rights.** OEM is not
+a tier of its own — it is one example of a Redistribution scenario, alongside embedding
+and reselling; see `COMMERCIAL-LICENSE.md` §6.
+
+**Corporate Group membership doesn't auto-extend a licence.** A small subsidiary of a
+large group cannot use a Small-tier Commercial licence to cover the rest of the group —
+group-wide scope requires the Enterprise / Group tier, and the certificate names exactly
+which legal entities it covers (`COMMERCIAL-LICENSE.md` §5).
+
+The parts that stay true regardless of tier structure:
+
 - **Email is the only commercial channel.** GitHub Issues are for bugs and features.
-- **Email support is included at every paid tier** (5 / 3 / 2 business days), never sold
-  separately to a paying customer.
+- **Email support is included at every paid tier** (2–5 business days depending on tier),
+  never sold separately to a paying customer.
 - **Custom development is never included**, at any tier, and is always quoted separately
   per project at a fixed price agreed before work starts.
 - Perpetual fallback, no retroactive price rise, cancel any time, **no licence key and no
@@ -152,18 +163,26 @@ Argus's own prices:
 | Tier | Price |
 |---|---|
 | Community (AGPL-3.0) | Free |
-| Internal | €2,900 / year |
-| OEM & Redistribution | €4,900 / year |
-| Enterprise | from €14,000 / year |
-| Perpetual (Internal / OEM scope) | €8,700 / from €14,900 one-off |
+| Commercial — Small (1–49 employees) | €1,900 / year |
+| Commercial — Medium (50–249 employees) | €3,900 / year |
+| Commercial — Large (250–999 employees) | €7,900 / year |
+| Commercial — Enterprise (1,000+ / Group) | from €14,000 / year |
+| Redistribution — Standard | €4,900 / year |
+| Redistribution — Enterprise | from €24,900 / year, quoted per engagement |
+| Perpetual (Commercial Small/Medium/Large, or Redistribution Standard) | €5,700 / €11,700 / €23,700 / €14,700 one-off |
 | Custom development, indicative | €1,200 / day |
-
-The ladder is deliberately monotonic across the three products — Proteus < Iris < Argus on
-every row. Move one price and check the other two still line up.
 
 And the principle underneath all of it: **the free AGPL build is the whole product.** No
 paid edition, no feature gate, no seat limit. A commercial licence buys *permission*, not
 functionality. Never add a feature that is unlocked by paying.
+
+**This diverges from Iris and Proteus.** Those two still run the old single-ladder model
+(Community / Internal / OEM & Redistribution / Enterprise) — this restructuring was done
+on Argus only, at the owner's explicit request to work on this repository alone. The
+three products are supposed to share the same commercial offer shape; until Iris and
+Proteus are updated to the same Commercial/Redistribution split, that alignment is broken
+and the owner knows it. Don't "fix" this by reverting Argus — the new structure is the
+one that was asked for.
 
 ## Dependency licence hygiene — now a commercial commitment
 
@@ -174,7 +193,7 @@ Before adding a dependency, check its licence. Permissive (MIT / BSD / Apache-2.
 HPND) is fine. Copyleft or "dual AGPL-or-pay" is not, because a commercial licence cannot
 relicense someone else's code and the buyer would need a second licence.
 
-This is not hypothetical here: the `vectorbt` dependency was removed for exactly this reason — see the note above and `COMMERCIAL-LICENSE.md` §9.
+This is not hypothetical here: the `vectorbt` dependency was removed for exactly this reason — see the note above and `COMMERCIAL-LICENSE.md` §15.
 
 `tests/test_core.py::test_no_commons_clause_dependency_remains` enforces the vectorbt half
 of this mechanically, failing if an import or a requirements line comes back. It is a

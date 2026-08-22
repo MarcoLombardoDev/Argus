@@ -5,10 +5,10 @@
 # in a public thread.
 blank_issues_enabled: true
 contact_links:
-  - name: 💼 Commercial licence, OEM or enterprise enquiry
+  - name: 💼 Commercial or Redistribution licence enquiry
     url: mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry
     about: >-
-      Buying a licence, pricing, redistribution or hosted-service rights.
+      Buying a licence, pricing, redistribution/OEM or hosted-service rights.
       Handled by email, not in public Issues — see COMMERCIAL-LICENSE.md for tiers.
   - name: 📄 Contributor License Agreement (CLA) questions
     url: mailto:marco.lombardo@gmail.com?subject=Argus%20CLA

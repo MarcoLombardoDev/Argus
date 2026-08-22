@@ -9,7 +9,7 @@ On top of the analysis engine, Argus features a full **Portfolio Manager** modul
 
 > 📋 Recent changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 > ⚠️ The autonomous workflow currently trades **BTC only** — see [Scope & Current Limitations](#scope--current-limitations) before relying on it.
-> 💼 Commercial, OEM or enterprise use? See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md), or write to [marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry).
+> 💼 Commercial or redistribution use (including OEM)? See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md), or write to [marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry).
 
 ---
 
@@ -1032,9 +1032,9 @@ AGPL-3.0 works for you, you are done reading — Argus is yours to use.
 | Fork & publish on GitHub | ✅ Yes | Must stay AGPL-3.0 |
 | Redistribute it, modified or not, under AGPL-3.0 | ✅ Yes | Must ship the source |
 | Deploy a modified version as a network service | ✅ Yes | Must publish the source of your modified version |
-| Integrate into a **closed-source product** | ⚠️ Restricted | Requires a commercial licence |
-| Offer as a **proprietary SaaS** without sharing source | ❌ Not under AGPL | Requires a commercial licence |
-| **Resell** it, or ship it inside a product you sell | ❌ Not under AGPL | Requires a commercial licence |
+| Integrate into a **closed-source product for internal use only** | ⚠️ Restricted | Requires a **Commercial** licence |
+| Offer as a **proprietary SaaS** without sharing source | ❌ Not under AGPL | Requires a **Redistribution** licence |
+| **Resell** it, or ship it inside a product you sell or hand to others | ❌ Not under AGPL | Requires a **Redistribution** licence |
 
 The dividing line is one rule: **AGPL-3.0 is free as long as the source stays open.**
 
@@ -1043,33 +1043,42 @@ The dividing line is one rule: **AGPL-3.0 is free as long as the source stays op
 
 ### Commercial Licensing
 
-The commercial licence removes the copyleft obligation, and nothing else. It is for
-organisations embedding Argus in a proprietary product, running a modified version as a
-service without publishing the source, reselling it under their own terms — or simply
-barred by internal policy from using AGPL code.
+The commercial licence removes the copyleft obligation, and nothing else. There are two
+axes, not one: **Commercial** (closed-source internal use, nothing leaves your
+organisation) and **Redistribution** (Argus, or something built on it, reaches third
+parties — embedding, OEM, reselling, a hosted service for customers). Barred from AGPL
+code by internal policy but staying internal? Commercial. Shipping it inside something you
+sell? Redistribution.
 
 | Tier | Price | Scope |
 |---|---:|---|
 | **Community** | **Free** | Everything Argus does, under AGPL-3.0. Unlimited internal use. |
-| **Internal** | **€2,900 / year** | Closed-source internal use, one legal entity. No redistribution. |
-| **OEM / Redistribution** | **€4,900 / year** | Embed it in a product you sell, or run it as a hosted service. |
-| **Enterprise** | **from €14,000 / year** | Group-wide, unlimited products, procurement and legal questionnaires answered. |
-| **Perpetual** | **€8,700** / **from €14,900** one-off | Internal or OEM scope, bought once, for the major version current at purchase. |
+| **Commercial — Small** (1–49 employees) | **€1,900 / year** | Closed-source internal use, one legal entity. No redistribution. |
+| **Commercial — Medium** (50–249 employees) | **€3,900 / year** | Same model, larger organisation. |
+| **Commercial — Large** (250–999 employees) | **€7,900 / year** | Same model, larger organisation still. |
+| **Commercial — Enterprise** (1,000+ / Corporate Group) | **from €14,000 / year** | Group-wide scope, as named in the certificate. Questionnaires included. |
+| **Redistribution — Standard** | **€4,900 / year** | Embed it in a product you sell, or run it as a hosted service for customers. |
+| **Redistribution — Enterprise** | **from €24,900 / year** | Large-scale distribution — worldwide, high-volume, millions of users. Quoted per engagement. |
+| **Perpetual** | from **€5,700** one-off | Available on Commercial Small/Medium/Large and Redistribution Standard; bought once, for the major version current at purchase. |
 
 The same commitments apply at every paid tier:
 
-- **Email support is always included** — 5 business days at Internal, 3 at OEM, 2 at
-  Enterprise. It is never sold separately to a paying customer.
+- **Email support is always included**, 2 to 5 business days depending on tier. It is
+  never sold separately to a paying customer.
 - **Custom development is never included**, at any tier. It is available on request and
   **quoted separately**, per project, at a fixed price agreed before work starts
   (indicative day rate: **€1,200 / day**).
 - **Perpetual fallback, no retroactive price rise, cancel any time.** Versions released
   during your term stay licensed to you forever.
+- **A Commercial licence does not include redistribution rights**, and belonging to a
+  Corporate Group does not automatically extend a licence to the rest of the group — see
+  [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) §5 and §14.
 - **50% off** for organisations under 10 employees and €1M revenue. **Free** commercial
   licences for non-profits, academia and published research — ask.
 
-Prices are per organisation, excluding VAT. **Seats are never counted.** Full terms, what is
-*not* included, and the third-party component review:
+Prices are per organisation, excluding VAT. **Seats are never counted.** Full terms, tier
+definitions, employee-count and Corporate Group rules, what is *not* included, and the
+third-party component review:
 **[COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)**.
 
 ### How to get in touch
