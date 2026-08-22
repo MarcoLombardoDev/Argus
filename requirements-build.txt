@@ -1,0 +1,9 @@
+# Build-only dependency for producing the standalone Argus executable.
+# Not required to run Argus from source — see requirements.txt for that.
+#
+#   pip install -r requirements-build.txt
+#   python build.py
+#
+# PyInstaller is GPL-2.0 *with the bootloader exception*, which exists
+# precisely to allow proprietary frozen applications — see CLAUDE.md.
+pyinstaller>=6.0.0

@@ -1,0 +1,3 @@
+"""
+Argus — Core package init
+"""

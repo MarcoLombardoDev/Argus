@@ -1,0 +1,280 @@
+# Changelog
+
+All notable changes to Argus are documented here.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+---
+
+## [Unreleased]
+
+### Changed
+- **Restructured the commercial licence from a single tier ladder into two axes:
+  Commercial and Redistribution.** Previously Internal/OEM/Enterprise implied a single
+  scale from small to large; now "does anything built on Argus leave your organisation?"
+  decides the axis first, and size decides the tier within it:
+  - **Commercial** (closed-source internal use only) is now four employee-count tiers —
+    Small (1–49), Medium (50–249), Large (250–999), Enterprise (1,000+ or a Corporate
+    Group) — each explicitly excluding redistribution, OEM, embedding, sublicensing and
+    use by other group companies unless the certificate says otherwise.
+  - **Redistribution** (Argus, or something built on it, reaching third parties — OEM,
+    embedding, reselling, a hosted service for customers) is now Standard and Enterprise,
+    scoped by distribution scale rather than employee count. OEM is documented as an
+    example scenario, not a category of its own.
+  - New **Employee Count** and **Corporate Group** definitions (`COMMERCIAL-LICENSE.md`
+    §4–5): a small subsidiary of a large group cannot use a Small-tier licence to cover
+    the rest of the group — group-wide scope requires explicit authorisation on the
+    Enterprise / Group certificate.
+  - `COMMERCIAL-LICENSE.md` grew from 11 to 17 sections; the third-party component review
+    that used to be §9 is now §15 — updated the one cross-reference to it in `CLAUDE.md`.
+  - README's price table, "What AGPL-3.0 Means for You" table, and the header banner
+    line updated to match; `.github/ISSUE_TEMPLATE/config.yml`'s contact link reworded
+    to lead with "Commercial or Redistribution" instead of "OEM".
+  - **This was done on Argus only.** Iris and Proteus still run the old single-ladder
+    model; `CLAUDE.md` now flags the resulting cross-product misalignment explicitly
+    rather than silently drifting.
+
+### Fixed
+- **`build.yml`'s release step failed whenever a release already existed for
+  the pushed tag** — which is exactly what happens when the tag is made
+  through GitHub's own "Draft a new release" UI, since that flow creates the
+  tag and a release object (often left as a draft) together. `gh release
+  create` only creates, so it errored instead of using what was already
+  there. It now falls back to `gh release upload --clobber` to attach the
+  exe to the existing release, and unconditionally runs `gh release edit
+  --draft=false` afterwards — a draft release is invisible to anonymous
+  visitors, which would have quietly defeated the point of publishing one.
+- **The release title and notes were wrong on both paths.** `--generate-notes`
+  lists every commit since the last release, which for a first release is
+  the entire project history — not a description of what's being downloaded.
+  And the fallback (`gh release upload`, taken whenever a release already
+  existed for the tag) left that release's title/notes exactly as GitHub's
+  UI had set them, uncorrected. Replaced `--generate-notes` with a fixed,
+  readable description, and added `--title`/`--notes` to the unconditional
+  `gh release edit` call so both paths converge on the same result instead
+  of the fallback silently keeping a stale title. Two regression tests in
+  `tests/test_build.py` guard against reintroducing either.
+
+### Added
+- **Standalone executable build.** `python build.py` (after
+  `pip install -r requirements-build.txt`) runs PyInstaller against the new
+  `Argus.spec` and produces a single-file `dist/Argus` / `Argus.exe`. Not run
+  automatically anywhere — generate it on demand.
+  - Fixed the two bugs that would have made a frozen build silently lose
+    data: `core/data_manager.py` and `core/ai_analysis_store.py` derived
+    their base directory from `Path(__file__)`, which resolves *inside*
+    PyInstaller's temporary extraction folder in a `--onefile` build and is
+    deleted on exit — settings, the price cache and saved AI sessions would
+    vanish between runs. New `core/paths.py::writable_base_dir()` resolves
+    to the executable's own directory when frozen instead.
+  - `gui/app.py`'s window title derived a version by walking the source tree
+    for the newest `.py` file's mtime — meaningless once there are no `.py`
+    files on disk to walk, and it would have printed "v. 1970.01.01" out of
+    a frozen build. Now uses `core.version.__version__` when frozen, and
+    keeps the mtime scan only as a source-run convenience.
+  - `requirements-build.txt` isolates PyInstaller as a build-time-only
+    dependency; it was never needed to run Argus from source.
+  - `compile.bat`: double-click launcher for `build.py` on Windows, kept
+    open on failure so the console output stays readable.
+  - `.github/workflows/build.yml`: build on a real `windows-latest` GitHub
+    Actions runner, for a genuine `.exe` without owning a Windows machine —
+    PyInstaller cannot cross-compile one from Linux or macOS. Installs the
+    CPU-only torch wheel explicitly, since a hosted runner can reach it even
+    where a sandboxed dev environment cannot. Two triggers: `workflow_dispatch`
+    for an ad-hoc test build (uploaded as an expiring workflow artifact), and
+    pushing a `v*` tag for a release build that additionally publishes a
+    GitHub Release with `Argus.exe` attached — release assets don't expire
+    and need no GitHub account to download.
+
+### Changed
+- **The commercial offer is now identical across Iris, Argus and Proteus**, with only
+  the price list, the scope wording and the third-party review differing per product.
+  Same document (`COMMERCIAL-LICENSE.md`), same eleven sections, same tier ladder —
+  Community / Internal / OEM / Enterprise, plus a perpetual option on Internal or OEM
+  scope — and the same commitments at every paid tier:
+  - **email support always included** (5 / 3 / 2 business days by tier), never sold
+    separately to a paying customer;
+  - **custom development never included and always quoted separately**, per project, at
+    a fixed price agreed before work starts;
+  - email as the only commercial channel, GitHub Issues for bugs and features;
+  - perpetual fallback, no retroactive price rise, cancel any time, no licence key;
+  - 50% off under 10 employees and €1M revenue; free licences for non-profits,
+    academia and published research.
+- README licensing section, badge and CLA contact line aligned to the same wording.
+- `LICENSING.md` renamed to `COMMERCIAL-LICENSE.md`, matching the other two products.
+  References in `README.md`, `core/backtest.py` and `core/version.py` updated.
+
+### Licensing
+
+- **Removed the `vectorbt` dependency**, which shipped under Apache-2.0 **plus
+  the Commons Clause** — a condition withholding the right to sell software
+  whose value derives substantially from it, incompatible with Argus's
+  dual-licensing model. All published releases (0.26 through 1.1) carry the
+  clause, so pinning an older version was not a way out.
+  - Replaced by `core/backtest.py`: a dependency-free signal backtester
+    (pandas/NumPy only) covering the surface actually used — long-only and
+    stop-and-reverse long/short, proportional fees and slippage, percentage
+    SL/TP, reporting total return, max drawdown, annualised Sharpe and a trade
+    count. Validated against hand-computed cases, including exact fee and
+    slippage arithmetic.
+  - Side benefit: drops the numba/llvmlite toolchain from the install.
+- Added `LICENSING.md` with commercial tiers, indicative pricing, an explicit
+  statement of what a commercial licence does *not* include, and a
+  dependency-by-dependency licence table. Every remaining dependency is
+  permissive (MIT / BSD-3 / Apache-2.0 / HPND).
+- Corrected the README's AGPL summary: "modify & redistribute privately | no
+  obligation" was wrong — distributing a modified copy, even privately, obliges
+  you to provide that recipient the source under AGPL-3.0.
+- **Made the commercial contact channel reachable.** Email is now stated as the
+  only commercial channel, and reachable from every surface a prospect actually
+  lands on rather than only from the foot of two long documents:
+  - README: a contact line in the header block, not just at line ~1000;
+  - `.github/ISSUE_TEMPLATE/config.yml`: new-issue chooser links routing
+    licence enquiries, CLA questions and security reports to email instead of
+    into a public thread;
+  - `CLA.md`: contact was "via the repository's GitHub Issues" — wrong for a
+    binding agreement, and unusable for a Corporate CLA;
+  - app footer: advertised "Commercial licensing available" with no way to act
+    on it. It now shows the address in full, underlined and in link blue with a
+    hand cursor, and clicking it opens the mail client on a pre-filled
+    enquiry (same pattern as Iris). A missing mail client is swallowed — the
+    address stays readable on screen either way.
+  - `LICENSING.md`: the quote request now lists what to include, so a quote
+    takes one round rather than three.
+
+### Fixed
+
+- The bearish-regime backtest report labelled its protective stop "3%" while
+  the code applied `min(0.01, sl_stop)` — 1% or less. The label now states the
+  figure actually used, and when the base stop is already tighter than the
+  protective one (making both runs identical) the report says so instead of
+  presenting the same number twice as a comparison.
+
+---
+
+A full audit of the application: every fix below was reproduced before being
+changed, and is covered by a regression test.
+
+### Added
+
+- **Test suite** (`tests/`), fully offline — no exchange, provider or LLM calls.
+  - `tests/test_core.py` — ensemble weighting and sizing, signal building,
+    formatting, KNN pattern matching on synthetic prices, settings and cache
+    persistence, pre-flight checks, CSV/Excel/PDF export.
+  - `tests/test_gui_smoke.py` — boots the real Tk application under Xvfb, walks
+    every view, renders tables from mixed-quality rows and drives the
+    worker-thread error paths.
+- `PortfolioManager.for_sizing()` — an offline instance for the pure ensemble
+  maths, with no CCXT client and no I/O.
+- `PortfolioManager.ensure_markets()` — lets worker threads block until the
+  market catalogue is loaded.
+- `normalize_ensemble_weights()` — single source of truth for reading the
+  ensemble weights, accepting both the percentage and fraction forms.
+- Dark ttk scrollbar styling shared across all tables (`gui/utils.py`).
+- Documented the `python3-tk` OS prerequisite, which pip cannot satisfy on Linux.
+
+### Fixed
+
+**Dependencies**
+
+- `requirements.txt` was missing **`scikit-learn`**, a top-level import in
+  `core/btc_pattern_matcher.py` — Pattern Matching raised `ImportError` on any
+  clean install. It was already listed in the README's dependency table.
+- `requirements.txt` was missing **`beautifulsoup4`**, used by the
+  Investing.com news scraper.
+
+**Crashes**
+
+- `core/ai_analyst.py` — the Investing.com RSS fallback used an unescaped
+  `<![CDATA[` pattern, so `re.findall` raised *unbalanced parenthesis* and the
+  fallback never returned a headline.
+- `core/ai_analyst.py` — `_fetch_yahoo_details()` called
+  `Ticker.history(progress=False)`; `progress` belongs to `yf.download`, so the
+  call raised `TypeError` and the entire Yahoo fallback for market data was dead.
+- `core/analyzer.py` — `format_price()` / `format_change_pct()` assumed floats
+  and raised `TypeError` on the strings returned by a CSV reload, breaking the
+  results table.
+- `core/analyzer.py` — `verify_past_forecasts()` let `load_historical()`'s
+  `ValueError` escape, so one stale symbol aborted the whole report.
+- `core/ai_analysis_store.py` — `float()` on the `"N/A"` / `"DISABLED"`
+  confidence sentinels made CSV, Excel and PDF export fail outright.
+- `gui/portfolio_panel.py` — *Sell Selected* read the **leverage** column as the
+  quantity and attempted `float("10.0x")`. It now reads the position records
+  directly and forwards the direction so the correct side is closed.
+- `gui/portfolio_panel.py`, `gui/pattern_matching_panel.py` — error callbacks
+  closed over an `except ... as e` variable, which Python unbinds when the block
+  exits, so the error path raised `NameError` instead of reporting the failure.
+- `gui/app.py` — startup called `self.state("zoomed")`, which only exists on
+  Windows and raises `TclError` elsewhere. Now falls back to the `-zoomed`
+  attribute, then to explicit screen-size geometry.
+
+**Logic**
+
+- **Ensemble weights** are stored as percentages (`40`/`40`/`20`) but
+  `PortfolioManager.calculate_sizing()` read them as fractions, so the ±0.05
+  confidence adjustments were swamped and had **no effect at all**. Confidence
+  now genuinely reweights the ensemble.
+- **Minimum AI Confidence** only scaled the position size; below-threshold
+  signals still became orders, and the `discarded_callback` that drives Auto
+  Trading's low-confidence cooldown was never invoked. The threshold is now
+  enforced as documented.
+- The instant backtest compared the regime against `"BULLISH"` / `"BEARISH"` —
+  labels `get_market_context()` never emits — so the regime-conditional branch
+  was unreachable. Added `_regime_bias()` to map the real labels.
+- The backtest reported three contradictory windows (*"Last 6 Months"*,
+  *"Last 30 Days @ 15m"*, and a differing figure in the LLM prompt) while
+  actually running over the local 15m cache. The header now states the window
+  the data really covers.
+- `core/market_enrichment.py` — the error path dropped `fng_value` / `fng_class`
+  and discarded an already-fetched Fear & Greed reading. The alt-proxy download
+  is now optional rather than fatal.
+- `gui/auto_trading_panel.py` — the weekend branch returned without rearming,
+  permanently killing the 1-second scheduler tick. The tick is now
+  self-perpetuating and survives exceptions.
+- `model_checkpoint` is persisted as `""`, so `.get(key, default)` handed an
+  empty string to `from_pretrained()` instead of the intended default. Same
+  pattern fixed for `backend`.
+- `core/data_manager.py` — staleness checks used the deprecated
+  `datetime.utcnow()` and stripped tz-aware timestamps without converting,
+  skewing the computed age by the UTC offset.
+- `core/data_fetcher.py` — order-book levels were tuple-unpacked as
+  `[price, amount]`; venues that append extra fields raised `ValueError`.
+
+### Changed
+
+- **`PortfolioManager` no longer blocks on construction.** The clock sync and
+  `load_markets()` call now run on a background thread, so building the object
+  costs ~6 ms instead of ~409 ms (far worse on a slow or unreachable network,
+  where it froze the Tk main thread for the whole CCXT timeout).
+- The exporters built a `PortfolioManager` — and therefore a network
+  `load_markets()` — **per result row**. Now built once, and offline.
+- Auto Trading reloaded the TimesFM model on every 15-minute cycle; the loaded
+  model is now cached across cycles.
+- The pattern matcher's per-window `StandardScaler` was replaced with a direct
+  numpy z-score (identical maths, no per-window object allocation) and now
+  handles zero-variance windows instead of producing `NaN`.
+- `scikit-learn` is imported lazily, so a missing install degrades Pattern
+  Matching to an empty result rather than breaking module import.
+- PDF export no longer leaks leverage between rows: one tight stop-loss used to
+  permanently shrink the leverage shown for every subsequent row.
+- Widened two clipped table column headers.
+
+### Documentation
+
+- Corrected **every** default in the Configuration Reference — most did not
+  match `DEFAULT_SETTINGS` (leverage, open positions, capital usage, TP ROI cap,
+  pre-flight thresholds, DCA distance, weekend flag, and more).
+- Rewrote the Auto-Trading section: the previous text described a *"Step 4 Macro
+  BTC/ETH dominance filter"* and a *"Step 5 — Normal Asset"* that **do not exist
+  in the codebase** (`fetch_eth_btc_ratio()` is never called, and the cycle
+  trades a hardcoded BTC entry).
+- Corrected the Instant Backtest section: it reads the local 15-minute cache,
+  not "6 months of daily data via yfinance".
+- Documented the real TimesFM confidence formula (quantile spread), replacing a
+  description of an ATR helper that is not wired into the forecast.
+- Documented ensemble weights as percentages, the minimum-confidence gate, the
+  secrets split between `settings.json` and `.env`, and renamed
+  `ai_debate_rounds` → `ai_research_rounds` (the key the code actually reads).
+- Added **Testing** and **Scope & Current Limitations** sections. The latter
+  states plainly that the app trades BTC only, and lists the settings and
+  functions that are present but unused.
