@@ -1,6 +1,6 @@
 # Commercial Licence — Argus
 
-**Argus — Advanced Market Forecast & AI Analysis**
+**Argus — Advanced Market Forecast & AI Analysis**  
 Copyright © 2026 Marco Lombardo
 
 Argus is dual-licensed. It is available under the
@@ -11,6 +11,10 @@ Both licences cover **the same software**. There is no crippled edition, no feat
 back behind a paywall, no licence key and no phone-home. What you buy is **permission**,
 not functionality.
 
+That includes every capability: the TimesFM forecast, the multi-agent AI
+pipeline, KNN-DTW pattern matching, the instant backtester, the Portfolio Manager
+and the auto-trading scheduler. Nothing is reserved for a paid tier, now or later.
+
 > **To buy, or to ask anything commercial — including whether you need this at all —
 > email [marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry).**
 > Email is the only commercial channel: quotes, contracts, invoicing and pre-sales
@@ -19,20 +23,6 @@ not functionality.
 > This page is a **commercial offer and a summary of terms**, not the signed agreement.
 > The binding contract is the licence certificate issued per customer. It is not legal
 > advice; have your own counsel review it before signing.
-
-### Terminology
-
-Three top-level categories, and only three:
-
-- **Community** — the free AGPL-3.0 build.
-- **Commercial** — closed-source **internal use**, scaled by the size of your
-  organisation.
-- **Redistribution** — you give Argus, or something built on it, to **third parties**.
-
-**OEM is not a category here** — it is one example of a Redistribution scenario, alongside
-embedding, white-labelling and reselling. If you have heard the term "OEM licence"
-elsewhere, on Argus that is simply the Redistribution licence applied to an OEM
-relationship.
 
 ---
 
@@ -45,228 +35,187 @@ Most people do not. Read this before reading the price list.
 | Use Argus inside your organisation, however many people, however many machines | **AGPL — free.** Nothing to buy, nothing to declare. |
 | Modify it for your own internal use and keep the changes to yourself | **AGPL — free.** |
 | Publish a fork, or ship a modified version to someone else | **AGPL — free**, provided you release your modified source under AGPL-3.0. |
-| Ship Argus, or code derived from it, inside a **closed-source product you sell or give to others** | **Redistribution** — see §6–8 |
-| Run a modified Argus as a **hosted or SaaS service**, without publishing your source | **Redistribution** — you are giving third parties access to it |
-| Use it internally, closed-source, without ever handing it to anyone outside your organisation | **Commercial** — see §3 |
-| Your organisation's policy forbids AGPL code, and you need it in writing, but nothing leaves the building | **Commercial** |
+| Run a modified Argus as a closed-source internal tool, for your own staff only | **Commercial** — see §3 |
+| Ship Argus, or code derived from it, inside a **closed-source product** you distribute | **Redistribution** — see §4 |
+| Run a modified Argus as a **hosted or SaaS service for your customers**, without publishing your source | **Redistribution** |
+| Redistribute it to your customers under **your own name or branding** | **Redistribution** |
+| Your organisation's policy forbids AGPL code, and you need it in writing | **Commercial** (or **Redistribution**, if you also distribute) |
 
 **Internal use is free, permanently, for organisations of any size.** Anyone telling you
-otherwise about an AGPL project is mistaken. Buy a licence when the AGPL's *distribution*
-terms are the problem, or when internal policy forbids AGPL code outright — not simply
-because you are a company.
+otherwise about an AGPL project is mistaken. Buy a commercial licence when the AGPL's
+*distribution* terms are the problem — not simply because you are a company.
 
-The dividing line is one rule: **AGPL-3.0 is free as long as the source stays open.** The
-second question, once you need a paid licence at all, is whether anything leaves your
-organisation — that decides Commercial vs. Redistribution.
+The dividing line is one rule: **AGPL-3.0 is free as long as the source stays open.**
 
 ---
 
-## 2. What a commercial licence grants
+## 2. Licence structure
 
-Subject to payment and to the scope of the tier purchased, a non-exclusive,
-non-transferable licence to use, copy and modify Argus, and to deploy it internally
-without triggering AGPL-3.0's copyleft or network-disclosure obligations.
+```
+PRODUCT LICENSING
+│
+├── Community
+│   └── AGPL-3.0
+│
+├── Commercial                    (internal use)
+│   ├── Small       — 1–49 employees
+│   ├── Medium      — 50–249 employees
+│   ├── Large       — 250–999 employees
+│   └── Enterprise  — 1,000+ employees / Corporate Group
+│
+└── Redistribution                (reaches third parties)
+    ├── Standard
+    └── Enterprise
+```
 
-**Redistribution rights are not included by default.** Incorporating Argus into a product
-you distribute, embedding it, running it as a service for external customers, or
-sublicensing it to anyone outside your own organisation requires the **Redistribution
-licence** specifically (§6–8) — a Commercial licence (§3) does not grant this, at any tier.
+Three kinds of licence, not four price points on one list:
 
-You also receive the full source of the licensed version, and the right to modify it with
-no obligation to contribute anything back.
+- **Community** — the AGPL-3.0 build. Free, unlimited, internal use of any size.
+- **Commercial** — removes the AGPL's copyleft obligation for **closed-source internal
+  use**. Sized by the licensee's employee count. See §3.
+- **Redistribution** — grants the right to **ship Argus, or a derivative of it, to third
+  parties** — embedded, OEM'd, resold, or offered as a service to your own customers. See
+  §4. It is a different kind of licence from Commercial, not a bigger version of it: a
+  five-person software house redistributing a product to ten thousand customers needs
+  Redistribution, not a large Commercial tier.
 
-The licence covers the Project Owner's copyright in Argus. It does not grant rights to the
-third-party components in §14.
+Every tier, in every branch, is the **same software** under the opening of this document:
+no feature is gated behind a higher tier.
 
 ---
 
-## 3. Commercial licence — tiers
+## 3. What the Commercial licence grants
 
-The Commercial licence is closed-source **internal use only**: your organisation runs
-Argus, nothing built on it leaves your walls. It is organised into four tiers by employee
-count, each otherwise built on the same model — one legal entity, internal use,
-non-redistributable.
+Subject to payment and to the tier purchased, a non-exclusive, non-transferable licence,
+for **one named legal entity**, to:
 
-| Tier | Employee count | Legal entities covered |
+1. use, copy and modify Argus;
+2. deploy it as an internal, closed-source tool, without publishing your modified source;
+3. run it as an internally-accessed network service without triggering AGPL section 13,
+   provided access is limited to your own authorised users and installations.
+
+It does **not** automatically include, at any Commercial tier:
+
+- redistribution to third parties, in any form;
+- OEM or embedding in a product you ship;
+- sublicensing;
+- use by other companies in the same corporate group, unless the Enterprise tier's
+  group-wide scope has been explicitly agreed and named in the certificate.
+
+Any of those needs a **Redistribution licence** instead of, or alongside, Commercial — see
+§4.
+
+### 3.1 The four Commercial tiers
+
+| Tier | Employees | |
 |---|---|---|
-| **Small** | 1–49 | 1 |
-| **Medium** | 50–249 | 1 |
-| **Large** | 250–999 | 1 |
-| **Enterprise** | 1,000+, **or** any Corporate Group (§5) | As named in the certificate |
+| **Small** | 1–49 | Same model as every Commercial tier below, sized for a small organisation: one legal entity, internal use, non-redistributable. |
+| **Medium** | 50–249 | Same model, applied to a mid-sized organisation. Still organisation-based, internal-use, single legal entity, non-redistributable. |
+| **Large** | 250–999 | Same model, applied to a larger organisation. Still limited to the internal use of the one authorised legal entity. |
+| **Enterprise** | 1,000+, **or** any Corporate Group scope | Covers at least one of: an organisation of 1,000+ employees; an organisation belonging to a corporate group; a use case that needs a group-wide perimeter; use by more than one legal entity of the same group, when explicitly authorised. May be named **Enterprise / Group Commercial Licence** in the certificate, which must state exactly which legal entities are included. |
 
-### Commercial — Small, Medium, Large
+Belonging to a large group does not, by itself, let a small subsidiary's Small-tier
+licence cover the rest of the group. A group-wide perimeter is never implied — it must be
+explicitly agreed and named entity by entity. See §3.3.
 
-All three tiers grant the same rights, scaled only by price:
+### 3.2 Employee count
 
-- one **legal entity**, named in the certificate;
-- **internal use** — running Argus for your own organisation's purposes;
-- authorised internal users and authorised internal installations, without a seat count;
-- everything AGPL already permits, minus the obligation to publish your source.
-
-None of the three automatically includes:
-
-- redistribution to any third party;
-- OEM or embedding in a product distributed outside your organisation;
-- sublicensing to anyone;
-- use by any other company in your corporate group, even a parent, subsidiary or
-  affiliate — see §5.
-
-If you outgrow the employee-count band you are licensed under, the fix is to move up a
-tier, not to interpret the existing certificate more broadly.
-
-### Commercial — Enterprise
-
-**1,000+ employees, or any Corporate Group (§5), whichever applies.** May also be called
-the **Enterprise / Group Commercial Licence**.
-
-Enterprise is the one tier that can cover more than a single legal entity — but only when
-the certificate says so explicitly. It applies to any of:
-
-1. an organisation with 1,000 or more employees;
-2. an organisation that is part of a Corporate Group (§5);
-3. use that genuinely requires a group-wide perimeter;
-4. use by more than one legal entity within the same group, when each is individually
-   named.
-
-**Belonging to a group does not, by itself, authorise the whole group.** The certificate
-lists exactly which legal entities are covered; an entity not named on it is not licensed,
-regardless of its parent company's status. See §5.
-
-Group-wide procurement and legal questionnaires are answered as part of this tier.
-
----
-
-## 4. Employee count
-
-Unless the specific Enterprise / Group agreement defines a different scope:
+Unless the applicable Enterprise / Group agreement states a different scope:
 
 > Employee count refers to the total number of employees of the licensed legal entity.
 
-It does **not** automatically include:
+It does **not** automatically include customers, end users, suppliers, partners, or
+external consultants.
 
-- customers;
-- end users;
-- suppliers;
-- partners;
-- external consultants.
-
-If your organisation's size is ambiguous under this definition — a holding company with no
-direct employees, a franchise network, a contractor-heavy workforce — say so when you ask
-for a quote, and the certificate will state the counting method that applies to you.
-
----
-
-## 5. Corporate Group
+### 3.3 Corporate Group
 
 A **Corporate Group** is a set of companies directly or indirectly controlled by the same
-parent company, or otherwise forming part of the same corporate structure as defined in the
-licence agreement.
+parent company, or otherwise part of the same corporate structure, as defined in the
+applicable agreement.
 
-**Being part of a large group does not let a small subsidiary buy a Small-tier licence and
-extend it to the rest of the group.** A group-wide perimeter must be **expressly
-authorised** — it is what the Enterprise / Group Commercial Licence (§3) is for, and the
-certificate names precisely which entities it covers. Absent that, each legal entity needs
-its own licence sized to its own employee count.
-
----
-
-## 6. Redistribution licence
-
-The Redistribution licence is **distinct from the Commercial licence** (§2–3) and covers a
-different situation: Argus, or a part of it, reaching **someone outside your
-organisation** — as opposed to Commercial's internal-only scope.
-
-Typical scenarios:
-
-- incorporating Argus into another piece of software;
-- embedding it in a proprietary product;
-- distributing it alongside a commercial product;
-- shipping it to your customers or end users;
-- selling a derivative product built on it;
-- integrating it into a proprietary application you distribute;
-- OEM arrangements;
-- running it as the engine behind a hosted service offered to third parties;
-- any other scenario where Argus is a component of something you give, sell or license to
-  someone else.
-
-> OEM, embedded and other redistribution scenarios are covered by the Redistribution
-> Licence — OEM is an example of the scenario, not a separate category.
-
-Redistribution is split into two tiers, **Standard** and **Enterprise** (§7–8), scoped by
-the scale of distribution rather than by your employee count.
+Membership in a group is not, by itself, authorisation for the group. A small company
+belonging to a large group cannot use a Small-tier licence to extend rights to the rest of
+the group — a group-wide perimeter must be expressly authorised and stated in the
+Enterprise certificate.
 
 ---
 
-## 7. Redistribution — Standard
+## 4. What the Redistribution licence grants
 
-For **ordinary commercial distribution**: software houses, ISVs, systems integrators,
-commercial developers, and any company embedding Argus in a product, distributed to a
-non-exceptional number of customers or installations.
+A **Redistribution licence** is required whenever Argus, or any part of it, is passed on
+to a third party — regardless of organisation size. Examples:
 
-Depending on the specific terms agreed, the licence can permit:
-
-- modification;
-- integration;
+- incorporation into another piece of software;
 - embedding;
-- distribution;
-- commercialisation of the resulting product.
+- distribution alongside a proprietary product;
+- distribution to customers or to end users;
+- commercialisation of a derivative product;
+- integration into a proprietary application;
+- OEM scenarios;
+- distribution as a component of a commercial solution.
 
-It does **not** automatically grant:
+"OEM" is used above as an example of a Redistribution scenario, not as a separate category
+of its own — see §14.
 
-- exclusivity;
-- unlimited sublicensing;
-- trademark rights;
-- rights to third-party dependencies (§14);
-- transferability of the licence to another party.
+Subject to payment and to the specific agreement, a Redistribution licence may grant:
+
+1. modification, integration and embedding rights;
+2. the right to distribute the result, in source or binary form, with no obligation to
+   publish your own source;
+3. the right to commercialise the resulting product;
+4. sublicensing of these rights to your own end users, **solely as part of your product**,
+   not as a standalone competing tool.
+
+It does **not** automatically grant: exclusivity; unlimited sublicensing; rights to the
+Project Owner's trademarks; rights to third-party dependencies (§11); or transfer of the
+licence to another party.
+
+### 4.1 Redistribution — Standard
+
+For ordinary commercial redistribution: software houses, ISVs, integrators, commercial
+developers, and businesses embedding Argus in a product, distributed to a non-exceptional
+number of customers or installations.
+
+### 4.2 Redistribution — Enterprise
+
+For redistribution at scale: large software houses and groups, worldwide distribution,
+high-volume products, millions of users or installations, large-scale commercial
+platforms, and large OEM programmes.
+
+Unlike Commercial, this tier is **not** primarily sized by employee count. The relevant
+factors, weighed per case in the agreement, include: number of products; number of
+customers; number of installations; distribution volume; number of end users; territory;
+the product's revenue; number of legal entities involved; and the level of support
+required. The exact perimeter is defined in the commercial agreement, not by a fixed
+threshold in this document.
 
 ---
 
-## 8. Redistribution — Enterprise
+## 5. Price list
 
-For **large-scale redistribution**: large software houses and groups, worldwide
-distribution, high-volume products, millions of end users or installations, large-scale
-commercial platforms, major OEM programmes, and widely-distributed commercial products.
-
-**Employee count is not the relevant measure here.** The exact perimeter is left to the
-commercial agreement, sized against factors such as:
-
-- number of products covered;
-- number of customers;
-- number of installations;
-- distribution volume;
-- number of end users;
-- territory;
-- the product's revenue;
-- number of legal entities involved;
-- the level of support required.
-
-Because these factors vary so widely between deployments, Redistribution — Enterprise is
-always **quoted per engagement** rather than sold off a fixed price list.
-
----
-
-## 9. Price list
-
-All prices in **EUR, excluding VAT**. Commercial tiers are per **licensed legal entity** (or
-per named group of entities, for Enterprise); Redistribution tiers are per **product or
-engagement**, as agreed. Seats are never counted: you are not billed per developer, per
-user or per installation.
+All prices in **EUR, excluding VAT**, per **licensee organisation** — the legal entity and,
+where the tier says so, the agreed group perimeter. Seats are never counted: you are not
+billed per developer, per user or per installation.
 
 | Tier | Price | Scope |
 |---|---:|---|
 | **Community** | **Free** | Everything Argus does, under AGPL-3.0. Unlimited internal use. |
-| **Commercial — Small** (1–49 employees) | **€1,900 / year** | One legal entity, internal use, non-redistributable. |
-| **Commercial — Medium** (50–249 employees) | **€3,900 / year** | Same model, larger organisation. |
-| **Commercial — Large** (250–999 employees) | **€7,900 / year** | Same model, larger organisation still. |
-| **Commercial — Enterprise** (1,000+ / Corporate Group) | **from €14,000 / year** | Group-wide scope as named in the certificate. Questionnaires included. |
-| **Redistribution — Standard** | **€4,900 / year** | Ordinary commercial distribution — see §7. |
-| **Redistribution — Enterprise** | **from €24,900 / year** | Large-scale distribution, quoted per engagement — see §8. |
+| **Commercial — Small** | **€1,900 / year** | 1–49 employees. Closed-source internal use, one legal entity. |
+| **Commercial — Medium** | **€3,900 / year** | 50–249 employees. Same model as Small. |
+| **Commercial — Large** | **€7,900 / year** | 250–999 employees. Same model as Small and Medium. |
+| **Commercial — Enterprise** | **from €14,000 / year** | 1,000+ employees, or a group-wide perimeter. Unlimited internal products and services within the agreed scope. Written answers to procurement and legal questionnaires. |
+| **Redistribution — Standard** | **€4,900 / year** | Ordinary commercial redistribution: embed it in a product you sell, or run it as a hosted service for your customers. |
+| **Redistribution — Enterprise** | **from €24,900 / year** | Large-scale redistribution: worldwide distribution, high-volume products, large OEM programmes. Scope priced per case. |
 
 ### Perpetual option
 
-Available on **Commercial — Small, Medium or Large**, and on **Redistribution —
-Standard**. Not offered on either Enterprise tier, which are individually negotiated and
-priced instead.
+A perpetual licence is bought once and never renews. It covers **the major version current
+at the date of purchase**, in perpetuity, together with every patch and minor release
+within that major version. Moving to a later major version is a new purchase.
+
+It is priced at **three times the annual rate** of the same tier, and is offered on the
+four fixed-price tiers only — both Enterprise tiers are negotiated and priced per case
+instead.
 
 | Tier | Perpetual price (one-off) |
 |---|---:|
@@ -275,17 +224,17 @@ priced instead.
 | Commercial — Large | **€23,700** |
 | Redistribution — Standard | **€14,700** |
 
-A perpetual purchase covers the major version current at purchase, bought once instead of
-subscribed to annually — see [What every paid licence includes](#what-every-paid-licence-includes) for what "covers" means here.
+Support (§6) runs for **twelve months** from a perpetual purchase, and can be renewed
+afterwards at 20% of the annual rate of the same tier. The licence itself does not expire
+when support does.
 
 ### What every paid licence includes
 
-The same four things, at every tier above Community:
+The same commitments, at every tier above Community:
 
-- **Email support** — see §10. Always included, never sold separately to a paying customer.
-- **Updates for the whole term**, and a **perpetual fallback**: every version released while
-  your subscription is active stays licensed to you forever. If the subscription lapses you
-  keep running what you had, you simply stop receiving new versions under commercial terms.
+- **Email support** — see §6. Always included, never sold separately to a paying customer.
+- **Updates for the whole term.** Every version released while your subscription is active
+  is licensed to you; there is no separate charge for upgrading within a term.
 - **No retroactive charge.** Renewals are priced at the rate in force when you first bought,
   for as long as you renew without a gap.
 - **Cancel any time.** No notice period, no auto-renewal trap. An invoice is issued per
@@ -295,12 +244,12 @@ The same four things, at every tier above Community:
 
 | Who | What |
 |---|---|
-| Fewer than 10 employees **and** under €1M annual revenue | **50% off** any annual tier |
+| Fewer than 10 employees **and** under €1M annual revenue | **50% off** any annual Commercial or Redistribution tier |
 | Registered non-profits, accredited academic institutions, published research | **Free commercial licence** — ask |
 
 ---
 
-## 10. Support
+## 6. Support
 
 **Every paying customer gets support. It is included in the price, at every paid tier, and
 it runs over email.** There is no support product to buy separately and no tier that leaves
@@ -309,8 +258,7 @@ you on your own.
 | Tier | Support | Target first response |
 |---|---|---|
 | Community | GitHub Issues, best effort | — |
-| Commercial — Small | Email | 5 business days |
-| Commercial — Medium | Email | 4 business days |
+| Commercial — Small / Medium | Email | 5 business days |
 | Commercial — Large | Email | 3 business days |
 | Commercial — Enterprise | Email, private channel | 2 business days |
 | Redistribution — Standard | Email | 3 business days |
@@ -325,11 +273,11 @@ What "support" means here, stated plainly so nothing is inferred:
   human reply, not how quickly a defect is resolved. Confirmed bugs are prioritised over
   new features, but no repair window is guaranteed at any tier.
 - **Not included:** building your workflow for you, writing features, or operating the
-  software on your behalf. That is custom development — see §11.
+  software on your behalf. That is custom development — see §7.
 
 ---
 
-## 11. Custom development
+## 7. Custom development
 
 Anything that changes the software for you — a new feature, an integration, a format, a
 connector, a bespoke build — is **never included in a licence fee**, at any tier.
@@ -340,8 +288,8 @@ It is **available on request and quoted separately**, per project:
 2. You get a written scope, a fixed price and a delivery window before any work starts.
 3. Nothing is invoiced until you accept that quote.
 
-The indicative day rate for Argus is **€1,200 / day**, used to size a quote; the quote
-itself is fixed-price, not time-and-materials.
+The indicative day rate for Argus is **€1200 / day**, used to size a quote;
+the quote itself is fixed-price, not time-and-materials.
 
 Two things worth knowing before you ask:
 
@@ -353,26 +301,24 @@ Two things worth knowing before you ask:
 
 ---
 
-## 12. How to buy
+## 8. How to buy
 
 1. **Ask.** Write to **[marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry)**.
-   Say what you intend to build, roughly how big your organisation is, and whether anything
-   built on Argus will leave your organisation — that last point decides Commercial vs.
-   Redistribution. Use email rather than a public issue: what you are building is usually
-   not something you want indexed.
-2. **Confirm the tier.** You get a written statement of which tier applies and why, so
-   there is no ambiguity later — including, for Enterprise or Group scope, exactly which
-   legal entities the certificate covers.
+   Say what you intend to build, roughly how big your organisation is (for Commercial), or
+   how the software will reach third parties (for Redistribution). Use email rather than a
+   public issue: what you are building is usually not something you want indexed.
+2. **Confirm the tier.** You get a written statement of which tier applies and why — for
+   Commercial, the employee count that was used; for Redistribution, the factors from §4.2
+   that were weighed — so there is no ambiguity later.
 3. **Invoice.** Issued in EUR, payable by bank transfer within 30 days.
 4. **Certificate.** On payment you receive a signed licence certificate naming your
-   organisation, the tier, the term and the covered products. That certificate — not a key
-   file — is the licence.
+   organisation (and, at Enterprise scope, every included legal entity), the tier, the term
+   and the covered products. That certificate — not a key file — is the licence.
 
 To get a concrete quote in one round instead of three, include: your **company** and the
-legal entity that would hold the licence; your **employee count**, if Commercial applies;
-the **intended use** — internal only, or does it reach third parties; if Redistribution
-applies, the **scale** (products, customers, installations, territory); the **tier** you
-think fits; and whether you need **custom development**.
+legal entity that would hold the licence; the **intended use** (internal, or distributed to
+third parties); **organisation size** or **distribution scale**, as applicable; the **tier**
+you think fits; and whether you need **custom development**.
 
 There is **no licence key, no activation, no phone-home.** The software behaves identically
 whether or not you have paid. Compliance is contractual and self-declared; there is no
@@ -380,78 +326,82 @@ audit clause.
 
 ---
 
-## 13. Term, warranty and liability
+## 9. Term, warranty and liability
 
-- **Term.** Annual from the invoice date, unless the tier says otherwise.
+- **Term.** Annual from the invoice date, unless the certificate says otherwise, or
+  perpetual where the perpetual option in §5 was purchased.
 - **Updates.** Included for the duration of the term.
 - **Warranty.** Argus is provided **as is**. No warranty of merchantability, fitness for a
-  particular purpose, or non-infringement. Read the [Disclaimer](README.md#disclaimer) — this software places real orders with real money.
+  particular purpose, or non-infringement. Argus places real orders on real exchanges: read the [Disclaimer](README.md#disclaimer).
 - **Liability.** Total aggregate liability under a commercial licence is limited to **the
   fees paid in the twelve months preceding the claim**. Liability is not excluded where it
   cannot lawfully be excluded — death or personal injury caused by negligence, fraud, or
   wilful misconduct.
-- **Indemnity.** No IP indemnity at Commercial — Small, Medium or Large, or at
-  Redistribution — Standard. Commercial — Enterprise, Redistribution — Enterprise, and
-  perpetual licences may include one; ask, and it will be stated in the certificate.
+- **Indemnity.** No IP indemnity at Commercial Small/Medium/Large or Redistribution
+  Standard. Commercial Enterprise and Redistribution Enterprise may include one; ask, and
+  it will be stated in the certificate.
 - **Governing law.** Italian law, courts of Milan, unless the certificate names otherwise.
 
 ---
 
-## 14. What is *not* included
+## 10. What is *not* included
 
 Stated plainly, so nobody discovers it after paying:
 
 - **No SLA on the software itself.** Response targets are commitments about replying to
   you, not about fixing anything within a window.
-- **No custom development.** Quoted separately — see §11.
+- **No custom development.** Quoted separately — see §7.
 - **No guarantee of future features.** The roadmap is not a contract.
 - **No exclusivity.** The same licence is available to your competitors.
-- **No automatic group-wide extension.** A Commercial licence covers the legal entity named
-  on the certificate — not its parent, its subsidiaries, or any other company in the same
-  group — unless the Enterprise / Group tier explicitly says otherwise. See §5.
-- **No redistribution rights under a Commercial licence.** Embedding, OEM, reselling and
-  every other scenario in §6 need the Redistribution licence specifically.
-- **No rights to third-party components.** See §15.
-- **No warranty of profitability and no investment advice.** Argus is analysis and execution software: it does not guarantee returns, and the past
-  behaviour of any strategy predicts nothing. Trading decisions, and their consequences, are yours.
-- **No indemnity for trading losses**, exchange outages, API failures or third-party model behaviour, except where a signed agreement says otherwise.
+- **No rights to third-party components.** See §11.
+- **No warranty of profitability and no investment advice.** Argus is analysis and
+  execution software: it does not guarantee returns, and the past behaviour of any
+  strategy predicts nothing. Trading decisions, and their consequences, are yours.
+- **No indemnity for trading losses**, exchange outages, API failures or
+  third-party model behaviour, except where a signed agreement says otherwise.
+- **No implied redistribution rights on a Commercial licence**, and no implied
+  group-wide scope without an explicit Enterprise perimeter. See §3.
 
 ---
 
-## 15. Third-party components
+## 11. Third-party components
 
 A commercial licence covers Argus's own code. Its dependencies are separately licensed and
 a commercial licence cannot and does not relicense them.
 
 | Component | Licence | Commercial redistribution |
 |---|---|---|
+| Python, `tkinter` | PSF License | ✅ Permissive |
 | CCXT | MIT | ✅ Permissive |
 | pandas, NumPy, scikit-learn, PyTorch | BSD-3-Clause | ✅ Permissive |
 | requests, yfinance, openai, huggingface-hub, timesfm | Apache-2.0 | ✅ Permissive |
 | CustomTkinter, BeautifulSoup4, openpyxl, Pillow | MIT / HPND | ✅ Permissive |
 | reportlab | BSD | ✅ Permissive |
+| PyInstaller | GPL-2.0 **with bootloader exception** | ✅ The exception exists to allow proprietary frozen applications |
 
-**Every dependency is permissively licensed and safe to redistribute in a commercial
-product.** No dependency imposes copyleft, field-of-use or anti-commercial conditions.
+**Every dependency is permissively licensed and safe to redistribute in a
+commercial product.** No dependency imposes copyleft, field-of-use or
+anti-commercial conditions.
 
-> **Resolved: the vectorbt / Commons Clause problem.** The Instant Backtest used to depend
-> on `vectorbt`, which ships under Apache-2.0 *plus the Commons Clause* — a condition
-> withholding the right to "Sell" software whose value derives substantially from it, and
-> one that AGPL-3.0 §7 does not permit a licensee to impose. It has been **removed**: the
-> backtest now runs on [`core/backtest.py`](core/backtest.py), written for this project and
-> covered by the same dual licence, with no dependencies beyond pandas and NumPy.
+> **Resolved: the vectorbt / Commons Clause problem.** The Instant Backtest used to
+> depend on `vectorbt`, which ships under Apache-2.0 *plus the Commons Clause* — a
+> condition withholding the right to "Sell" software whose value derives
+> substantially from it, and one that AGPL-3.0 §7 does not permit a licensee to
+> impose. It has been **removed**: the backtest now runs on
+> [`core/backtest.py`](core/backtest.py), written for this project and covered by
+> the same dual licence, with no dependencies beyond pandas and NumPy.
 
-> **Model weights are licensed separately from model code.** The `timesfm` *package* is
-> Apache-2.0, but the TimesFM *checkpoints* downloaded from Hugging Face carry their own
-> terms. Verify the licence on the specific checkpoint you deploy before shipping it
-> commercially.
+> **Model weights are licensed separately from model code.** The `timesfm`
+> *package* is Apache-2.0, but the TimesFM *checkpoints* downloaded from Hugging
+> Face carry their own terms. Verify the licence on the specific checkpoint you
+> deploy before shipping it commercially.
 
 Verify these against the versions you actually ship. They are listed in good faith, current
 as at the version of this document, and are not a legal opinion.
 
 ---
 
-## 16. Contributors
+## 12. Contributors
 
 Contributions are accepted under the [Contributor License Agreement](CLA.md), which grants
 the Project Owner the right to license contributed code under both AGPL-3.0 and commercial
@@ -463,7 +413,7 @@ commercial licence to Argus for their own use, as thanks.
 
 ---
 
-## 17. Contact
+## 13. Contact
 
 **Commercial licensing, quotes and support for paying customers:
 [marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry)**
@@ -471,6 +421,22 @@ commercial licence to Argus for their own use, as thanks.
 For anything that is *not* a purchase — a bug, a feature request, a question about which
 row of §1 you fall into — the [issue tracker](https://github.com/MarcoLombardoDev/Argus/issues) is the better channel, and the
 answer helps whoever asks next.
+
+---
+
+## 14. Terminology
+
+This document uses **Community**, **Commercial** and **Redistribution** as the three
+licence families. **OEM** is deliberately not used as a top-level category: it appears only
+as an example, because it describes one *scenario* within Redistribution, not a distinct
+set of rights —
+
+> OEM, embedded and other redistribution scenarios are covered by the Redistribution
+> Licence.
+
+Naming it this way keeps the category general enough to apply to whichever commercial
+model a redistributor actually uses, instead of forcing OEM deals through a differently
+worded licence than an equivalent embedding or hosting deal.
 
 ---
 

@@ -1,7 +1,7 @@
 # Contributor License Agreement (CLA)
 
 **Argus — Individual Contributor License Agreement**  
-Version 1.0, June 2025
+Version 1.0, August 2026
 
 Thank you for your interest in contributing to **Argus** (the "Project"), maintained by **Marco Lombardo** (the "Project Owner").
 
@@ -9,7 +9,7 @@ This Contributor License Agreement ("Agreement") documents the rights granted by
 
 By submitting a Pull Request, filing an Issue with a proposed fix, or otherwise contributing code, documentation, translations, or other materials to this repository, **you agree to the terms of this Agreement**.
 
-> **How to agree:** Simply submit a Pull Request. Your first PR submission constitutes your agreement to this CLA. The PR description should include the statement: `I have read and agree to the Contributor License Agreement.`
+> **How to agree:** Simply submit a Pull Request. Your first PR submission constitutes your agreement to this CLA. The PR description should include the statement: `I have read and agree to the Contributor License Agreement (CLA.md).`
 
 ---
 
@@ -51,11 +51,12 @@ By submitting a Contribution, You represent and warrant that:
 1. **You own the rights.** You are the sole author and legal owner of the Contribution, and have the legal authority to enter into this Agreement and grant the licenses described herein.
 2. **The Contribution is original.** Your Contribution is entirely your own original creation and does not, to the best of your knowledge, infringe any third-party copyright, patent, trademark, trade secret, or other intellectual property right.
 3. **No third-party restrictions.** Your Contribution does not contain material that is subject to third-party claims of ownership, confidentiality obligations, or restrictive license terms that would conflict with this Agreement.
-4. **Employer conflicts disclosed.** If Your employer(s) or any other entity holds intellectual property rights over works you create (e.g., under an employment agreement or contractor agreement), you represent that:
+4. **No credentials, keys or live account data.** Your Contribution contains no exchange API keys or secrets, model provider tokens, account identifiers, real balances, or real positions. Fixtures, screenshots and sample configurations must use synthetic data.
+5. **Employer conflicts disclosed.** If Your employer(s) or any other entity holds intellectual property rights over works you create (e.g., under an employment agreement or contractor agreement), you represent that:
    - Either your employer has granted you express written permission to make such Contribution under this CLA; **or**
    - Your employer has executed a separate Corporate CLA with the Project Owner; **or**
    - The Contribution was created entirely outside the scope of your employment and your employer has no claim over it.
-5. **No illegal content.** Your Contribution does not contain software that is known to be malicious, unlawful, or intended to cause harm.
+6. **No illegal content.** Your Contribution does not contain software that is known to be malicious, unlawful, or intended to cause harm.
 
 ---
 
@@ -67,6 +68,8 @@ You explicitly acknowledge and agree that:
 2. The Project Owner **reserves the exclusive right** to offer the Project (including Your Contributions) under **alternative commercial, proprietary, or closed-source license agreements** to any third party, for a fee or otherwise, without any obligation to notify you, pay royalties, or seek further consent.
 3. This dual-licensing right is an essential basis of this Agreement. The Project Owner would not accept Contributions without this right.
 4. You will not receive any compensation, royalties, or revenue share from commercial licensing arrangements.
+
+In return, contributors receive a perpetual, royalty-free commercial licence to Argus for their own use — see [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md), §12.
 
 ---
 
