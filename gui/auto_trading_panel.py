@@ -356,7 +356,7 @@ class AutoTradingPanel(ctk.CTkFrame):
             self._queue.put(self._refresh_logs_ui)
             
             if status == "ERROR" and self.is_running:
-                self._queue.put(lambda: self._status(f"Error in previous cycle."))
+                self._queue.put(lambda: self._status("Error in previous cycle."))
             elif self.is_running:
                 self._queue.put(lambda: self._status(f"Cycle completed in {dur_str}."))
 
@@ -403,7 +403,7 @@ class AutoTradingPanel(ctk.CTkFrame):
                 return r
 
             if not enable_ai:
-                update_status(f"Advanced Analysis skipped: Disabled in Auto Trading settings")
+                update_status("Advanced Analysis skipped: Disabled in Auto Trading settings")
                 res = _build_ai_fallback_res(target_asset)
             else:
                 update_status(f"🤖 AI Analysis {label}: {sym}...")
@@ -416,7 +416,7 @@ class AutoTradingPanel(ctk.CTkFrame):
                     res["btc_pred_confidence"] = target_asset.get("btc_pred_confidence", 0.0)
                 except Exception as e:
                     print(f"[AutoTrading] AI Analysis failed for {sym}: {e}")
-                    update_status(f"Advanced Analysis failed (API error). Fallback applied.")
+                    update_status("Advanced Analysis failed (API error). Fallback applied.")
                     res = _build_ai_fallback_res(target_asset, reason="DISABLED", err_msg=f"Advanced Analysis failed: {e}. Fallback applied.")
 
             ai_results = [res]

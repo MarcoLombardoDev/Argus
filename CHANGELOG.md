@@ -18,9 +18,27 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   repository and can be edited without touching a workflow.
 - `tests/test_release_workflow.py`, which parses the workflow and the release
   body so a download table can never again promise a platform that is not built.
+- **A CI workflow.** Argus was the only one of the four products without one.
+  `.github/workflows/ci.yml` runs the suite on Ubuntu and Windows against Python
+  3.10 and 3.12, plus a `pyflakes` lint job and a fast job that runs the
+  documentation guards alone — those two import nothing from Argus, so they
+  answer in under a minute instead of queueing behind a torch install. macOS is
+  left to the release workflow, which builds and smoke-tests a bundle there.
+- `requirements-dev.txt`, matching Iris and Proteus: the runtime dependencies
+  plus pytest, pyyaml and pyflakes. `pytest` stays out of `requirements.txt` —
+  running Argus from source has never needed it.
 - **`--version`** on the command line. It is what the release workflow uses to
   smoke-test each bundle, and it is parsed before the GUI is imported, so it
   answers without needing a display.
+
+### Fixed
+- **`pyflakes` is clean again**, which CONTRIBUTING.md and the README both said
+  it had to be while it had drifted to twelve findings. All of them were dead
+  weight rather than defects, and none changed behaviour: five `except ... as e`
+  clauses that never read `e`, an unused `import numpy`, three f-strings with no
+  placeholders, and the `is_crypto` / `market_type` / `rank` locals that nothing
+  consumed. The `use_timesfm_auto` read is replaced by a comment pointing at the
+  README's Scope section, which already documents that no code path acts on it.
 
 ### Changed
 - **`LICENSE` is now the verbatim FSF text of the AGPL-3.0.** The previous copy

@@ -1119,8 +1119,6 @@ Always respond in English. Be brief and direct."""
         with regime-conditional reporting."""
         symbol = coin.get("symbol", "?")
         name = coin.get("name", symbol)
-        market_type = self._settings.get("market_type", "crypto").lower()
-        is_crypto = (market_type == "crypto")
         
         # Extract macro regime.
         # get_market_context() emits ALTSEASON / BTC_ACCUMULATION / "CRYPTO_WINTER / BEARISH"
@@ -1429,7 +1427,6 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
                     df_15 = load_historical(symbol)
                     
                     if df_15 is not None and not df_15.empty:
-                        import numpy as np
                         import pandas as pd
                         # Use only the last 100 candles for rapid calculation
                         df_15 = df_15.tail(100).copy()

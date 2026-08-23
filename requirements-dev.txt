@@ -1,0 +1,24 @@
+# Development and test dependencies for Argus.
+#
+# Install the runtime ones first if you want a CPU-only PyTorch, which is what
+# CI uses and what keeps a built executable in the low hundreds of MB:
+#
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements-dev.txt
+#
+# Without that first line pip resolves torch from PyPI, which on Linux and
+# Windows means the CUDA build and several extra gigabytes.
+-r requirements.txt
+
+# The test suite. Deliberately absent from requirements.txt: running Argus
+# from source never needs it.
+pytest>=8.0
+
+# Parses .github/workflows/*.yml, so a broken workflow file is caught by the
+# test suite rather than by the next push silently never running.
+pyyaml>=6.0
+
+# Static analysis. It parses the sources rather than importing them, so it
+# needs none of the runtime dependencies — which is why CI can run it in
+# seconds while the test jobs are still installing torch.
+pyflakes>=3.0

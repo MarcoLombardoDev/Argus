@@ -3,6 +3,7 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Commercial Licence Available](https://img.shields.io/badge/Commercial%20Licence-Available-green.svg)](COMMERCIAL-LICENSE.md)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![CI](https://github.com/MarcoLombardoDev/Argus/actions/workflows/ci.yml/badge.svg)](https://github.com/MarcoLombardoDev/Argus/actions/workflows/ci.yml)
 
 Quantitative price forecasting and AI-driven analysis of cryptocurrency assets, with an
 integrated portfolio manager and an autonomous trading scheduler.
@@ -1022,7 +1023,8 @@ pip install pyflakes && python -m pyflakes core/ gui/ main.py
 The suite is fully **offline** — it never contacts an exchange, a data provider or an LLM — so it is safe to run at any time, with or without API keys configured.
 
 ```bash
-pip install pytest
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements-dev.txt
 
 # Logic tests only (no display required)
 python -m pytest tests/test_core.py -q
@@ -1033,16 +1035,27 @@ python -m pytest tests/test_core.py -q
 xvfb-run -a python -m pytest tests/ -q
 ```
 
+The torch line first is not optional if you care about the size of what you
+install: without it pip resolves torch from PyPI, which on Linux and Windows
+means the CUDA build and several extra gigabytes.
+
 | File | Covers |
 |------|--------|
 | `tests/test_core.py` | Ensemble weighting and sizing rules, signal building, price/percentage formatting, KNN pattern matching on synthetic prices, settings and cache persistence, pre-flight checks, and the CSV/Excel/PDF export paths |
 | `tests/test_gui_smoke.py` | Boots the real Tk application, walks every view, renders tables from mixed-quality rows, and drives the worker-thread error paths |
+| `tests/test_docs.py` | The documents themselves: the README's section order, the commercial licence's section numbering, the price list agreeing with the README, the perpetual rule, and the AGPL text left verbatim — the guards that keep Argus aligned with Orion, Iris and Proteus |
 | `tests/test_release_workflow.py` | `.github/workflows/release.yml` and `.github/release-body.md` themselves: all three platforms built, every bundle smoke-tested, fixed release title and notes on both publishing paths |
 
 Two things the suite deliberately guards against, because they only ever surfaced at runtime:
 
 - **Formatting against real-world data.** Values reloaded from CSV arrive as strings, and AI results carry sentinels like `"N/A"` and `"DISABLED"`. Every formatter and export path is tested against those, not just against clean floats.
 - **Deferred callbacks.** Worker threads report results through a queue, so an exception raised inside a callback would surface long after the code that scheduled it. The error paths are exercised explicitly.
+
+CI runs the suite on **Ubuntu and Windows** against **Python 3.10 and 3.12**, alongside a
+`pyflakes` lint job and a fast job that runs the documentation guards on their own — those
+two need none of the runtime dependencies, so they answer in under a minute rather than
+waiting on a torch install. macOS is covered by the release workflow instead, which builds
+a bundle there and smoke-tests it before publishing.
 
 ## Building a standalone executable
 

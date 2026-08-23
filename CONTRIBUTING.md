@@ -39,7 +39,8 @@ licence to Argus for your own use — see
 git clone https://github.com/MarcoLombardoDev/Argus.git
 cd Argus
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements-dev.txt
 cp config/settings.template.json config/settings.json
 python -m pytest tests/test_core.py -q
 ```

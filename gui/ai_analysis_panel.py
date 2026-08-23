@@ -624,9 +624,6 @@ class AIAnalysisPanel(ctk.CTkFrame):
                 break
                 
             sid = session.get("session_id", "")
-            meta = session.get("meta", {})
-            market_type = meta.get("market_type", "crypto")
-            is_crypto = (market_type.lower() == "crypto")
             
             for r in session.get("results", []):
                 if row_count >= 50:
@@ -1365,7 +1362,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
                     from core.btc_pattern_matcher import BTCPatternMatcher
                     pm_res = BTCPatternMatcher().run_analysis()
                     pm_move = pm_res.get("btc_expected_move", 0.0)
-                except Exception as e:
+                except Exception:
                     import traceback
                     print("PM Error:", traceback.format_exc())
 

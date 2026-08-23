@@ -201,7 +201,7 @@ class PortfolioManager:
             
             funding = self.exchange.fetch_funding_rate(symbol)
             return float(funding.get('fundingRate', 0.0)) * 100
-        except Exception as e:
+        except Exception:
             return 0.0
         
     def _init_exchange(self, defer_network: bool = True):
@@ -330,7 +330,7 @@ class PortfolioManager:
                             
                         usdt_available += balance.get('USDT', {}).get('free', 0.0)
                         usdt_total_wallets += balance.get('USDT', {}).get('total', 0.0)
-                    except Exception as e:
+                    except Exception:
                         # Some types might not be supported or have no balance
                         pass
                 
@@ -451,7 +451,7 @@ class PortfolioManager:
                                     "current_price": price,
                                     "pnl": 0.0
                                 })
-                    except Exception as e:
+                    except Exception:
                         pass
             except Exception as e:
                 print(f"[PortfolioManager] Error fetching spot balance: {e}")
@@ -573,7 +573,10 @@ class PortfolioManager:
         # --- New Risk Management Settings ---
         allow_multiple_entries = self.settings.get("allow_multiple_entries", False)
         dca_distance_pct = float(self.settings.get("dca_distance_pct", 2.0)) / 100.0
-        use_timesfm_auto = self.settings.get("use_timesfm_auto", False)
+        # "use_timesfm_auto" is deliberately not read here: the setting exists
+        # and is described as "require TimesFM confirmation", but no code path
+        # acts on it. Documented as such under Scope and limitations in the
+        # README; do not wire it up without deciding what it should mean.
         stop_and_reverse = self.settings.get("stop_and_reverse", True)
         
         valid_signals = []

@@ -436,7 +436,6 @@ class MarketsPanel(ctk.CTkFrame):
             return
 
         for i, asset in enumerate(asset_list):
-            rank = asset.get("rank", i + 1)
             symbol = asset.get("symbol", "")
             name = asset.get("name", "")
             price = asset.get("current_price", 0.0)

@@ -1,0 +1,115 @@
+name: CI
+
+# Argus's suite is offline by design — it never contacts an exchange, a data
+# provider or an LLM — so it is safe to run on every push. What it is not is
+# cheap: `test_all_core_modules_import` imports every module under core/, which
+# pulls in torch, ccxt and timesfm, so a test job spends several minutes
+# installing before it reaches its first assertion.
+#
+# The jobs are therefore split by what each one needs. Lint and the
+# documentation guards import nothing from Argus and answer within a minute;
+# they are not made to queue behind a torch install. The real suite runs in
+# parallel with them.
+#
+# macOS is deliberately absent from the matrix. release.yml already builds a
+# macOS bundle on its own runner and smoke-tests it before publishing, so a
+# fourth heavy install here would mostly buy a longer wait.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # pyflakes parses the source instead of importing it, so it needs none of
+      # the project's dependencies. CONTRIBUTING.md states this must stay clean.
+      - name: Install pyflakes
+        run: pip install pyflakes
+
+      - name: Check for unused imports and undefined names
+        run: python -m pyflakes core/ gui/ main.py
+
+  docs:
+    name: Documentation guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # These two files read the repository's own documents and workflows and
+      # import nothing from Argus, so they need pytest and a YAML parser and
+      # nothing else. They are the checks that keep the four products aligned,
+      # which makes them the ones worth answering first.
+      - name: Install the test tooling
+        run: pip install pytest pyyaml
+
+      - name: Run the documentation and workflow guards
+        run: python -m pytest tests/test_docs.py tests/test_release_workflow.py -q
+
+  test:
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.10", "3.12"]
+        exclude:
+          # One Python version on Windows keeps the matrix honest without
+          # paying for a second torch install; Linux covers the full range.
+          - os: windows-latest
+            python: "3.10"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
+      # tkinter is a separate OS package on Debian/Ubuntu, and the GUI smoke
+      # tests need a display to boot the real application into.
+      - name: Install tkinter and Xvfb (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3-tk xvfb
+
+      # Installed before requirements-dev.txt so pip finds torch already
+      # satisfied and does not pull the much larger CUDA build from PyPI.
+      - name: Install CPU-only PyTorch
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run the test suite (virtual display for the GUI)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a python -m pytest tests/ -q
+
+      - name: Run the test suite
+        if: runner.os == 'Windows'
+        run: python -m pytest tests/ -q
