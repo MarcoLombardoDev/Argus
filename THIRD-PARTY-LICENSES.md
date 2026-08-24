@@ -5,7 +5,7 @@ commercial licence available separately (see
 [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)). That covers the code in this
 repository. It does not cover the code Argus is built on, and a
 downloadable release is mostly that other code: a Linux build contains
-376 native binaries and not one of them was written for Argus.
+373 native binaries and not one of them was written for Argus.
 Argus's own code travels through them as Python bytecode.
 
 This file is the inventory of what those binaries are and what licenses them.
@@ -15,10 +15,13 @@ This file is the inventory of what those binaries are and what licenses them.
 It was generated, not written from memory, by
 [`tools/licence_inventory.py`](tools/licence_inventory.py) run against
 the published `Argus-1.0.0-linux-x64.tar.gz` — the
-artefact a redistributor actually receives — rather than against the source
-tree or a local build. Argus cannot be built faithfully outside CI: its
-release installs a CPU-only PyTorch from PyTorch's own package index, and a
-build made without that index gets the CUDA wheel and 2.7 GB of NVIDIA
+artefact a redistributor actually receives. The table below is literally the
+copy the release runner generated and packaged inside that archive as
+`licenses/THIRD-PARTY-LICENSES-linux-x64.md`, lifted out of it unchanged.
+
+Argus cannot be built faithfully outside CI, which is why it is done this way:
+the release installs a CPU-only PyTorch from PyTorch's own package index, and
+a build made without that index gets the CUDA wheel and 2.7 GB of NVIDIA
 proprietary libraries that no release has ever shipped. That distinction matters:
 PyInstaller collects whatever the build machine's linker resolved, so the
 contents change when the runner image changes, not when someone edits this
@@ -121,17 +124,19 @@ and carries its own conditions.
 
 **The standard library's `readline` extension.** PyInstaller collected it by
 default, and it links `libreadline`, which is **GPL-3.0-or-later with no
-linking exception**. The published v1.0.0 Linux archive contains it — it is in
-the table below, flagged — which means the archive currently offered for
-commercial redistribution contains a GPL-3 library. That is the one combination
-the whole commercial tier is supposed to avoid.
+linking exception** — a GPL-3 library inside an archive offered for commercial
+redistribution, which is the one combination the whole commercial tier is
+supposed to avoid. It was in the first v1.0.0 archives, and the inventory
+generated from them recorded it.
 
 `libpython` does not link it; only that module does, and Argus is a windowed
 application that never reads a line from an interactive prompt. It and
-`rlcompleter` are now excluded in [`Argus.spec`](Argus.spec), so the next
-release does not contain it, and
-[`tests/test_packaging.py`](tests/test_packaging.py) pins the exclusion so it
-cannot silently come back. `libtinfo` leaves with it.
+`rlcompleter` are excluded in [`Argus.spec`](Argus.spec), `libtinfo` leaves
+with them, and [`tests/test_packaging.py`](tests/test_packaging.py) pins the
+exclusion so it cannot silently come back. The `v1.0.0` tag was re-cut onto the
+fixed build, so the archives on the releases page no longer contain it — 373
+native binaries rather than 376 — but a copy downloaded before that does, and
+nothing about the file name distinguishes the two.
 
 ## Licence texts travel with the build
 
@@ -163,11 +168,11 @@ Counts are files, not projects: one project usually contributes several
 binaries. "Evidence" names where the licence came from, so any line here can be
 re-checked rather than taken on trust.
 
-### Linux — 376 native binaries
+### Linux — 373 native binaries
 
 | Component | Files | Licence | Evidence |
 |---|---|---|---|
-| `CPython` (cpython) | 57 | PSF-2.0 | the Python Software Foundation License, version 2 |
+| `CPython` (cpython) | 56 | PSF-2.0 | the Python Software Foundation License, version 2 |
 | `libbrotli1` (system) | 2 | MIT | debian/copyright, Files: * stanza |
 | `libbsd0` (system) | 1 | BSD-3-Clause AND BSD-2-Clause AND ISC | reviewed: per-file stanzas, all permissive BSD/ISC variants |
 | `libbz2-1.0` (system) | 1 | bzip2-1.0.6 | debian/copyright, Files: * stanza |
@@ -180,12 +185,10 @@ re-checked rather than taken on trust.
 | `libmd0` (system) | 1 | BSD-3-Clause AND BSD-2-Clause AND ISC | reviewed: per-file stanzas, all permissive BSD/ISC variants |
 | `libobjc4` (system) | 1 | GPL-3.0-or-later WITH GCC-exception-3.1 | free-form copyright: 'licensed under ... version 3.1 of the GCC Runtime Library Exception', whose list of covered libraries includes libobjc |
 | `libpng16-16t64` (system) | 1 | Libpng | debian/copyright, Files: * stanza |
-| `libreadline8t64` (system) | 1 | GPL-3.0-or-later | debian/copyright, Files: * stanza |
 | `libsqlite3-0` (system) | 1 | public domain | debian/copyright, Files: * stanza |
 | `libssl3t64` (system) | 2 | Apache-2.0 | debian/copyright, Files: * stanza |
 | `libstdc++6` (system) | 1 | GPL-3.0-or-later WITH GCC-exception-3.1 | free-form copyright: 'version 3.1 of the GCC Runtime Library Exception' |
 | `libtcl8.6` (system) | 1 | TCL (BSD-style) | free-form copyright: 'This software is copyrighted by the Regents of the University of California, Sun Microsystems, Inc., Scriptics Corporation' |
-| `libtinfo6` (system) | 1 | MIT | debian/copyright, Files: * stanza |
 | `libtk8.6` (system) | 1 | TCL (BSD-style) | free-form copyright: 'This software is copyrighted by the Regents of the University of California, Sun Microsystems, Inc.' |
 | `libuuid1` (system) | 1 | BSD-3-Clause | reviewed: Files: libuuid/* — default stanza says GPL-2+ |
 | `libx11-6` (system) | 1 | MIT | free-form copyright: X.Org / XCB standard copyright — MIT/X11 permission notice |
@@ -223,10 +226,6 @@ re-checked rather than taken on trust.
 | `uvloop` (wheel) | 1 | MIT License | the wheel's own distribution metadata |
 | `websockets` (wheel) | 1 | BSD-3-Clause | the wheel's own distribution metadata |
 | `yarl` (wheel) | 1 | Apache-2.0 | the wheel's own distribution metadata |
-
-**Flagged for review**
-
-- `libreadline8t64` — GPL-3.0-or-later with no linking exception. Nothing here should be linking it: it arrives only with the standard library's optional readline extension, which the build excludes for exactly this reason. If it appears in this table, that exclusion has stopped working.
 
 ## Build-time tools
 

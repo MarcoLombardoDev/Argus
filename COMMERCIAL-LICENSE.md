@@ -427,7 +427,7 @@ contains the transitive closure of everything those packages link — the
 libraries the wheels vendor, the interpreter and its extension modules, Tcl and
 Tk, and whatever else the build machine's linker resolved.
 
-A Linux build contains **376 native binaries**. Every one of them is
+A Linux build contains **373 native binaries**. Every one of them is
 inventoried, with the source of each licence determination, in
 **[THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md)**, and the licence texts
 themselves now ship inside the archive as `licenses/` — together with a copy of
@@ -449,9 +449,10 @@ have been there: `libreadline`, **GPL-3.0-or-later with no linking exception**,
 collected by PyInstaller along with the standard library's optional `readline`
 extension. A GPL-3 library inside an archive offered under this licence is the
 one combination a Redistribution tier cannot survive. Nothing in Argus used it;
-it is excluded from the build from this version on, and a test fails if the
-exclusion is ever removed. If you hold a v1.0.0 archive, it is in it — see
-THIRD-PARTY-LICENSES.md, where that row is flagged.
+it is excluded from the build now, and a test fails if the exclusion is ever
+removed. The `v1.0.0` tag was re-cut onto the fixed build, so the archives on
+the releases page do not contain it — but a copy downloaded before that does,
+and nothing about the file name distinguishes the two.
 
 Counts change with the build. The inventory is regenerated from the archives at
 each release rather than maintained by hand.

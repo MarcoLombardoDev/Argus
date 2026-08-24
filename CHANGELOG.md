@@ -48,6 +48,24 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   answers without needing a display.
 
 ### Fixed
+- **The per-platform inventory was missing from the Windows and macOS
+  archives.** `tools/licence_inventory.py` called `dpkg-query` unguarded, and
+  `subprocess.run` *raises* on a missing executable rather than returning
+  non-zero — so it died outright on the two runners that have no package
+  database, and the workflow's `|| echo "::warning::"` turned the crash into a
+  warning nobody read. The lookup is guarded now, the script has its own exit
+  code for "the report was written and some rows need a human", and the
+  workflow fails the step on anything else. Found by opening the published
+  archives rather than by reading the green tick.
+- **The Windows archive unpacked one level too deep.** `7z` stores the whole
+  path it is given, so `7z a staging/<base>` produced an archive containing
+  `staging/<base>/` while tar and ditto produced `<base>/`. It is now run from
+  inside the staging directory, and a test pins the command shape.
+- **Tcl/Tk went unrecognised on Windows.** The DLLs python.org ships are
+  `tcl86t.dll` and `tk86t.dll` — the trailing `t` is the threaded build — and
+  the pattern that names them required the digits to be followed straight by
+  `.dll`. They were reported unresolved on the one platform where Tcl/Tk
+  belongs to no package manager.
 - **A GPL-3.0 library was being shipped inside archives offered for commercial
   redistribution.** PyInstaller collects the standard library's optional
   `readline` extension by default, and it links `libreadline` —
