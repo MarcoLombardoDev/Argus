@@ -22,14 +22,21 @@ from core.version import APP_NAME, APP_TITLE, __version__
 
 
 def _parse_args():
-    """Handle ``--version`` / ``--help`` and return an exit code, or None.
+    """Handle ``--version``, ``--self-check`` and ``--help``.
 
-    Argus is a GUI application, but the release workflow smoke-tests every
-    bundle it builds by running it with ``--version``: a binary that cannot
-    even report its own version is a broken binary, and that has to be caught
-    before the asset is offered for download rather than after. Parsed before
-    ``gui.app`` is imported, so the check costs a fraction of a second and
-    needs no display — importing the GUI pulls in torch and CCXT.
+    Returns an exit code when one of them was asked for, or None to carry on
+    and open the window.
+
+    Argus is a GUI application, but the release workflow runs every bundle it
+    builds before offering it for download. ``--version`` is the cheap half of
+    that — a binary that cannot report its own version is broken — and
+    ``--self-check`` is the half that means something: it starts Tk and writes
+    both export formats, which is where a frozen bundle actually breaks.
+
+    Both are handled here rather than after ``gui.app`` is imported, so
+    ``--version`` costs a fraction of a second: importing the GUI pulls in
+    torch and CCXT. ``--self-check`` pays that cost deliberately, since torch
+    loading is one of the things it exists to prove.
     """
     parser = argparse.ArgumentParser(
         prog=APP_NAME,
@@ -42,9 +49,26 @@ def _parse_args():
         action="store_true",
         help="print the version and exit",
     )
+    parser.add_argument(
+        "--self-check",
+        action="store_true",
+        help=(
+            "check a built bundle can start Tk and run a backtest and write both export formats, then exit"
+        ),
+    )
+    parser.add_argument(
+        "--self-check-report",
+        metavar="FILE",
+        help="also write the self-check report here; a --windowed build has "
+             "no stdout to read it from",
+    )
     args, unknown = parser.parse_known_args()
     if unknown:
         parser.error(f"unrecognised arguments: {' '.join(unknown)}")
+    if args.self_check:
+        from core import selfcheck
+
+        return selfcheck.run(args.self_check_report)
     if args.version:
         # Deliberately not argparse's own "version" action: that one writes to
         # sys.stdout unconditionally, and a windowed PyInstaller build on

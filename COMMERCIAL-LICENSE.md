@@ -366,38 +366,103 @@ Stated plainly, so nobody discovers it after paying:
 
 ## 11. Third-party components
 
-A commercial licence covers Argus's own code. Its dependencies are separately licensed and
-a commercial licence cannot and does not relicense them.
+A commercial licence covers Argus's own code. Everything Argus is built
+on is separately licensed by its own authors, and this licence cannot and does
+not relicense any of it. §10 applies: no rights to third-party components are
+granted here.
 
-| Component | Licence | Commercial redistribution |
+### The dependency that used to make this section a problem
+
+The Instant Backtest used to depend on **`vectorbt`**, which ships under
+Apache-2.0 *plus the Commons Clause* — a condition withholding the right to
+"Sell" software whose value derives substantially from it, and one that
+AGPL-3.0 §7 does not permit a licensee to impose. Under a Redistribution
+licence that is not a technicality: it is a term forbidding the customer to do
+the thing they paid for.
+
+**It was removed.** The backtest runs on [`core/backtest.py`](core/backtest.py),
+written for this project and covered by the same dual licence, with no
+dependencies beyond pandas and NumPy.
+
+**Model weights are licensed separately from model code.** The `timesfm`
+*package* is Apache-2.0, but the TimesFM *checkpoints* downloaded from Hugging
+Face carry their own terms. Verify the licence on the specific checkpoint you
+deploy before shipping it commercially.
+
+### What Argus depends on
+
+The packages Argus requires, plus the interpreter it runs on, the toolkit it
+draws with and the tool that freezes it, with the licence each declares in its
+own metadata at the versions pinned in `requirements.txt`:
+
+| Component | Licence | What it asks of you |
 |---|---|---|
-| Python, `tkinter` | PSF License | ✅ Permissive |
-| CCXT | MIT | ✅ Permissive |
-| pandas, NumPy, scikit-learn, PyTorch | BSD-3-Clause | ✅ Permissive |
-| requests, yfinance, openai, huggingface-hub, timesfm | Apache-2.0 | ✅ Permissive |
-| CustomTkinter, BeautifulSoup4, openpyxl, Pillow | MIT / HPND | ✅ Permissive |
-| reportlab | BSD | ✅ Permissive |
-| PyInstaller | GPL-2.0 **with bootloader exception** | ✅ The exception exists to allow proprietary frozen applications |
+| Python, standard library | PSF-2.0 | Attribution. Nothing further. |
+| Tcl/Tk, via `tkinter` | TCL (BSD-style) | Retain the copyright notices and include the licence verbatim in any distribution. |
+| PyTorch | Apache-2.0 AND BSD-3-Clause AND BSL-1.0 AND MIT | Reproduce the notices; keep Apache-2.0's NOTICE file. |
+| timesfm, huggingface-hub, requests, yfinance, openai | Apache-2.0 | Reproduce the notices; keep any NOTICE file. |
+| pandas, NumPy, scikit-learn, SciPy, python-dotenv | BSD-3-Clause | Reproduce the copyright notices. |
+| CCXT, BeautifulSoup4, openpyxl | MIT | Reproduce the copyright notices. |
+| reportlab | BSD-3-Clause | Reproduce the copyright notice. |
+| CustomTkinter | CC0-1.0 | Nothing. |
+| certifi, orjson, tqdm | MPL-2.0 (with MIT / Apache-2.0 parts) | **Weak copyleft.** See below. |
+| PyInstaller | GPL-2.0-or-later **with the Bootloader Exception** | Nothing — see the table below. |
 
-**Every dependency is permissively licensed and safe to redistribute in a
-commercial product.** No dependency imposes copyleft, field-of-use or
-anti-commercial conditions.
+All but three are permissive. The three that are not are **MPL-2.0**, reached
+through `requests` and `openai` rather than asked for. MPL-2.0 is *file-level*
+copyleft: it does not reach Argus's own code and does not stop Argus being
+shipped inside a closed product, but it does require that the source of those
+files be made available to a recipient and that their notices be kept. They are
+pure Python, so they are in the archive as bytecode rather than as native
+libraries — which is why the native inventory alone is not the whole answer.
 
-> **Resolved: the vectorbt / Commons Clause problem.** The Instant Backtest used to
-> depend on `vectorbt`, which ships under Apache-2.0 *plus the Commons Clause* — a
-> condition withholding the right to "Sell" software whose value derives
-> substantially from it, and one that AGPL-3.0 §7 does not permit a licensee to
-> impose. It has been **removed**: the backtest now runs on
-> [`core/backtest.py`](core/backtest.py), written for this project and covered by
-> the same dual licence, with no dependencies beyond pandas and NumPy.
+**No dependency imposes a field-of-use or anti-commercial condition.** That is
+a stronger statement than it looks, and it is the reason `vectorbt` is gone.
 
-> **Model weights are licensed separately from model code.** The `timesfm`
-> *package* is Apache-2.0, but the TimesFM *checkpoints* downloaded from Hugging
-> Face carry their own terms. Verify the licence on the specific checkpoint you
-> deploy before shipping it commercially.
+### What a downloadable build actually contains
 
-Verify these against the versions you actually ship. They are listed in good faith, current
-as at the version of this document, and are not a legal opinion.
+The table above is Argus's **source** dependency list. It is not what a
+redistributor ships. A standalone build is a frozen bundle, and the bundle
+contains the transitive closure of everything those packages link — the
+libraries the wheels vendor, the interpreter and its extension modules, Tcl and
+Tk, and whatever else the build machine's linker resolved.
+
+A Linux build contains **376 native binaries**. Every one of them is
+inventoried, with the source of each licence determination, in
+**[THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md)**, and the licence texts
+themselves now ship inside the archive as `licenses/` — together with a copy of
+that inventory regenerated on the machine that built the archive you have.
+Grouped by what they require:
+
+| Class | What it asks of you |
+|---|---|
+| Permissive — MIT, BSD, ISC, Apache-2.0, Zlib, FreeType, CC0 | Reproduce the notices. |
+| Python and its extension modules — PSF-2.0 | Attribution. |
+| Tcl and Tk | Retain the copyright notices and include the licence verbatim. |
+| certifi, orjson, tqdm — MPL-2.0 | Make the source of those files available to your recipients and keep their notices. File-level only: it does not reach the rest of the product. |
+| PyInstaller's bootloader — GPL-2.0-or-later **with the Bootloader Exception** | Nothing. The exception grants unlimited permission to embed the bootloader in a combined program and distribute it without restriction — which is exactly what a frozen application does. |
+| GCC runtime — GPL-3.0-or-later **with GCC Runtime Library Exception 3.1** | Nothing. The exception is what makes it distributable; without it a GPL-3 library would sit inside every build. |
+| Microsoft Visual C++ and Universal CRT runtime (Windows) | Microsoft's own redistributable terms — **not an open-source licence**, and a different legal basis from every other row here. |
+
+The published v1.0.0 archives had one more row than this, and it should not
+have been there: `libreadline`, **GPL-3.0-or-later with no linking exception**,
+collected by PyInstaller along with the standard library's optional `readline`
+extension. A GPL-3 library inside an archive offered under this licence is the
+one combination a Redistribution tier cannot survive. Nothing in Argus used it;
+it is excluded from the build from this version on, and a test fails if the
+exclusion is ever removed. If you hold a v1.0.0 archive, it is in it — see
+THIRD-PARTY-LICENSES.md, where that row is flagged.
+
+Counts change with the build. The inventory is regenerated from the archives at
+each release rather than maintained by hand.
+
+### Verify against what you ship
+
+The determinations above and in THIRD-PARTY-LICENSES.md were made from package
+metadata and from the build machine's own copyright records, and each entry
+names its source so it can be re-checked. They are given in good faith, are
+current as at the version of this document, and are **not a legal opinion**.
+Verify them against the versions you actually ship.
 
 ---
 

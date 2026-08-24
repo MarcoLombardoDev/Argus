@@ -1202,10 +1202,15 @@ Prices are per licensed legal entity, excluding VAT. **Seats are never counted.*
 terms, the Employee Count and Corporate Group definitions, and the third-party component
 review: **[COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)**.
 
-> ✅ **Every dependency is permissively licensed.** Nothing in the tree imposes
-> copyleft on a commercial licensee — the backtester was rewritten to drop
-> `vectorbt` and its Commons Clause. TimesFM *checkpoints*, unlike the `timesfm`
-> package, carry their own terms: verify the one you deploy. See
+> ⚠️ **Almost every dependency is permissively licensed** — the backtester was
+> rewritten to drop `vectorbt` and its Commons Clause. Three are not: `certifi`,
+> `orjson` and `tqdm` are MPL-2.0, which is file-level copyleft and asks that the
+> source of *those files* stay available. TimesFM *checkpoints*, unlike the
+> `timesfm` package, carry their own terms: verify the one you deploy. A
+> downloadable build adds 376 native libraries no `requirements.txt` mentions;
+> all of them are inventoried in
+> [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md), and the licence texts ship
+> inside the archive. What that means for a redistributor is
 > [§11](COMMERCIAL-LICENSE.md#11-third-party-components).
 
 ### How to get in touch
