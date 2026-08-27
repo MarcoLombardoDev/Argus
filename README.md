@@ -122,8 +122,37 @@ they are large.
 Unpack and run: on first launch the program creates its own `data/` and `config/` folders
 next to itself, so it stays portable. No installation, and no Python needed.
 
-The builds are **unsigned**, so Windows SmartScreen and macOS Gatekeeper warn on first
-launch.
+### Windows and macOS will warn on first launch
+
+These builds carry **no code-signing certificate**. A certificate costs money every year
+and identifies a legal entity; Argus is one person's project given away under the AGPL,
+and the certificate is the one part of shipping software that cannot be done for nothing.
+So the operating system has no publisher to check, and says so.
+
+On **Windows**, Microsoft Defender SmartScreen shows *"Windows protected your PC"* and
+offers only **Don't run**. Click **More info**, then **Run anyway**.
+
+On **macOS**, Gatekeeper refuses to open an application from an unidentified developer.
+Right-click it and choose **Open**, or run `xattr -dr com.apple.quarantine Argus`.
+
+Neither warning means anything is wrong with the file. Both mean the same thing: nobody
+has paid to put a name on it.
+
+**Check the download instead.** Every archive is published with a `.sha256` file beside
+it, holding the checksum of the archive as the build machine produced it:
+
+```powershell
+Get-FileHash .\Argus-1.0.0-windows-x64.zip -Algorithm SHA256      # Windows
+```
+
+```sh
+sha256sum -c Argus-1.0.0-linux-x64.tar.gz.sha256                   # Linux
+shasum -a 256 -c Argus-1.0.0-macos-arm64.zip.sha256                # macOS
+```
+
+That is a weaker guarantee than a signature — it proves the file was not altered between
+the build and your disk, not who wrote it — but it is the part a signature would give you
+that can be given for free, and it is what the warning is actually asking about.
 
 > **Before adding live API keys**, read
 > [Two sets of starting values](#two-sets-of-starting-values): the default configuration
