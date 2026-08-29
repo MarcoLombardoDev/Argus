@@ -95,6 +95,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   answers without needing a display.
 
 ### Fixed
+- **Maximising stopped at the first call that did not raise.** Not raising is
+  not the same as having worked: with no window manager running, both
+  `state("zoomed")` and the `-zoomed` attribute are accepted in silence and
+  change nothing, so the chain never reached the one that would have worked.
+  Each attempt is measured now.
 - **The window came up under Tk's default feather, with both icon files
   inside the executable.** Confirmed by reading them back out of the published
   build: the `.ico` and the `.png` were there and correct. The fault was one

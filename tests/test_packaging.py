@@ -276,3 +276,41 @@ class TestWindowIcon:
             if isinstance(target, ast.Attribute)
         ]
         assert assigned, "the PhotoImage is not stored anywhere and will be collected"
+
+
+class TestStartsMaximised:
+    """The window opens filling the screen, and knows whether it did.
+
+    The first version stopped at the first call that did not raise. Not
+    raising is not the same as having worked: with no window manager running,
+    both ``state("zoomed")`` and the ``-zoomed`` attribute are accepted in
+    silence and change nothing, and the chain never reaches the one that
+    would have worked.
+    """
+
+    def _maximise_source(self) -> str:
+        import ast
+
+        source = (REPO / "gui" / "app.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == "_maximize":
+                return ast.get_source_segment(source, node) or ""
+        raise AssertionError("_maximize is not in gui/app.py")
+
+    def test_it_checks_whether_the_window_actually_grew(self):
+        body = self._maximise_source()
+        assert "winfo_width" in body and "winfo_screenwidth" in body, (
+            "nothing measures the result; a silent no-op would count as success"
+        )
+
+    def test_it_tries_every_way_before_giving_up(self):
+        body = self._maximise_source()
+        for way in ("zoomed", "-zoomed", "winfo_screenheight"):
+            assert way in body, f"the {way} attempt is missing"
+
+    def test_it_is_called_at_start_up(self):
+        source = (REPO / "gui" / "app.py").read_text(encoding="utf-8")
+        assert "self._maximize" in source.split("def _maximize", 1)[0], (
+            "_maximize is defined but never scheduled"
+        )

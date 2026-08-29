@@ -137,24 +137,40 @@ class ArgusApp(ctk.CTk):
     def _maximize(self):
         """Maximises the window in a cross-platform way.
 
-        The 'zoomed' state only exists on Windows (and some Linux WMs); on
-        macOS/X11 it raises TclError, so fall back to the '-zoomed' attribute
-        and finally to resizing to the screen dimensions.
+        Each attempt is measured rather than trusted. It used to stop at the
+        first call that did not raise, and not raising is not the same as
+        having worked: with no window manager running, both of the first two
+        are accepted in silence and change nothing, and the chain then never
+        reaches the one that would have worked.
         """
+        def filled() -> bool:
+            try:
+                self.update_idletasks()
+                return (
+                    self.winfo_width() >= self.winfo_screenwidth() * 0.9
+                    and self.winfo_height() >= self.winfo_screenheight() * 0.8
+                )
+            except Exception:  # noqa: BLE001 — a wrong size must not stop start-up
+                return False
+
         try:
-            self.state("zoomed")
-            return
-        except Exception:
+            self.update_idletasks()
+        except Exception:  # noqa: BLE001
             pass
-        try:
-            self.attributes("-zoomed", True)
-            return
-        except Exception:
-            pass
-        try:
-            self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
-        except Exception as e:
-            print(f"[ArgusApp] Unable to maximise the window: {e}")
+
+        for attempt in (
+            lambda: self.state("zoomed"),
+            lambda: self.attributes("-zoomed", True),
+            lambda: self.geometry(
+                f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0"
+            ),
+        ):
+            try:
+                attempt()
+            except Exception:  # noqa: BLE001
+                continue
+            if filled():
+                return
 
     # ─────────────────────────────────────────────────────────────
     # Window setup
