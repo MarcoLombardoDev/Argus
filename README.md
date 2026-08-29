@@ -122,6 +122,30 @@ they are large.
 Unpack and run: on first launch the program creates its own `data/` and `config/` folders
 next to itself, so it stays portable. No installation, and no Python needed.
 
+Every archive unpacks to a single `Argus/` folder holding the program, a start
+script beside it, and the checksum that script checks:
+
+| | Windows | macOS | Linux |
+|---|---|---|---|
+| the program | `Argus.exe` | `Argus` | `Argus` |
+| start it with | `start.cmd` | `start.command` | `start.sh` |
+| what that checks | `Argus.exe.sha256` | `Argus.sha256` | `Argus.sha256` |
+| the licence texts | `licenses/` | `licenses/` | `licenses/` |
+
+**Start it through the script.** It recomputes the program's digest and compares
+it against the one recorded when the archive was built, then hands over. A
+truncated download and a half-finished unpack both produce something that looks
+like a working program until it isn't; this is where they get caught, with one
+sentence, instead of somewhere further in. If the two disagree the script stops
+and says so rather than launching. On Windows it also keeps its console up,
+saying what it is waiting for, until the program's window is actually there —
+the first launch is slow, because Windows scans every file before it will run
+any of them.
+
+The program is still there and still starts on its own — the script only checks
+first. `ARGUS_SKIP_VERIFY=1` turns the check off for anyone who has changed
+the executable on purpose.
+
 ### Windows and macOS will warn on first launch
 
 These builds carry **no code-signing certificate**. A certificate costs money every year
@@ -138,21 +162,28 @@ Right-click it and choose **Open**, or run `xattr -dr com.apple.quarantine Argus
 Neither warning means anything is wrong with the file. Both mean the same thing: nobody
 has paid to put a name on it.
 
-**Check the download instead.** Every archive is published with a `.sha256` file beside
-it, holding the checksum of the archive as the build machine produced it:
+**Check the download instead.** Every release lists the SHA-256 of each archive, as the
+build machine produced it, under **Checksums** in the release notes. Compute your copy's
+and compare:
 
 ```powershell
 Get-FileHash .\Argus-1.0.0-windows-x64.zip -Algorithm SHA256      # Windows
 ```
 
 ```sh
-sha256sum -c Argus-1.0.0-linux-x64.tar.gz.sha256                   # Linux
-shasum -a 256 -c Argus-1.0.0-macos-arm64.zip.sha256                # macOS
+sha256sum Argus-1.0.0-linux-x64.tar.gz                             # Linux
+shasum -a 256 Argus-1.0.0-macos-arm64.zip                          # macOS
 ```
 
 That is a weaker guarantee than a signature — it proves the file was not altered between
 the build and your disk, not who wrote it — but it is the part a signature would give you
 that can be given for free, and it is what the warning is actually asking about.
+
+Those are the digests worth checking, and the `Argus.sha256` inside the archive is not a
+substitute for them. A checksum that travels with the file it describes can only tell you
+the file is undamaged: whoever could replace the one could replace the other. The digests
+on the release page arrive by a different route, which is the entire reason they are worth
+anything — and why they are printed there rather than offered as three more downloads.
 
 > **Before adding live API keys**, read
 > [Two sets of starting values](#two-sets-of-starting-values): the default configuration
