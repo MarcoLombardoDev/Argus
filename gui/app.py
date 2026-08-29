@@ -86,6 +86,7 @@ class ArgusApp(ctk.CTk):
         self._active_view = "portfolio"   # "portfolio" | "markets" | "temporal" | "ai"
         self._cached_market_list: list[dict] = []  # Lista asset cached dalla sezione Mercati
 
+        self._set_window_icon()
         self._configure_window()
         self._build_ui()
         self._load_last_log()
@@ -93,6 +94,38 @@ class ArgusApp(ctk.CTk):
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.bind("<Configure>", self._on_window_configure)
         self.after(250, self._maximize)
+
+    def _set_window_icon(self):
+        """Give the window the application icon.
+
+        Two files, because Tk needs two: ``iconbitmap`` reads the .ico and
+        only does so on Windows, and everywhere else the icon has to arrive
+        as a PhotoImage through ``iconphoto``. Argus shipped neither and ran
+        under the bare Tk feather on every platform.
+
+        The PhotoImage is kept on the instance: Tk holds only a weak
+        reference to it, and a garbage-collected image leaves a blank icon.
+
+        Never raises. A missing icon is cosmetic, and nothing cosmetic should
+        be a reason the program does not start.
+        """
+        import tkinter as tk
+
+        from core.paths import bundled_dir
+
+        assets = bundled_dir() / "assets"
+        try:
+            if os.name == "nt":
+                ico = assets / "app_icon.ico"
+                if ico.exists():
+                    self.iconbitmap(str(ico))
+                    return
+            png = assets / "app_icon.png"
+            if png.exists():
+                self._app_icon = tk.PhotoImage(file=str(png))
+                self.iconphoto(True, self._app_icon)
+        except Exception:  # noqa: BLE001 — see the docstring
+            pass
 
     def _maximize(self):
         """Maximises the window in a cross-platform way.

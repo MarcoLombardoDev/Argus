@@ -25,6 +25,9 @@ from PyInstaller.utils.hooks import collect_data_files
 # customtkinter/assets/); without this the built app starts but every widget
 # renders with the wrong theme or falls back to a system font.
 datas = collect_data_files("customtkinter")
+# Both files: Windows takes the .ico through iconbitmap, and Tk
+# everywhere else needs the PNG, which iconphoto reads.
+datas += [("assets/app_icon.ico", "assets"), ("assets/app_icon.png", "assets")]
 
 a = Analysis(
     ["main.py"],
@@ -67,5 +70,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    # icon="assets/app_icon.ico",  # uncomment once an icon file exists
+    icon="assets/app_icon.ico",
 )
