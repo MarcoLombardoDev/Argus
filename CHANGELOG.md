@@ -95,6 +95,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   answers without needing a display.
 
 ### Fixed
+- **The `.ico` used PNG compression at every size.** Windows has accepted
+  PNG-compressed icon frames since Vista, but the format every icon editor
+  produces — and the one the shell has always read — is an uncompressed DIB
+  below 256 pixels, with PNG only for the 256, which is the size where the
+  compression saves something worth saving. Explorer showing a stale or
+  generic icon for an executable whose resources are demonstrably correct is
+  exactly the shape of problem that convention exists to avoid, so
+  `tools/make_icon.py` now assembles the `.ico` itself and writes the
+  conventional thing. `tests/test_packaging.py` pins the format.
 - **The Windows start script waited on the wrong process.** It called
   `WaitForInputIdle` on what `Start-Process` handed back, which is right for
   one process and wrong for two: a onefile build starts a bootloader that
