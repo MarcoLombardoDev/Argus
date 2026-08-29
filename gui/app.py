@@ -98,10 +98,10 @@ class ArgusApp(ctk.CTk):
     def _set_window_icon(self):
         """Give the window the application icon.
 
-        Two files, because Tk needs two: ``iconbitmap`` reads the .ico and
-        only does so on Windows, and everywhere else the icon has to arrive
-        as a PhotoImage through ``iconphoto``. Argus shipped neither and ran
-        under the bare Tk feather on every platform.
+        Two files, because Tk uses two: the PhotoImage works on every
+        platform and Tk has read PNG since 8.6, and ``iconbitmap`` is tried
+        afterwards on Windows for the sharper small sizes. Argus shipped
+        neither and ran under the bare Tk feather everywhere.
 
         The PhotoImage is kept on the instance: Tk holds only a weak
         reference to it, and a garbage-collected image leaves a blank icon.
@@ -114,18 +114,25 @@ class ArgusApp(ctk.CTk):
         from core.paths import bundled_dir
 
         assets = bundled_dir() / "assets"
-        try:
-            if os.name == "nt":
-                ico = assets / "app_icon.ico"
-                if ico.exists():
-                    self.iconbitmap(str(ico))
-                    return
-            png = assets / "app_icon.png"
-            if png.exists():
+
+        # Two independent attempts, and the independence is the point: one
+        # ``try`` around both means a failing ``iconbitmap`` takes the
+        # fallback down with it and the window keeps Tk's default feather.
+        png = assets / "app_icon.png"
+        if png.exists():
+            try:
                 self._app_icon = tk.PhotoImage(file=str(png))
                 self.iconphoto(True, self._app_icon)
-        except Exception:  # noqa: BLE001 — see the docstring
-            pass
+            except Exception:  # noqa: BLE001 — see the docstring
+                pass
+
+        if os.name == "nt":
+            ico = assets / "app_icon.ico"
+            if ico.exists():
+                try:
+                    self.iconbitmap(str(ico))
+                except Exception:  # noqa: BLE001 — iconphoto already did it
+                    pass
 
     def _maximize(self):
         """Maximises the window in a cross-platform way.
