@@ -121,6 +121,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   README's Scope section, which already documents that no code path acts on it.
 
 ### Changed
+- **The release now fails if the tag and the program disagree about the
+  version.** Nothing checked it, which is exactly how a `v1.0.0` tag could
+  produce `Argus-1.0.0-windows-x64.zip` containing a program that answers
+  `--version` with something else — a download whose name and contents
+  contradict each other. The smoke test compares the two on every platform and
+  stops the release rather than publishing that.
 - **The archive unpacks to a folder named after the tool.** It was
   `Argus-<version>-<platform>/`, which repeats what the file it came out of
   already says and leaves three different folder names on one person's disk for
