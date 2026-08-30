@@ -14,12 +14,13 @@ Implemented with tkinter.ttk.Treeview + custom style on top of CTk.
 
 import tkinter as tk
 from tkinter import ttk
+
 import customtkinter as ctk
 import pandas as pd
-from core.fonts import ui_font_family
-from core.analyzer import format_price
-from gui.utils import dark_scrollbar
 
+from core.analyzer import format_price
+from core.fonts import ui_font_family
+from gui.utils import dark_scrollbar
 
 # Signal colors
 SIGNAL_COLORS = {
@@ -205,11 +206,11 @@ class ResultsTable(ctk.CTkFrame):
         """Loads the list of results into the table while keeping the history."""
         # Add new results at the top
         self._all_data = results + self._all_data
-        
+
         # Keep a reasonable history (e.g. 2500 rows, corresponding to 50 runs of 50 coins)
         if len(self._all_data) > 2500:
             self._all_data = self._all_data[:2500]
-            
+
         self._apply_filter_and_sort()
 
         # Update last analysis label
@@ -275,7 +276,7 @@ class ResultsTable(ctk.CTkFrame):
             if pct > 0: signal = "BUY"
             elif pct < 0: signal = "SELL"
             else: signal = "HOLD"
-            
+
             tag_base = SIGNAL_COLORS.get(signal, SIGNAL_COLORS["N/A"])["tag"]
             tag = tag_base if i % 2 == 0 else f"{tag_base}_alt"
             # If the alt tag does not exist, use the base one
@@ -360,8 +361,8 @@ class ResultsTable(ctk.CTkFrame):
     # -------------------------------------------------------------------------
 
     def _export_excel(self):
-        from tkinter import filedialog
         from datetime import datetime
+        from tkinter import filedialog
 
         if not self._all_data:
             return

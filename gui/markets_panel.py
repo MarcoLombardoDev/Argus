@@ -12,18 +12,21 @@ markets_panel.py — Argus
 Manages the list of available assets for analysis and data providers configuration.
 """
 
-import threading
 import queue
-import customtkinter as ctk
+import threading
 import tkinter as tk
-from tkinter import ttk, messagebox
-from gui.utils import apply_binance_tab_style, dark_scrollbar
+from tkinter import messagebox, ttk
 
-from core.fonts import ui_font_family
+import customtkinter as ctk
+
 from core.data_manager import (
+    get_market_list_info,
+    load_market_list,
+    save_market_list,
     save_settings,
-    save_market_list, load_market_list, get_market_list_info,
 )
+from core.fonts import ui_font_family
+from gui.utils import apply_binance_tab_style, dark_scrollbar
 
 # Theme colors (aligned with app.py)
 _BG_PANEL  = ("#1e2329", "#1e2329")
@@ -156,7 +159,7 @@ class MarketsPanel(ctk.CTkFrame):
         """Returns the timestamp strings for list update and price update."""
         list_time = self._settings.get(f"last_list_update_{market_type}")
         if not list_time:
-            from core.data_manager import MARKET_LISTS_DIR, MARKET_LIST_FILES
+            from core.data_manager import MARKET_LIST_FILES, MARKET_LISTS_DIR
             filename = MARKET_LIST_FILES.get(market_type)
             if filename:
                 path = MARKET_LISTS_DIR / filename
@@ -170,7 +173,7 @@ class MarketsPanel(ctk.CTkFrame):
                     list_time = "Never"
             else:
                 list_time = "Never"
-        
+
         price_time = self._settings.get(f"last_price_update_{market_type}", "Never")
         return list_time, price_time
 
@@ -281,7 +284,7 @@ class MarketsPanel(ctk.CTkFrame):
         section_title("₿  CRYPTO PROVIDER", left_frame, row=0)
         separator(left_frame, row=1)
         field_label("CoinGecko API Key", left_frame, row=2)
-        
+
         self._build_password_field(left_frame, self._cg_key_var, "CG-xxxxxxxxxxxxxxxxxxxx", row=3)
         ctk.CTkLabel(
             left_frame,
@@ -496,7 +499,7 @@ class MarketsPanel(ctk.CTkFrame):
         full_list = self._loaded_lists.get(market_type, [])
         col_id = self._sort_cols.get(market_type, "rank")
         asc = self._sort_ascs.get(market_type, True)
-        
+
         reverse = not asc
         try:
             if col_id in ("price", "change_pct", "updated_at"):
@@ -521,9 +524,9 @@ class MarketsPanel(ctk.CTkFrame):
                 )
         except Exception as e:
             print(f"[MarketsPanel] Sorting error: {e}")
-            
+
         self._loaded_lists[market_type] = full_list
-        
+
         query = self._search_vars[market_type].get().strip().lower()
         if not query:
             self._populate_list(market_type, full_list, update_labels=False)
@@ -533,7 +536,7 @@ class MarketsPanel(ctk.CTkFrame):
                 if query in asset.get("symbol", "").lower() or query in asset.get("name", "").lower()
             ]
             self._populate_list(market_type, filtered, update_labels=False)
-            
+
         tree = self._list_widgets.get(market_type)
         if tree:
             col_configs = [
@@ -595,7 +598,7 @@ class MarketsPanel(ctk.CTkFrame):
             cg_plan = cfg.get("coingecko_api_plan", "demo")
             massive_key = cfg.get("massive_api_key", "")
             av_key = cfg.get("alphavantage_api_key", "")
-            
+
             # 1. Retrieve tickers from exchange (CCXT)
             exchange_tickers = {}
             try:
@@ -643,25 +646,25 @@ class MarketsPanel(ctk.CTkFrame):
                         if sym in miss_dict:
                             item.update(miss_dict[sym])
                 save_market_list("crypto", asset_list)
-                
+
                 # --- Centralized History Download (BTC 15m 1 year only) ---
                 status("📥 Downloading BTC history (15m, 1 year)...", 0.6)
                 from core.data_fetcher import fetch_historical_paginated
                 from core.data_manager import save_historical
-                
+
                 try:
                     df_btc = None
                     if 'pm' in locals() and pm.exchange is not None:
                         # Fetch 365 days of 15m candles via pagination
                         df_btc = fetch_historical_paginated(pm.exchange, "BTC", timeframe="15m", days=365)
-                    
+
                     if df_btc is not None and not df_btc.empty:
                         save_historical("BTC", df_btc)
                         status("✅ BTC history saved successfully.", 0.9)
                     else:
                         # Quick fallback if exchange pagination fails (yfinance)
-                        import yfinance as yf
                         import pandas as pd
+                        import yfinance as yf
                         status("⚠️ Exchange failed, fallback history on yfinance (60 days)...", 0.7)
                         df_btc = yf.download("BTC-USD", period="60d", interval="15m", progress=False)
                         if df_btc is not None and not df_btc.empty:
@@ -676,7 +679,7 @@ class MarketsPanel(ctk.CTkFrame):
                 except Exception as e:
                     print(f"[MarketsPanel] Error downloading BTC history: {e}")
                     status(f"❌ Error downloading BTC history: {e}", 0.9)
-            
+
             import datetime
             self._refresh_queue.put({
                 "type": "done_prices",

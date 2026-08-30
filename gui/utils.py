@@ -6,6 +6,7 @@
 # A commercial licence, without the AGPL's obligations, is available for use
 # in proprietary or closed-source products — see COMMERCIAL-LICENSE.md.
 
+import contextlib
 import types
 from tkinter import ttk
 
@@ -25,12 +26,10 @@ _SB_THUMB_ACTIVE = "#5d6673"
 def setup_scrollbar_style():
     """Registers the dark ttk scrollbar styles. Idempotent."""
     style = ttk.Style()
-    try:
+    with contextlib.suppress(Exception):
         style.theme_use("clam")
-    except Exception:
-        pass
     for name, orient in ((SCROLLBAR_STYLE_V, "vertical"), (SCROLLBAR_STYLE_H, "horizontal")):
-        opts = dict(
+        opts = dict(  # noqa: C408 - reads as a keyword table, not a literal
             troughcolor=_SB_TROUGH,
             background=_SB_THUMB,
             bordercolor=_SB_TROUGH,
@@ -61,7 +60,7 @@ def dark_scrollbar(parent, orient: str, command) -> ttk.Scrollbar:
 
 def apply_binance_tab_style(segmented_button: ctk.CTkSegmentedButton):
     """
-    Patches a CTkSegmentedButton to ensure that selected tabs/segments 
+    Patches a CTkSegmentedButton to ensure that selected tabs/segments
     have dark text (#181a20) and unselected ones have white text.
     """
     orig_select = segmented_button._select_button_by_value

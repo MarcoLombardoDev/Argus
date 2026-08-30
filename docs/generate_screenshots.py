@@ -22,9 +22,9 @@ Usage (from the repo root, with the dev environment installed):
 
 Requires Pillow (`pip install pillow`) in addition to requirements.txt.
 """
+import datetime as dt
 import os
 import sys
-import datetime as dt
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -37,8 +37,8 @@ OUT = os.environ.get("SHOTDIR", str(REPO_ROOT / "docs" / "screenshots"))
 DISP = os.environ.get("DISPLAY", ":0")
 os.makedirs(OUT, exist_ok=True)
 
-from gui.app import ArgusApp
 import gui.ai_analysis_panel as ai_panel_mod
+from gui.app import ArgusApp
 
 app = ArgusApp()
 
@@ -57,6 +57,7 @@ sample_logs = [
      "details": "Advanced Analysis failed (API error). Fallback applied."},
 ]
 import gui.auto_trading_panel as auto_mod
+
 auto_mod.load_autotrading_logs = lambda: sample_logs
 auto_panel._refresh_logs_ui()
 auto_panel._status("Active. Waiting for next cycle...")

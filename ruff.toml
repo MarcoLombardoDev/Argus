@@ -1,0 +1,36 @@
+# The lint configuration the sibling products share. Argus, Iris and Proteus
+# keep it in a ruff.toml rather than in pyproject.toml, which none of them has:
+# the rules are what matter, not where they are written down.
+line-length = 100
+target-version = "py310"
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
+ignore = [
+  "B008",
+  "SIM108",
+  # The three below are the house style of this codebase rather than
+  # oversights, and they are excluded deliberately rather than silently.
+  #
+  # E501: 429 lines are over 100 columns and the longest is 381. They are
+  # mostly log and prompt strings, and rewrapping them would be the largest
+  # diff this repository has ever taken for no behaviour at all. The other
+  # products enforce it because they were written that way from the start.
+  "E501",
+  # E701/E702: `if p is None: return "N/A"` is used consistently, 163 times.
+  # Splitting them is a taste decision about somebody else's code, not a
+  # defect being fixed.
+  "E701",
+  "E702",
+  # SIM102: every nested `if` this flags has a comment between the two
+  # conditions explaining the second. Collapsing them leaves the comment
+  # attached to nothing.
+  "SIM102",
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["C408"]
+# The screenshot script has to put the repository on sys.path and chdir into
+# it before it can import anything from gui/, so its imports cannot be at the
+# top and E402 is the rule saying so.
+"docs/generate_screenshots.py" = ["E402"]

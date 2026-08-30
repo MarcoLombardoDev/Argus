@@ -18,26 +18,30 @@ Struttura (embedded direttamente nel corpo principale dell'app):
     └── Tab "⚙️  AI Settings"    — provider form, model, API keys
 """
 
-import threading
+import contextlib
 import queue
+import threading
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
 from datetime import datetime
+from tkinter import filedialog, messagebox, ttk
+
 import customtkinter as ctk
 import pandas as pd
 
-from core.fonts import ui_font_family
-from core.ai_analyst import AIAnalyst
 from core.ai_analysis_store import (
-    save_ai_session, load_all_sessions,
-    export_session_csv, export_session_excel, export_session_pdf,
-    delete_analysis
+    delete_analysis,
+    export_session_csv,
+    export_session_excel,
+    export_session_pdf,
+    load_all_sessions,
+    save_ai_session,
 )
-from core.portfolio_manager import normalize_ensemble_weights
-from core.data_manager import save_settings
+from core.ai_analyst import AIAnalyst
 from core.analyzer import compute_expiry_date
+from core.data_manager import save_settings
+from core.fonts import ui_font_family
+from core.portfolio_manager import normalize_ensemble_weights
 from gui.utils import apply_binance_tab_style, dark_scrollbar
-
 
 # ─────────────────────────────────────────────────────────────
 # Costanti colori (allineate al tema Argus)
@@ -103,7 +107,7 @@ def _fmt_pct_with_conf(p, conf) -> str:
     if conf is not None and conf != "N/A":
         try:
             return f"{pct_str} ({int(float(conf))}%)"
-        except:
+        except Exception:
             pass
     return pct_str
 
@@ -114,10 +118,8 @@ def _fmt_pct_with_conf(p, conf) -> str:
 
 def _setup_treeview_style(style_name: str = "Argus.Treeview"):
     style = ttk.Style()
-    try:
+    with contextlib.suppress(Exception):
         style.theme_use("clam")
-    except Exception:
-        pass
     style.configure(
         style_name,
         background="#181a20",
@@ -245,7 +247,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         ctk.CTkFrame(self, height=1, fg_color=COLOR_SEP).grid(
             row=0, column=0, sticky="ew", padx=16, pady=(58, 0)
         )
-        
+
         # Progress bar (inserita in riga 1 della topbar interna, per non disturbare la griglia)
         self._progress = ctk.CTkProgressBar(
             bar, height=3, fg_color=("#1a1e2e", "#1a1e2e"),
@@ -321,7 +323,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
 
         self._search_var = ctk.StringVar(value="")
         self._search_var.trace_add("write", self._on_search_change)
-        
+
         self._search_entry = ctk.CTkEntry(
             toolbar, textvariable=self._search_var,
             placeholder_text="🔍 Search asset...",
@@ -341,8 +343,8 @@ class AIAnalysisPanel(ctk.CTkFrame):
         self._sel_vars: list[tk.BooleanVar] = []
         self._sel_tree = ttk.Treeview(
             tree_frame,
-            columns=("sel", "rank", "name", "symbol", "last_price", 
-                     "target_price_1d", "change_pct_1d", 
+            columns=("sel", "rank", "name", "symbol", "last_price",
+                     "target_price_1d", "change_pct_1d",
                      "expiry_date"),
             show="headings",
             style="Argus.Treeview",
@@ -386,7 +388,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         """Popola il tree di selezione con i risultati TimesFM."""
         for iid in self._sel_tree.get_children():
             self._sel_tree.delete(iid)
-            
+
         if not keep_selections:
             self._selected_iids.clear()
 
@@ -402,16 +404,16 @@ class AIAnalysisPanel(ctk.CTkFrame):
             iid = str(i)
             name = str(r.get("name", "")).lower()
             symbol = str(r.get("symbol", "")).lower()
-            
+
             if query and query not in name and query not in symbol:
                 continue
 
             sig = r.get("signal_1d", "N/A")
             tag = {"BUY": "buy", "SELL": "sell", "HOLD": "hold"}.get(sig, "na")
-            
+
             if not keep_selections:
                 is_selected = False
-            
+
             is_selected = iid in self._selected_iids
             check_char = "☑" if is_selected else "☐"
 
@@ -483,10 +485,8 @@ class AIAnalysisPanel(ctk.CTkFrame):
         """Aggiorna i risultati TimesFM."""
         self._timefm_results = results
         if results:
-            try:
+            with contextlib.suppress(Exception):
                 self._tabs.set("📊  Results")
-            except:
-                pass
             self._status_lbl.configure(text="Select assets and run the analysis.", text_color=COLOR_MUTED)
             self._btn_run.configure(state="normal")
         else:
@@ -615,10 +615,10 @@ class AIAnalysisPanel(ctk.CTkFrame):
         """Popola la tabella dello storico caricando tutte le sessioni globali."""
         for iid in self._res_tree.get_children():
             self._res_tree.delete(iid)
-            
+
         self._res_selected_iids.clear()
         self._ai_results = []
-        
+
         all_sessions = load_all_sessions()
         if not all_sessions:
             self._res_tree.insert(
@@ -627,28 +627,28 @@ class AIAnalysisPanel(ctk.CTkFrame):
             )
             return
         row_count = 0
-        
+
         for session in all_sessions:
             if row_count >= 50:
                 break
-                
+
             sid = session.get("session_id", "")
-            
+
             for r in session.get("results", []):
                 if row_count >= 50:
                     break
-                    
+
                 r["_session_id"] = sid
                 self._ai_results.append(r)
-                
+
                 try:
                     dt = datetime.fromisoformat(r.get("analyzed_at", ""))
                     expiry_dt_str = compute_expiry_date(validity_hours=4, from_date=dt)
                     expiry_dt = datetime.strptime(expiry_dt_str, "%Y-%m-%d %H:%M:%S")
                     scadenza = expiry_dt.strftime("%Y-%m-%d %H:%M")
-                except:
+                except Exception:
                     scadenza = "N/A"
-                    
+
                 try:
                     tfm_pct = float(r.get("change_pct_1d") or 0.0)
                 except (ValueError, TypeError):
@@ -667,7 +667,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
                         ai_pct = float(r.get("ai_change_pct_1d") or tfm_pct)
                     except (ValueError, TypeError):
                         ai_pct = tfm_pct
-                
+
                 # Single source of truth for weight normalisation (handles both the
                 # percentage form written by the sliders and a fractional form).
                 w_tfm, w_pm, w_ai = normalize_ensemble_weights(self._app_settings)
@@ -680,27 +680,27 @@ class AIAnalysisPanel(ctk.CTkFrame):
                     active_models = 2
                 else:
                     active_models = 3
-                
+
                 exp_ret = (tfm_pct * w_tfm) + (pm_pct * w_pm) + (ai_pct * w_ai)
-                
+
                 pos_count = sum(1 for p in [tfm_pct, pm_pct, ai_pct] if p > 0)
                 neg_count = sum(1 for p in [tfm_pct, pm_pct, ai_pct] if p < 0)
-                
+
                 final_signal = "HOLD"
                 min_ret = float(self._app_settings.get("ensemble_min_return_pct", 0.30))
                 if pos_count >= 2 and exp_ret > min_ret: final_signal = "BUY"
                 elif neg_count >= 2 and exp_ret < -min_ret: final_signal = "SELL"
-                
+
                 max_agree = max(pos_count, neg_count)
                 size_mult = 1.0 if final_signal in ["BUY", "SELL"] else 0.0
                 if final_signal in ["BUY", "SELL"] and max_agree < active_models: size_mult *= 0.60
-                
+
                 sizing_str = f"{int(size_mult * 100)}%" if size_mult > 0 else "0%"
-                
+
                 tag = "res_buy" if exp_ret >= 0 else "res_sell"
-                
+
                 iid = f"{sid}_{r.get('symbol', '')}"
-                
+
                 # Calcola SL% e TP% rispetto al prezzo corrente
                 curr_p = r.get("current_price") or r.get("last_price")
                 sl_val = r.get("stop_loss")
@@ -712,7 +712,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
                     sig = final_signal
                     leverage = int(self._app_settings.get("portfolio_manager", {}).get("maxLeverage", 1))
                     if leverage < 1: leverage = 1
-                    
+
                     if sl_val is not None:
                         try:
                             sl_dist = abs(float(curr_p) - float(sl_val)) / float(curr_p)
@@ -721,7 +721,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
                                 leverage = min(leverage, max(1, safe_lev))
                         except (ValueError, TypeError):
                             pass
-                            
+
                     if sl_val is not None:
                         try:
                             if sig == "SELL": sl_change = (float(curr_p) - float(sl_val)) / float(curr_p)
@@ -738,7 +738,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
                             tp_pct_str = f"{float(tp_val):.4f} ({tp_roi:+.2f}%)"
                         except (ValueError, TypeError):
                             pass
-                
+
                 pm_conf = r.get("btc_pred_confidence")
                 tfm_conf = r.get("tfm_confidence")
                 ai_conf = r.get("confidence")
@@ -771,7 +771,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         iid = self._res_tree.identify_row(event.y)
         if not iid:
             return
-        
+
         tags = list(self._res_tree.item(iid, "tags"))
         if iid in self._res_selected_iids:
             self._res_selected_iids.discard(iid)
@@ -802,7 +802,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         if not self._res_selected_iids:
             messagebox.showinfo("No selection", "Select at least one analysis to delete (click the checkbox).")
             return
-            
+
         deleted = 0
         for iid in list(self._res_selected_iids):
             # L'iid è formatato come {session_id}_{symbol}
@@ -958,7 +958,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
             text_color=("#808080", "#a0a0a0"), anchor="w",
         )
         self._ai_apikey_var = ctk.StringVar(value="")
-        
+
         self._ai_apikey_frame = ctk.CTkFrame(self._provider_config_frame, fg_color="transparent")
         self._ai_apikey_frame.grid_columnconfigure(0, weight=1)
 
@@ -1106,7 +1106,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         # Finnhub
         lbl("Finnhub API Key (for news)", left_frame, row=r); r += 1
         self._finnhub_var = ctk.StringVar(value="")
-        
+
         finnhub_frame = ctk.CTkFrame(left_frame, fg_color="transparent")
         finnhub_frame.grid(row=r, column=0, padx=16, pady=(4, 2), sticky="ew"); r += 1
         finnhub_frame.grid_columnconfigure(0, weight=1)
@@ -1140,7 +1140,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         # CoinGecko API Key indipendente
         lbl("CoinGecko API Key (leave empty for none)", left_frame, row=r); r += 1
         self._cg_ai_key_var = ctk.StringVar(value="")
-        
+
         cg_ai_frame = ctk.CTkFrame(left_frame, fg_color="transparent")
         cg_ai_frame.grid(row=r, column=0, padx=16, pady=(4, 12), sticky="ew"); r += 1
         cg_ai_frame.grid_columnconfigure(0, weight=1)
@@ -1243,13 +1243,13 @@ class AIAnalysisPanel(ctk.CTkFrame):
         if prov == "ollama":
             self._ai_apikey_label.grid_remove()
             self._ai_apikey_frame.grid_remove()
-            
+
             self._ollama_host_label.grid(row=0, column=0, sticky="ew", padx=16, pady=(4, 2))
             self._ollama_host_entry.grid(row=1, column=0, sticky="ew", padx=16, pady=(2, 8))
         else:
             self._ollama_host_label.grid_remove()
             self._ollama_host_entry.grid_remove()
-            
+
             # Aggiorna dinamicamente l'etichetta del provider attivo
             prov_display = "OpenRouter"
             if prov == "claude":
@@ -1257,7 +1257,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
             elif prov == "openai":
                 prov_display = "OpenAI"
             self._ai_apikey_label.configure(text=f"API Key Provider ({prov_display})")
-            
+
             self._ai_apikey_label.grid(row=0, column=0, sticky="ew", padx=16, pady=(4, 2))
             self._ai_apikey_frame.grid(row=1, column=0, sticky="ew", padx=16, pady=(2, 8))
 
@@ -1266,18 +1266,18 @@ class AIAnalysisPanel(ctk.CTkFrame):
         s = self._app_settings
         self._provider_var.set(s.get("ai_provider", "openrouter"))
         self._ollama_host_var.set(s.get("ai_ollama_host", "http://localhost:11434/v1"))
-        
+
         # Gestisce la transizione da vecchio ai_model a modelli differenziati
         old_model = s.get("ai_model", "anthropic/claude-3-haiku")
         self._model_quick_var.set(s.get("ai_model_quick", "").strip() or old_model)
         self._model_deep_var.set(s.get("ai_model_deep", "").strip() or old_model)
         self._model_fallback_var.set(s.get("ai_model_fallback", "google/gemini-2.5-flash").strip())
-        
+
         self._research_rounds_var.set(str(s.get("ai_research_rounds", 1)))
         self._ai_apikey_var.set(s.get("ai_api_key", ""))
         self._finnhub_var.set(s.get("ai_finnhub_key", ""))
         self._cg_ai_key_var.set(s.get("ai_coingecko_key", ""))
-        
+
         self._w_tfm_var.set(s.get("ensemble_w_tfm", 40.0))
         self._w_tfm_label.configure(text=f"{int(s.get('ensemble_w_tfm', 40.0))} %")
         self._w_pm_var.set(s.get("ensemble_w_pm", 35.0))
@@ -1340,10 +1340,8 @@ class AIAnalysisPanel(ctk.CTkFrame):
         self._stop_requested = False
         self._btn_run.configure(state="disabled")
         self._progress.set(0.0)
-        try:
+        with contextlib.suppress(Exception):
             self._tabs.set("📊  Results")
-        except:
-            pass
 
         thread = threading.Thread(
             target=self._analysis_thread,
@@ -1381,7 +1379,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
                 progress_callback=cb,
                 stop_flag=stop,
             )
-            
+
             for r in results:
                 r["btc_expected_move"] = pm_move
 
@@ -1552,7 +1550,7 @@ class AgentDebateWindow(ctk.CTkToplevel):
 
         rationale = result.get("rationale", "")
         key_risk  = result.get("key_risk", "")
-        
+
         raw_pm = debug.get("portfolio_manager")
         if raw_pm:
             final_text = raw_pm
@@ -1564,7 +1562,7 @@ class AgentDebateWindow(ctk.CTkToplevel):
                 f"Rationale: {rationale}\n\n"
                 f"⚠ Rischio chiave: {key_risk}"
             )
-            
+
         ctk.CTkLabel(
             final_card, text=final_text,
             font=ctk.CTkFont(ui_font_family(), 11), text_color=COLOR_TEXT,

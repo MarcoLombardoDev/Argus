@@ -24,11 +24,11 @@ Compatible with OpenRouter, OpenAI and Ollama (OpenAI-compatible endpoints).
 import json
 import re
 import time
-import requests
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Callable, Optional
-from openai import OpenAI
 
+import requests
+from openai import OpenAI
 
 # ─────────────────────────────────────────────────────────────
 # Provider Constants
@@ -147,7 +147,7 @@ def _fetch_coingecko_details(symbol: str, api_key: str = "", api_plan: str = "de
         coin_id = SYMBOL_TO_COINGECKO_MAP.get(symbol.upper(), symbol.lower())
     except Exception:
         coin_id = symbol.lower()
-    
+
     try:
         def do_req(plan):
             if plan.lower() == "pro" and api_key:
@@ -209,7 +209,7 @@ def _fetch_coingecko_details(symbol: str, api_key: str = "", api_plan: str = "de
 
 def _fetch_yahoo_details(symbol: str, is_crypto: bool = False) -> dict:
     """Retrieves market details from Yahoo Finance.
-    
+
     For crypto, uses the symbol SYMBOL-USD; for stock, uses the direct ticker.
     """
     try:
@@ -218,16 +218,16 @@ def _fetch_yahoo_details(symbol: str, is_crypto: bool = False) -> dict:
         ticker = yf.Ticker(ticker_sym)
         info = ticker.info
         price_found = info and not (info.get("regularMarketPrice") is None and info.get("currentPrice") is None and info.get("previousClose") is None)
-        
+
         if not price_found and is_crypto:
             # Fallback: try without -USD suffix for poorly mapped cryptos
             ticker = yf.Ticker(symbol.upper())
             info = ticker.info
             price_found = info and not (info.get("regularMarketPrice") is None and info.get("currentPrice") is None and info.get("previousClose") is None)
-            
+
         if not price_found:
             return {}
-        
+
         # Estimate percentage changes from recent historical prices.
         # NOTE: Ticker.history() does NOT accept a `progress` kwarg (that belongs
         # to yf.download); passing it raises TypeError and silently killed this
@@ -235,11 +235,11 @@ def _fetch_yahoo_details(symbol: str, is_crypto: bool = False) -> dict:
         hist = ticker.history(period="30d")
         if hist is None or hist.empty:
             return {}  # Force failure for delisted assets or missing data
-            
+
         price_change_24h_pct = None
         price_change_7d_pct  = None
         price_change_30d_pct = None
-        
+
         if len(hist) >= 2:
             close_prices = hist["Close"].tolist()
             last_price = close_prices[-1]
@@ -306,7 +306,7 @@ def _fetch_investing_news(symbol: str, name: str = "") -> list[str]:
         url = f"https://www.investing.com/search/?q={search_term}"
         resp = requests.get(url, headers=headers, timeout=10)
         headlines = []
-        
+
         if resp.status_code == 200:
             try:
                 from bs4 import BeautifulSoup
@@ -352,29 +352,30 @@ def _fetch_investing_news(symbol: str, name: str = "") -> list[str]:
 
 def _fetch_yahoo_news(symbol: str, is_crypto: bool = False) -> list[str]:
     """Retrieves news from Yahoo Finance (yfinance).
-    
+
     For crypto, uses SYMBOL-USD; for stock, uses the direct ticker.
     Filters news from the last hour. If absent, returns at most 3 recent ones.
     """
     try:
-        import yfinance as yf
-        import pandas as pd
         from datetime import datetime, timezone
-        
+
+        import pandas as pd
+        import yfinance as yf
+
         ticker_sym = f"{symbol.upper()}-USD" if is_crypto else symbol.upper()
         ticker = yf.Ticker(ticker_sym)
         news_list = ticker.news
         if not news_list:
             return []
-            
+
         now_utc = datetime.now(timezone.utc)
         recent_headlines = []
         all_headlines = []
-        
+
         for item in news_list[:15]:
             content = item.get("content", {})
             h = (content.get("title", "") or item.get("title", "")).strip()
-            
+
             if h:
                 all_headlines.append(h)
                 pub_date_str = content.get("pubDate")
@@ -385,12 +386,12 @@ def _fetch_yahoo_news(symbol: str, is_crypto: bool = False) -> list[str]:
                             recent_headlines.append(h)
                     except Exception:
                         pass
-        
+
         if recent_headlines:
             return recent_headlines
         else:
             return all_headlines[:3]
-            
+
     except Exception as e:
         print(f"[AIAnalyst] Yahoo news error for {symbol}: {e}")
     return []
@@ -398,7 +399,7 @@ def _fetch_yahoo_news(symbol: str, is_crypto: bool = False) -> list[str]:
 
 def _fetch_finnhub_news(symbol: str, api_key: str = "", is_crypto: bool = True) -> list[str]:
     """Retrieves the latest news from Finnhub.
-    
+
     For crypto, uses BINANCE:SYMBOLUSDT endpoint.
     For stock, uses the direct ticker.
     """
@@ -418,13 +419,14 @@ def _fetch_finnhub_news(symbol: str, api_key: str = "", is_crypto: bool = True) 
         params = {"symbol": finnhub_sym, "from": from_date, "to": to_date, "token": api_key}
         resp   = requests.get(url, params=params, timeout=10)
         if resp.status_code == 200:
-            import pandas as pd
             from datetime import timezone
+
+            import pandas as pd
             now_utc = datetime.now(timezone.utc)
-            
+
             recent_headlines = []
             all_headlines = []
-            
+
             for item in resp.json()[:15]:
                 h = item.get("headline", "").strip()
                 if h:
@@ -438,7 +440,7 @@ def _fetch_finnhub_news(symbol: str, api_key: str = "", is_crypto: bool = True) 
                                 recent_headlines.append(h)
                         except Exception:
                             pass
-                            
+
             if recent_headlines:
                 return recent_headlines
             else:
@@ -659,7 +661,7 @@ def _build_decision_prompt(coin: dict, market_analysis: str, news_analysis: str,
                             market_context: str, backtest_results: str = "", market_type: str = "crypto") -> str:
     current_price = coin.get('last_price', 0)
     asset_type_label = "cryptocurrency" if market_type.lower() == "crypto" else "stock/equity"
-    
+
     backtest_section = ""
     if backtest_results:
         backtest_section = f"\nINSTANT BACKTEST:\n{backtest_results}\n"
@@ -698,7 +700,7 @@ COHERENCE CHECK — Before outputting, verify:
 2. If signal is SELL, the target_price_1d MUST be BELOW current price
 3. Confidence MUST reflect the margin of bull/bear probability difference (if 55% bull vs 45% bear, confidence should be LOW ~55, not HIGH ~85)
 4. stop_loss MUST be tighter than take_profit distance (favorable risk/reward)
-5. HORIZON IS STRICTLY 2 HOURS (INTRADAY). Avoid extreme price targets. Typical intraday SL is between 0.5% to 2% from current price. TP is typically 1% to 4%. 
+5. HORIZON IS STRICTLY 2 HOURS (INTRADAY). Avoid extreme price targets. Typical intraday SL is between 0.5% to 2% from current price. TP is typically 1% to 4%.
 6. IMPORTANT DISTINCTION: Your predicted `change_pct_2h` is the STATISTICAL EXPECTED MEAN MOVE in 2 hours, NOT your Take Profit. While TP can be 3%, the expected mean move is usually very small (e.g., 0.1% to 0.8% or -0.1% to -0.8%). Do NOT output your TP percentage as the expected change.
 7. BACKTEST NOTE: The Instant Backtest Strategy Return covers the whole historical window stated in its header, do NOT confuse it with a 2-hour expected return.
 
@@ -782,7 +784,7 @@ def _build_decision_debate_prompt(coin: dict, market_analysis: str, news_analysi
                                    market_context: str, backtest_results: str = "", market_type: str = "crypto") -> str:
     current_price = coin.get('last_price', 0)
     asset_type_label = "cryptocurrency" if market_type.lower() == "crypto" else "stock/equity"
-    
+
     backtest_section = ""
     if backtest_results:
         backtest_section = f"\nINSTANT BACKTEST:\n{backtest_results}\n"
@@ -872,7 +874,7 @@ class AIAnalyst:
         """
         self._settings = settings
         provider = settings.get("ai_provider", "openrouter")
-        
+
         if provider == "ollama":
             host = settings.get("ai_ollama_host", "http://localhost:11434").strip()
             if not host:
@@ -887,11 +889,11 @@ class AIAnalyst:
             base_url = None
         else:
             base_url = PROVIDER_URLS.get(provider, PROVIDER_URLS["openrouter"])
-            
+
         api_key = settings.get("ai_api_key", "")
-        
+
         extra_headers = OPENROUTER_HEADERS if provider == "openrouter" else {}
-        
+
         if provider != "claude":
             self._client = OpenAI(
                 api_key=api_key or "sk-dummy",  # ollama does not require a key
@@ -900,7 +902,7 @@ class AIAnalyst:
             )
         else:
             self._client = None
-        
+
         # Load differentiated models with fallback to ai_model if previously defined
         default_model = settings.get("ai_model", "anthropic/claude-3-haiku")
         self._model_quick = settings.get("ai_model_quick", "").strip() or default_model
@@ -988,11 +990,11 @@ Always respond in English. Be brief and direct."""
                 except Exception:
                     err_msg = resp.text
                 raise ValueError(f"Anthropic API Error (Status {resp.status_code}): {err_msg}")
-            
+
             resp_data = resp.json()
             if not resp_data.get("content"):
                 raise ValueError(f"Response content from Claude is empty: {resp_data}")
-            
+
             content = resp_data["content"][0]["text"]
             return content.strip()
 
@@ -1010,7 +1012,7 @@ Always respond in English. Be brief and direct."""
             extra = getattr(response, "model_extra", {})
             err_details = extra.get("error", "No details available from the provider.") if extra else "Empty response from the provider."
             raise ValueError(f"No choices returned. Provider Details: {err_details}")
-            
+
         content = response.choices[0].message.content
         if content is None:
             refusal = getattr(response.choices[0].message, 'refusal', None)
@@ -1021,7 +1023,7 @@ Always respond in English. Be brief and direct."""
     def _parse_decision_json(self, raw: str, coin: dict) -> dict:
         """Extracts JSON from the PortfolioManager response, with robust fallbacks."""
         current_price = coin.get("last_price", 0) or 0
-        
+
         # 1. Preliminary cleanup of the string
         cleaned = raw.strip()
         if cleaned.startswith("```"):
@@ -1035,7 +1037,7 @@ Always respond in English. Be brief and direct."""
         # Search for the main JSON block { ... }
         start = cleaned.find("{")
         end = cleaned.rfind("}") + 1
-        
+
         parsed = {}
         if start >= 0 and end > start:
             json_str = cleaned[start:end]
@@ -1127,7 +1129,7 @@ Always respond in English. Be brief and direct."""
         with regime-conditional reporting."""
         symbol = coin.get("symbol", "?")
         name = coin.get("name", symbol)
-        
+
         # Extract macro regime.
         # get_market_context() emits ALTSEASON / BTC_ACCUMULATION / "CRYPTO_WINTER / BEARISH"
         # / UNKNOWN, so the reporting below is driven by a normalised bias derived from it
@@ -1162,7 +1164,7 @@ You MUST output a valid JSON object with exactly the following fields (all value
   "direction": "long_only|long_short"
 }}
 Respond ONLY with this JSON block, no comments, no markdown fences."""
-        
+
         params = {
             "ema_fast": 10,
             "ema_slow": 20,
@@ -1171,7 +1173,7 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
             "rsi_upper": 70,
             "direction": "long_only"
         }
-        
+
         try:
             raw_resp = self._call_llm(extract_prompt, model=self._model_quick)
             cleaned = raw_resp.strip()
@@ -1190,23 +1192,24 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
                         params[k] = int(parsed[k])
         except Exception as e:
             print(f"[AIAnalyst] Failed to extract backtest parameters from LLM, using baseline: {e}")
-            
+
         # Download 15-minute historical data for backtesting from the markets module
         try:
-            from core.data_manager import load_historical
-            import pandas as pd
             import numpy as np
-            
+            import pandas as pd
+
+            from core.data_manager import load_historical
+
             df = load_historical(symbol)
-            
+
             if df is None or df.empty:
                 raise ValueError(f"No local historical data found for {symbol}. Refresh prices in the Markets tab.")
-                
+
             close = df['Close']
             if isinstance(close, pd.DataFrame):
                 close = close.squeeze()
             close = close.dropna()
-            
+
             if len(close) < params["ema_slow"] + 5:
                 raise ValueError("Insufficient data points for indicators.")
 
@@ -1219,7 +1222,7 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
             # Calculate indicators
             ema_fast = close.ewm(span=params["ema_fast"], adjust=False).mean()
             ema_slow = close.ewm(span=params["ema_slow"], adjust=False).mean()
-            
+
             # RSI
             delta = close.diff()
             gain = delta.clip(lower=0)
@@ -1229,29 +1232,29 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
             rs = avg_gain / avg_loss.replace(0, np.nan)
             rsi = 100 - (100 / (1 + rs))
             rsi = rsi.fillna(50)
-            
+
             # Generate signals
             entries = (ema_fast > ema_slow) & (ema_fast.shift(1) <= ema_slow.shift(1))
             exits = (ema_fast < ema_slow) & (ema_fast.shift(1) >= ema_slow.shift(1))
-            
+
             # Add RSI signals
             entries = entries | ((rsi < params["rsi_lower"]) & (rsi.shift(1) >= params["rsi_lower"]))
             exits = exits | ((rsi > params["rsi_upper"]) & (rsi.shift(1) <= params["rsi_upper"]))
-            
+
             from core.backtest import run_signal_backtest
 
             # Calculate dynamic SL/TP based on asset volatility (15m ATR)
             atr_period = 14
             daily_returns = close.pct_change().abs()
             atr_pct = daily_returns.rolling(window=atr_period).mean().iloc[-1]
-            
+
             if np.isnan(atr_pct) or atr_pct <= 0:
                 atr_pct = 0.005  # fallback: 0.5% volatility
-            
+
             # SL = 1x ATR, TP = 2x ATR for tight intraday trading
             sl_stop = float(np.clip(atr_pct * 1, 0.002, 0.05))  # min 0.2%, max 5%
             tp_stop = float(np.clip(atr_pct * 2, 0.004, 0.10))  # min 0.4%, max 10%
-            
+
             start_val = 10000.0
             pf = run_signal_backtest(
                 close,
@@ -1283,7 +1286,7 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
                     sign = "+" if v >= 0 else ""
                     return f"{sign}{v:.2f}%"
                 return f"{v:.2f}"
-                
+
             # Regime-Conditional Logic
             alpha = np.nan
             pf_protected = None
@@ -1291,7 +1294,7 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
             protected_max_dd = np.nan
             protective_sl = min(0.01, sl_stop)
             mitigation_str = "N/A"
-            
+
             if regime_bias == "BULLISH":
                 alpha = total_ret - bench_ret
             elif regime_bias == "BEARISH":
@@ -1314,11 +1317,11 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
                     if pf_protected is not None:
                         protected_total_ret = pf_protected.total_return * 100.0
                         protected_max_dd = -pf_protected.max_drawdown * 100.0
-                        
+
                         # Mitigation: if the protected drawdown is less severe (e.g. -8.00% vs -15.00% base)
                         drawdown_mitigated = protected_max_dd > max_dd
                         returns_improved = protected_total_ret > total_ret
-                        
+
                         if protective_sl >= sl_stop:
                             mitigation_str = (
                                 f"N/A (base SL is already {sl_stop*100:.2f}%, "
@@ -1380,7 +1383,7 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
     def analyze_single(
         self,
         coin: dict,
-        progress_callback: Optional[Callable[[str], None]] = None,
+        progress_callback: Callable[[str], None] | None = None,
     ) -> dict:
         """
         Runs the complete pipeline of 6 agents for a single crypto.
@@ -1423,36 +1426,36 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
         ob_imbalance = 0.0
         tech_indicators = ""
         try:
-            from core.portfolio_manager import PortfolioManager
             from core.data_fetcher import fetch_order_book_imbalance
+            from core.portfolio_manager import PortfolioManager
             pm = PortfolioManager(self._settings)
             if pm.exchange:
                 log(f"📉 [{symbol}] Fetching Order Book Imbalance & 15m Data...")
                 ob_imbalance = fetch_order_book_imbalance(pm.exchange, symbol) or 0.0
-                
+
                 try:
                     from core.data_manager import load_historical
                     df_15 = load_historical(symbol)
-                    
+
                     if df_15 is not None and not df_15.empty:
                         import pandas as pd
                         # Use only the last 100 candles for rapid calculation
                         df_15 = df_15.tail(100).copy()
                         df_15["Close"] = pd.to_numeric(df_15["Close"])
                         std_dev = df_15["Close"].std()
-                        
+
                         delta = df_15["Close"].diff()
                         gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
                         loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
                         rs = gain / loss
                         rsi = 100 - (100 / (1 + rs)).iloc[-1]
-                        
+
                         tech_indicators = f"15m RSI: {rsi:.2f} | 15m StdDev: {std_dev:.4f}"
                     else:
                         log(f"⚠️ [{symbol}] Historical 15m data not found locally for indicators.")
                 except Exception as e:
                     log(f"⚠️ [{symbol}] Failed 15m Tech Data from local history: {e}")
-                    
+
         except Exception as e:
             log(f"⚠️ [{symbol}] Failed Order Book Imbalance/Exchange conn: {e}")
 
@@ -1462,11 +1465,11 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
         # ── News: Investing.com primary, Finnhub secondary, Yahoo Finance fallback ──
         log(f"📰 [{symbol}] Fetching news (Investing.com)...")
         news = _fetch_investing_news(symbol, name=name)
-        
+
         if not news and self._finnhub_key:
             log(f"⚠️ [{symbol}] Investing.com news empty — trying Finnhub...")
             news = _fetch_finnhub_news(symbol, self._finnhub_key, is_crypto=is_crypto)
-            
+
         if not news:
             log(f"⚠️ [{symbol}] Finnhub/Investing empty — trying Yahoo Finance...")
             news = _fetch_yahoo_news(symbol, is_crypto=is_crypto)
@@ -1584,8 +1587,8 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
             "ai_change_pct_1d": decision.get("change_pct_1d", 0.0),
             "change_pct_1d": coin.get("change_pct_1d", 0.0),
             "confidence": decision.get("confidence", "N/A"),
-            "tfm_confidence": coin.get("confidence") if coin.get("confidence") is not None else coin.get("tfm_confidence", None),
-            "btc_pred_confidence": coin.get("btc_pred_confidence", None),
+            "tfm_confidence": coin.get("confidence") if coin.get("confidence") is not None else coin.get("tfm_confidence"),
+            "btc_pred_confidence": coin.get("btc_pred_confidence"),
             "stop_loss": decision.get("stop_loss", None),
             "take_profit": decision.get("take_profit", None),
             "rationale": decision.get("rationale", ""),
@@ -1611,8 +1614,8 @@ Respond ONLY with this JSON block, no comments, no markdown fences."""
     def analyze_batch(
         self,
         crypto_list: list[dict],
-        progress_callback: Optional[Callable[[str, float], None]] = None,
-        stop_flag: Optional[Callable[[], bool]] = None,
+        progress_callback: Callable[[str, float], None] | None = None,
+        stop_flag: Callable[[], bool] | None = None,
     ) -> list[dict]:
         """
         Runs multi-agent analysis on a list of crypto assets.

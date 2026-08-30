@@ -12,10 +12,11 @@ Downloads top-N crypto list from CoinGecko (Yahoo fallback) and historical data.
 """
 
 import time
-import requests
-import pandas as pd
-import yfinance as yf
 from datetime import datetime, timedelta
+
+import pandas as pd
+import requests
+import yfinance as yf
 
 COINGECKO_MARKETS_URL = "https://api.coingecko.com/api/v3/coins/markets"
 YAHOO_SCREENER_URL = "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved"
@@ -79,7 +80,7 @@ def get_coingecko_request_args(url_path: str, params: dict, api_key: str, api_pl
     """
     base_url = "https://api.coingecko.com/api/v3"
     headers = {}
-    
+
     if api_key:
         if api_plan.lower() == "pro":
             base_url = "https://pro-api.coingecko.com/api/v3"
@@ -87,7 +88,7 @@ def get_coingecko_request_args(url_path: str, params: dict, api_key: str, api_pl
         else:
             base_url = "https://api.coingecko.com/api/v3"
             headers["x-cg-demo-api-key"] = api_key
-            
+
     url = f"{base_url}/{url_path.lstrip('/')}"
     return url, params, headers
 
@@ -99,7 +100,7 @@ def make_coingecko_request(url_path: str, params: dict, api_key: str, api_plan: 
     """
     url, final_params, headers = get_coingecko_request_args(url_path, params, api_key, api_plan)
     resp = requests.get(url, params=final_params, headers=headers, timeout=15)
-    
+
     if resp.status_code in (401, 403) and api_key:
         other_plan = "pro" if api_plan.lower() == "demo" else "demo"
         print(f"[DataFetcher] CoinGecko request failed with {resp.status_code} using plan '{api_plan}'. Retrying with '{other_plan}'...")
@@ -115,7 +116,7 @@ def make_coingecko_request(url_path: str, params: dict, api_key: str, api_plan: 
             except Exception as e:
                 print(f"[DataFetcher] Failed to save auto-detected plan: {e}")
             return alt_resp
-            
+
     return resp
 
 
@@ -125,11 +126,11 @@ def download_historical_coingecko(coingecko_id: str, days: int = 45, api_key: st
         "vs_currency": "usd",
         "days": str(days),
     }
-    
+
     max_retries = 2  # Maximum of 2 attempts in total (so 1 initial attempt + 1 retry)
     backoff = 2.0
     resp = None
-    
+
     for attempt in range(max_retries):
         try:
             resp = make_coingecko_request(f"coins/{coingecko_id}/market_chart", params, api_key, api_plan)
@@ -147,26 +148,26 @@ def download_historical_coingecko(coingecko_id: str, days: int = 45, api_key: st
     else:
         if resp is not None:
             resp.raise_for_status()
-            
+
     data = resp.json()
     prices = data.get("prices", [])
     if not prices:
         return None
-        
+
     df = pd.DataFrame(prices, columns=["Date", "Close"])
     df["Date"] = pd.to_datetime(df["Date"], unit="ms")
     df.set_index("Date", inplace=True)
-    
+
     # Create compatible columns
     df["Open"] = df["Close"]
     df["High"] = df["Close"]
     df["Low"] = df["Close"]
     df["Volume"] = 0.0
-    
+
     volumes = data.get("total_volumes", [])
     if volumes and len(volumes) == len(prices):
         df["Volume"] = [v[1] for v in volumes]
-        
+
     df.index.name = "Date"
     return df
 
@@ -174,7 +175,7 @@ def download_historical_coingecko(coingecko_id: str, days: int = 45, api_key: st
 def download_historical_yahoo(symbol: str, days: int = 45) -> pd.DataFrame | None:
     """Downloads historical data from Yahoo Finance (yfinance) at 15-minute intervals."""
     ticker = f"{symbol.upper()}-USD"
-    
+
     # yfinance supports the 15m interval for a maximum of 60 days, so days=45 or 30 is fine.
     df = yf.download(
         ticker,
@@ -185,7 +186,7 @@ def download_historical_yahoo(symbol: str, days: int = 45) -> pd.DataFrame | Non
     )
     if df is None or df.empty:
         return None
-        
+
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
@@ -247,7 +248,7 @@ def fetch_historical_paginated(exchange, symbol: str, timeframe: str = "30m", da
     """
     if exchange is None:
         return None
-        
+
     # Find the correct symbol
     candidates = [f"{symbol.upper()}/USDT:USDT", f"{symbol.upper()}/USDT", f"{symbol.upper()}/USD"]
     markets = getattr(exchange, "markets", None) or {}
@@ -255,15 +256,15 @@ def fetch_historical_paginated(exchange, symbol: str, timeframe: str = "30m", da
         try:
             exchange.load_markets()
             markets = exchange.markets
-        except:
+        except Exception:
             return None
-            
+
     target_sym = None
     for sym in candidates:
         if sym in markets:
             target_sym = sym
             break
-            
+
     if not target_sym:
         return None
 
@@ -271,9 +272,9 @@ def fetch_historical_paginated(exchange, symbol: str, timeframe: str = "30m", da
     start_time = int((datetime.now() - timedelta(days=days)).timestamp() * 1000)
     limit = 1000
     all_ohlcv = []
-    
+
     print(f"[DataFetcher] Starting CCXT pagination for {target_sym} ({days} days, {timeframe})...")
-    
+
     while True:
         try:
             ohlcv = exchange.fetch_ohlcv(target_sym, timeframe=timeframe, since=start_time, limit=limit)
@@ -289,14 +290,14 @@ def fetch_historical_paginated(exchange, symbol: str, timeframe: str = "30m", da
         except Exception as e:
             print(f"[DataFetcher] Error during CCXT pagination: {e}")
             break
-            
+
     if not all_ohlcv:
         return None
-        
+
     df = pd.DataFrame(all_ohlcv, columns=["Date", "Open", "High", "Low", "Close", "Volume"])
     df["Date"] = pd.to_datetime(df["Date"], unit="ms")
     df.set_index("Date", inplace=True)
-    
+
     # Remove any duplicates
     df = df[~df.index.duplicated(keep='last')]
     df = df.dropna(subset=["Close"])
@@ -460,7 +461,7 @@ def update_crypto_prices(
             try:
                 if progress_callback:
                     progress_callback("📡 Updating crypto prices from CoinGecko...", 0.1)
-                
+
                 params = {
                     "vs_currency": "usd",
                     "ids": ",".join(coingecko_ids),
@@ -472,14 +473,14 @@ def update_crypto_prices(
                 resp = make_coingecko_request("coins/markets", params, api_key, api_plan)
                 resp.raise_for_status()
                 data = resp.json()
-                
+
                 price_map = {item.get("id"): (item.get("current_price"), item.get("price_change_percentage_24h")) for item in data}
                 for item in updated_list:
                     cg_id = item.get("coingecko_id")
                     if cg_id in price_map and price_map[cg_id][0] is not None:
                         item["current_price"] = float(price_map[cg_id][0])
                         item["price_change_pct"] = float(price_map[cg_id][1] or 0.0)
-                
+
                 if progress_callback:
                     progress_callback("✅ Crypto prices updated from CoinGecko.", 1.0)
                 return updated_list
@@ -505,7 +506,7 @@ def update_crypto_prices(
         except Exception as e:
             print(f"[DataFetcher] Yahoo price error for {symbol}: {e}")
         time.sleep(0.2)  # small pause for rate limiting
-    
+
     if progress_callback:
         progress_callback("✅ Crypto prices updated.", 1.0)
     return updated_list
@@ -623,23 +624,23 @@ def fetch_order_book_imbalance(exchange, symbol: str, limit: int = 20) -> float 
         if not markets:
             exchange.load_markets()
             markets = exchange.markets
-        
+
         target_sym = None
         for sym in candidates:
             if sym in markets:
                 target_sym = sym
                 break
-                
+
         if not target_sym:
             return None
-            
+
         ob = exchange.fetch_order_book(target_sym, limit=limit)
         bids = ob.get("bids", [])
         asks = ob.get("asks", [])
-        
+
         if not bids and not asks:
             return 0.0
-            
+
         # Calculate total volume (price * quantity) in the first limit levels.
         # CCXT levels are [price, amount] but some venues append extra fields,
         # so index explicitly instead of tuple-unpacking.
@@ -650,10 +651,10 @@ def fetch_order_book_imbalance(exchange, symbol: str, limit: int = 20) -> float 
         total_vol = vol_bids + vol_asks
         if total_vol == 0:
             return 0.0
-            
+
         imbalance_pct = ((vol_bids - vol_asks) / total_vol) * 100.0
         return imbalance_pct
-        
+
     except Exception as e:
         print(f"[DataFetcher] Unable to download Order Book for {symbol}: {e}")
         return None

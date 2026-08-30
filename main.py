@@ -12,8 +12,8 @@ Application entry point. Launches the main window.
 """
 
 import argparse
-import sys
 import os
+import sys
 
 # Add the project root to the PYTHONPATH
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

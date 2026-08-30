@@ -18,6 +18,7 @@ Skipped automatically when there is no display or no tkinter.
 Run with:  xvfb-run -a python -m pytest tests/ -q
 """
 
+import contextlib
 import os
 import sys
 from pathlib import Path
@@ -39,10 +40,8 @@ def app():
     application = ArgusApp()
     application.update()          # force a full geometry/render pass
     yield application
-    try:
+    with contextlib.suppress(Exception):
         application.destroy()
-    except Exception:
-        pass
 
 
 def test_app_builds_and_maximises(app):
@@ -78,8 +77,8 @@ def test_results_table_renders_mixed_quality_rows(app):
     assert len(app._results_table._tree.get_children()) == 3
 
     # Sorting on every column must not raise regardless of the mixed types.
-    for col, *_ in app._results_table._tree["columns"], :
-        pass
+    # Indexing the column list must not raise; nothing here reads a column.
+    assert app._results_table._tree["columns"] is not None
     for col in ("name", "symbol", "confidence", "last_price", "change_pct_1d"):
         app._results_table._sort_by(col)
         app.update()
@@ -178,6 +177,7 @@ def test_portfolio_error_path_reports_instead_of_raising(app, monkeypatch):
 def test_pattern_matching_error_path_reports_instead_of_raising(app, monkeypatch):
     """Same `except ... as e` closure bug in the Pattern Matching worker."""
     import time
+
     import gui.pattern_matching_panel as pmp
     panel = app._pm_panel
 
@@ -249,8 +249,8 @@ def test_the_address_looks_clickable(app):
 
 
 def test_clicking_the_address_opens_the_mail_client(app, monkeypatch):
-    from gui import app as app_mod
     from core.version import CONTACT_EMAIL
+    from gui import app as app_mod
 
     opened = []
     monkeypatch.setattr(app_mod.webbrowser, "open", opened.append)

@@ -21,37 +21,39 @@ Layout:
   └─────────────────────────────────────────────────────────────┘
 """
 
+import contextlib
 import os
+import queue
 import sys
 import threading
-import queue
 import time
 import webbrowser
 from datetime import datetime
-from urllib.parse import quote
-import customtkinter as ctk
 from tkinter import messagebox
+from urllib.parse import quote
 
-from core.fonts import ui_font_family
-from core.version import APP_TITLE, CONTACT_EMAIL, __version__
+import customtkinter as ctk
 
-from core.data_manager import (
-    load_settings, save_settings,
-    save_forecast_log, get_last_run_info, load_forecast_history,
-    load_market_list,
-)
-
-from core.forecaster import CryptoForecaster
 from core.analyzer import build_results
-from gui.config_panel import ConfigPanel
-from gui.results_table import ResultsTable
+from core.data_manager import (
+    get_last_run_info,
+    load_forecast_history,
+    load_market_list,
+    load_settings,
+    save_forecast_log,
+    save_settings,
+)
+from core.fonts import ui_font_family
+from core.forecaster import CryptoForecaster
+from core.version import APP_TITLE, CONTACT_EMAIL, __version__
 from gui.ai_analysis_panel import AIAnalysisPanel
-from gui.markets_panel import MarketsPanel
-from gui.portfolio_panel import PortfolioPanel
 from gui.auto_trading_panel import AutoTradingPanel
+from gui.config_panel import ConfigPanel
+from gui.markets_panel import MarketsPanel
 from gui.pattern_matching_panel import PatternMatchingPanel
+from gui.portfolio_panel import PortfolioPanel
+from gui.results_table import ResultsTable
 from gui.utils import apply_binance_tab_style
-
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -130,10 +132,9 @@ class ArgusApp(ctk.CTk):
         if os.name == "nt":
             ico = assets / "app_icon.ico"
             if ico.exists():
-                try:
+                # iconphoto already did it.
+                with contextlib.suppress(Exception):
                     self.iconbitmap(str(ico))
-                except Exception:  # noqa: BLE001 — iconphoto already did it
-                    pass
 
     def _maximize(self):
         """Maximises the window in a cross-platform way.
@@ -154,10 +155,8 @@ class ArgusApp(ctk.CTk):
             except Exception:  # noqa: BLE001 — a wrong size must not stop start-up
                 return False
 
-        try:
+        with contextlib.suppress(Exception):
             self.update_idletasks()
-        except Exception:  # noqa: BLE001
-            pass
 
         for attempt in (
             lambda: self.state("zoomed"),
@@ -189,7 +188,7 @@ class ArgusApp(ctk.CTk):
             try:
                 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 max_mtime = 0
-                for root, dirs, files in os.walk(base_dir):
+                for root, _dirs, files in os.walk(base_dir):
                     if '.git' in root or '__pycache__' in root or 'data' in root:
                         continue
                     for file in files:
@@ -291,12 +290,10 @@ class ArgusApp(ctk.CTk):
     def open_licensing_email(self, event=None):
         """Apre il client di posta su una richiesta di licenza commerciale."""
         subject = quote(f"{APP_TITLE} — commercial licence enquiry")
-        try:
+        # Nessun client di posta configurato: l'indirizzo resta comunque
+        # leggibile a schermo, quindi non vale un dialog di errore.
+        with contextlib.suppress(Exception):
             webbrowser.open(f"mailto:{CONTACT_EMAIL}?subject={subject}")
-        except Exception:
-            # Nessun client di posta configurato: l'indirizzo resta comunque
-            # leggibile a schermo, quindi non vale un dialog di errore.
-            pass
 
     # ─────────────────────────────────────────────────────────────
     # Topbar — Logo + Status + Navigazione
@@ -606,7 +603,7 @@ class ArgusApp(ctk.CTk):
         self._temporal_frame.grid_remove()
         self._ai_panel.grid_remove()
 
-        padding = dict(padx=16, pady=(0, 16))
+        padding = {"padx": 16, "pady": (0, 16)}
 
         def _btn_active(btn):
             btn.configure(fg_color=_ACCENT, hover_color=_HOVER, border_width=0, text_color="#181a20")
@@ -636,7 +633,7 @@ class ArgusApp(ctk.CTk):
         elif view == "markets":
             self._markets_panel.grid(row=0, column=0, sticky="nsew", **padding)
             _btn_active(self._btn_nav_markets)
-            
+
         elif view == "pm":
             self._pm_panel.grid(row=0, column=0, sticky="nsew", **padding)
             _btn_active(self._btn_nav_pm)
@@ -685,7 +682,7 @@ class ArgusApp(ctk.CTk):
 
         if mtype == "status":
             text = msg.get("text", "")
-            frac = msg.get("fraction", None)
+            frac = msg.get("fraction")
             self._update_status(text)
             if frac is not None:
                 self._progress.set(frac)
@@ -809,7 +806,7 @@ class ArgusApp(ctk.CTk):
             # Step 2: Dati storici
             status(f"📥 Loading local historical data for {len(asset_list)} assets...", 0.04)
             from core.data_manager import load_historical
-            
+
             historical_data = {}
             for i, coin in enumerate(asset_list):
                 sym = coin["symbol"]
@@ -819,7 +816,7 @@ class ArgusApp(ctk.CTk):
                         historical_data[sym] = df
                 except ValueError as ve:
                     status(f"⚠️ {sym}: {ve}", 0.04 + (i / len(asset_list)) * 0.36)
-            
+
             if should_stop():
                 status("⏹ Analysis interrupted by user.", 0.0)
                 self._set_running_safe(False)
@@ -829,7 +826,7 @@ class ArgusApp(ctk.CTk):
                 self._post(type="error", text="No valid local historical data found. Go to Market and click Update Prices.")
                 self._set_running_safe(False)
                 return
-            
+
             status(f"✅ Historical data loaded: {len(historical_data)} symbols.", 0.42)
 
             # Step 3: Carica modello TimesFM
@@ -923,7 +920,7 @@ class ArgusApp(ctk.CTk):
 
         results = df.to_dict(orient="records")
         for r in results:
-            for key in ("last_price", "forecast_price", "change_pct", "rank", "horizon_days", 
+            for key in ("last_price", "forecast_price", "change_pct", "rank", "horizon_days",
                         "target_price_1d", "change_pct_1d", "target_price_3d", "change_pct_3d", "confidence"):
                 try:
                     import math

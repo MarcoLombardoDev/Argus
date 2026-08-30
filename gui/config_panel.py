@@ -1,6 +1,4 @@
 # Argus — Advanced Market Forecast & AI Analysis
-from core.fonts import ui_font_family
-
 # Copyright (C) 2026 Marco Lombardo
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
@@ -16,6 +14,8 @@ Top-N assets and provider configuration are now in the Markets section.
 """
 
 import customtkinter as ctk
+
+from core.fonts import ui_font_family
 from gui.utils import apply_binance_tab_style
 
 
@@ -116,11 +116,11 @@ class ConfigPanel(ctk.CTkScrollableFrame):
         )
         self._model_menu.grid(row=r, column=0, padx=16, pady=(4, 2), sticky="ew"); r += 1
         ctk.CTkLabel(left_frame, text="The Google TimesFM (Time Series Foundation Model) for statistical time-series forecasting.", font=ctk.CTkFont(family=ui_font_family(), size=10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
-        
+
         # HF Token
         label("Hugging Face (HF) Token (optional)", row=r); r += 1
         self._hf_token_var = ctk.StringVar(value="")
-        
+
         hf_frame = ctk.CTkFrame(left_frame, fg_color="transparent")
         hf_frame.grid(row=r, column=0, padx=16, pady=(4, 2), sticky="ew"); r += 1
         hf_frame.grid_columnconfigure(0, weight=1)
@@ -158,9 +158,9 @@ class ConfigPanel(ctk.CTkScrollableFrame):
             command=toggle_hf
         )
         hf_btn.grid(row=0, column=1, padx=(4, 0))
-        
+
         ctk.CTkLabel(left_frame, text="Token required if you encounter download rate limits on Hugging Face servers.", font=ctk.CTkFont(family=ui_font_family(), size=10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
-        
+
         sep(row=r); r += 1
 
         # Save Config Button
@@ -252,7 +252,7 @@ class ConfigPanel(ctk.CTkScrollableFrame):
         s = self._settings
 
         # threshold_var removed
-        
+
         self._backend_var.set(s.get("backend", "cpu"))
         self._model_var.set(
             s.get("model_checkpoint", "google/timesfm-2.5-200m-pytorch")
@@ -302,11 +302,11 @@ class ConfigWindow(ctk.CTkToplevel):
         self.title("Argus Settings")
         self.geometry("350x500")
         self.resizable(False, False)
-        
+
         # Make the window modal and on top of the parent
         self.transient(parent)
         self.grab_set()
-        
+
         # Force dark theme on Windows title bar
         self.after(10, self._focus_and_center)
 
@@ -332,7 +332,7 @@ class ConfigWindow(ctk.CTkToplevel):
             py = parent.winfo_y()
             pw = parent.winfo_width()
             ph = parent.winfo_height()
-            
+
             x = px + (pw - 350) // 2
             y = py + (ph - 500) // 2
             self.geometry(f"+{x}+{y}")

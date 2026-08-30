@@ -11,18 +11,19 @@ portfolio_panel.py — Argus
 Portfolio management panel (CCXT, rules, and orders).
 """
 
-import customtkinter as ctk
-import tkinter as tk
-from tkinter import ttk, messagebox
-import threading
-import queue
 import datetime
+import queue
+import threading
+import tkinter as tk
+from tkinter import messagebox, ttk
 
+import customtkinter as ctk
+
+from core.ai_analysis_store import load_all_sessions
+from core.data_manager import save_settings
 from core.fonts import ui_font_family
 from core.portfolio_manager import PortfolioManager
-from core.data_manager import save_settings
 from gui.utils import apply_binance_tab_style
-from core.ai_analysis_store import load_all_sessions
 
 COLOR_ACCENT = "#7c83fd"
 COLOR_HOVER  = "#5a63e8"
@@ -39,7 +40,7 @@ class PortfolioPanel(ctk.CTkFrame):
         self.settings = settings
         self.pm = PortfolioManager(self.settings)
         self._proposed_orders = []
-        
+
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
@@ -77,7 +78,7 @@ class PortfolioPanel(ctk.CTkFrame):
         self._tabs.add("🏦 Portfolio Status")
         self._tabs.add("📋 Proposed Orders")
         self._tabs.add("⚙️ Settings")
-        
+
         for tab_name in self._tabs._name_list:
             self._tabs.tab(tab_name).grid_columnconfigure(0, weight=1)
             self._tabs.tab(tab_name).grid_rowconfigure(0, weight=1)
@@ -86,22 +87,22 @@ class PortfolioPanel(ctk.CTkFrame):
         self._build_portfolio_tab()
         self._build_orders_tab()
         apply_binance_tab_style(self._tabs._segmented_button)
-        
+
         self._queue = queue.Queue()
         self._check_queue()
-        
+
         self._auto_update_loop()
 
     def _auto_update_loop(self):
         if self._tabs.get() == "🏦 Portfolio Status":
             self._update_portfolio_view()
-            
+
         pm_settings = self.settings.get("portfolio_manager", {})
         refresh_min = float(pm_settings.get("refresh_min", 1.0))
         refresh_ms = int(refresh_min * 60000)
         if refresh_ms < 10000:
             refresh_ms = 10000
-            
+
         self.after(refresh_ms, self._auto_update_loop)
 
     def _check_queue(self):
@@ -112,7 +113,7 @@ class PortfolioPanel(ctk.CTkFrame):
             except Exception as e:
                 print(f"[PortfolioPanel] Error in queue: {e}")
         self.after(100, self._check_queue)
-        
+
     def _on_tab_changed(self):
         current_tab = self._tabs.get()
         if current_tab == "📋 Proposed Orders":
@@ -132,25 +133,25 @@ class PortfolioPanel(ctk.CTkFrame):
         scroll.grid(row=0, column=0, sticky="nsew")
         scroll.grid_columnconfigure(0, weight=1)
         scroll.grid_columnconfigure(1, weight=1)
-        
+
         left_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         left_frame.grid_columnconfigure(1, weight=1)
-        
+
         right_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         right_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
-        
+
         pm_settings = self.settings.get("portfolio_manager", {})
-        
+
         def lbl(text, r, c):
             ctk.CTkLabel(left_frame, text=text, font=ctk.CTkFont(ui_font_family(), 11, "bold")).grid(row=r, column=c, padx=10, pady=5, sticky="w")
-            
+
         def section(title, r):
             ctk.CTkLabel(left_frame, text=title, font=ctk.CTkFont(ui_font_family(), 13, "bold"), text_color=COLOR_ACCENT).grid(row=r, column=0, columnspan=2, padx=10, pady=(15,5), sticky="w")
-            
+
         r = 0
         section("Exchange Connection", r); r+=1
-        
+
         lbl("Exchange", r, 0)
         _EXCHANGE_OPTIONS = [
             ("AftermathFinance", "aftermath"),
@@ -284,17 +285,17 @@ class PortfolioPanel(ctk.CTkFrame):
             dropdown_text_color="white",
             height=36,
         ).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
-        
+
         lbl("API Key (or Key Name)", r, 0)
         self._api_key_var = ctk.StringVar(value=pm_settings.get("api_key", ""))
-        
+
         key_frame = ctk.CTkFrame(left_frame, fg_color="transparent")
         key_frame.grid(row=r, column=1, padx=10, pady=5, sticky="ew")
         key_frame.grid_columnconfigure(0, weight=1)
-        
+
         self._api_key_entry = ctk.CTkEntry(key_frame, textvariable=self._api_key_var, show="*")
         self._api_key_entry.grid(row=0, column=0, sticky="ew")
-        
+
         def toggle_api_key():
             if self._api_key_entry.cget("show") == "*":
                 self._api_key_entry.configure(show="")
@@ -302,25 +303,25 @@ class PortfolioPanel(ctk.CTkFrame):
             else:
                 self._api_key_entry.configure(show="*")
                 btn_key.configure(text="👁")
-                
+
         btn_key = ctk.CTkButton(key_frame, text="👁", width=30, command=toggle_api_key, fg_color="transparent", border_width=1)
         btn_key.grid(row=0, column=1, padx=(5,0))
         r += 1
-        
+
         lbl("API Secret (or Private Key)", r, 0)
         secret_frame = ctk.CTkFrame(left_frame, fg_color="transparent")
         secret_frame.grid(row=r, column=1, padx=10, pady=5, sticky="ew")
         secret_frame.grid_columnconfigure(0, weight=1)
-        
+
         self._api_secret_txt = ctk.CTkTextbox(secret_frame, height=80)
         self._api_secret_txt.insert("1.0", pm_settings.get("api_secret", ""))
-        
+
         self._api_secret_dummy = ctk.CTkEntry(secret_frame, show="*")
         self._api_secret_dummy.insert(0, "********************************")
         self._api_secret_dummy.configure(state="disabled")
-        
+
         self._api_secret_dummy.grid(row=0, column=0, sticky="ew")
-        
+
         def toggle_api_secret():
             if self._api_secret_dummy.winfo_ismapped():
                 self._api_secret_dummy.grid_remove()
@@ -330,34 +331,34 @@ class PortfolioPanel(ctk.CTkFrame):
                 self._api_secret_txt.grid_remove()
                 self._api_secret_dummy.grid(row=0, column=0, sticky="ew")
                 btn_secret.configure(text="👁")
-                
+
         btn_secret = ctk.CTkButton(secret_frame, text="👁", width=30, command=toggle_api_secret, fg_color="transparent", border_width=1)
         btn_secret.grid(row=0, column=1, padx=(5,0), sticky="n")
         r += 1
-        
+
         self._use_exchange_var = ctk.BooleanVar(value=pm_settings.get("useExchangeBalance", False))
         ctk.CTkSwitch(left_frame, text="Enable Real Trading (Execute orders on Exchange)", variable=self._use_exchange_var, font=ctk.CTkFont(ui_font_family(), 11, "bold"), progress_color=COLOR_ACCENT).grid(row=r, column=0, columnspan=2, padx=10, pady=5, sticky="w"); r+=1
-        
+
         lbl("Portfolio Refresh (min)", r, 0)
         self._refresh_min_var = ctk.StringVar(value=str(pm_settings.get("refresh_min", 1.0)))
         ctk.CTkEntry(left_frame, textvariable=self._refresh_min_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
-        
+
         section("Capital and Positions", r); r+=1
-        
+
         lbl("Max % Usable Capital", r, 0)
         self._max_cap_pct_var = ctk.StringVar(value=str(pm_settings.get("maxCapitalUsagePercent", 100.0)))
         ctk.CTkEntry(left_frame, textvariable=self._max_cap_pct_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
-        
+
         lbl("Max % Single Position", r, 0)
         self._max_pos_pct_var = ctk.StringVar(value=str(pm_settings.get("maxPositionPercent", 20.0)))
         ctk.CTkEntry(left_frame, textvariable=self._max_pos_pct_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
-        
+
         lbl("Max Open Positions", r, 0)
         self._max_open_pos_var = ctk.StringVar(value=str(pm_settings.get("maxOpenPositions", 5)))
         ctk.CTkEntry(left_frame, textvariable=self._max_open_pos_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
 
         section("Risk Management", r); r+=1
-        
+
         lbl("Sizing Method", r, 0)
         self._sizing_mode_var = ctk.StringVar(value=self.settings.get("sizing_mode", "margin_pct"))
         ctk.CTkOptionMenu(
@@ -374,35 +375,35 @@ class PortfolioPanel(ctk.CTkFrame):
             dropdown_text_color="white",
             height=36,
         ).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
-        
+
         lbl("Risk per Trade (%)", r, 0)
         self._risk_pct_var = ctk.StringVar(value=str(self.settings.get("risk_per_trade_pct", 1.5)))
         ctk.CTkEntry(left_frame, textvariable=self._risk_pct_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
-        
+
         lbl("Minimum DCA Spacing (%)", r, 0)
         self._dca_dist_var = ctk.StringVar(value=str(self.settings.get("dca_distance_pct", 2.0)))
         ctk.CTkEntry(left_frame, textvariable=self._dca_dist_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
         ctk.CTkLabel(left_frame, text="Minimum % distance from the average entry price before being able to open a new\norder in the same direction (prevents position spamming on the same level).", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
-        
+
         self._multi_entry_var = ctk.BooleanVar(value=self.settings.get("allow_multiple_entries", False))
         ctk.CTkSwitch(left_frame, text="Enable Multiple Entries (DCA/Grid)", variable=self._multi_entry_var, font=ctk.CTkFont(ui_font_family(), 11, "bold"), progress_color=COLOR_ACCENT).grid(row=r, column=0, columnspan=2, padx=10, pady=(10, 0), sticky="w"); r+=1
         ctk.CTkLabel(left_frame, text="If ON: accumulates positions in the same direction only if the price deviates from the DCA Spacing.\nIf OFF: discards new signals in the same direction to avoid order spamming.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
-        
+
         self._stop_rev_var = ctk.BooleanVar(value=self.settings.get("stop_and_reverse", True))
         ctk.CTkSwitch(left_frame, text="Stop & Reverse (No simultaneous Hedge)", variable=self._stop_rev_var, font=ctk.CTkFont(ui_font_family(), 11, "bold"), progress_color=COLOR_ACCENT).grid(row=r, column=0, columnspan=2, padx=10, pady=(5, 0), sticky="w"); r+=1
         ctk.CTkLabel(left_frame, text="If ON: in case of an opposite signal, closes the old position before opening the new one (anti-double fee).\nIf OFF: keeps the old position in loss as a hedge, closes only if in profit.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
 
         section("Trading Rules", r); r+=1
-        
+
         lbl("Minimum AI Confidence (%)", r, 0)
         self._min_conf_var = ctk.StringVar(value=str(pm_settings.get("minimumConfidence", 50.0)))
         ctk.CTkEntry(left_frame, textvariable=self._min_conf_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
-        
+
         lbl("Min Exp. Return Threshold (%)", r, 0)
         self._min_exp_ret_var = ctk.StringVar(value=str(self.settings.get("ensemble_min_return_pct", 0.30)))
         ctk.CTkEntry(left_frame, textvariable=self._min_exp_ret_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
         ctk.CTkLabel(left_frame, text="Minimum expected % variation calculated by the Ensemble to open the order. Discards sideways markets.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
-        
+
         lbl("Pre-Flight: Max Drift (%)", r, 0)
         self._pre_flight_drift_var = ctk.StringVar(value=str(pm_settings.get("pre_flight_drift_threshold", 25.0)))
         ctk.CTkEntry(left_frame, textvariable=self._pre_flight_drift_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
@@ -412,20 +413,20 @@ class PortfolioPanel(ctk.CTkFrame):
         self._pre_flight_imb_var = ctk.StringVar(value=str(pm_settings.get("pre_flight_imbalance_threshold", 60.0)))
         ctk.CTkEntry(left_frame, textvariable=self._pre_flight_imb_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
         ctk.CTkLabel(left_frame, text="Maximum counter-pressure % tolerated in the Order Book at sending time.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
-        
+
         lbl("Maximum Allowed Leverage", r, 0)
         self._max_leverage_var = ctk.StringVar(value=str(pm_settings.get("maxLeverage", 10)))
         ctk.CTkEntry(left_frame, textvariable=self._max_leverage_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
         ctk.CTkLabel(left_frame, text="Upper limit of dynamic leverage (calculated based on 15m ATR and SL).", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
-        
+
         lbl("Max SL Cap (ROI %)", r, 0)
         self._max_sl_roi_var = ctk.StringVar(value=str(pm_settings.get("maxStopLossROI", 80.0)))
         ctk.CTkEntry(left_frame, textvariable=self._max_sl_roi_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
-        
+
         lbl("Max TP Cap (ROI %)", r, 0)
         self._max_tp_roi_var = ctk.StringVar(value=str(pm_settings.get("maxTakeProfitROI", 200.0)))
         ctk.CTkEntry(left_frame, textvariable=self._max_tp_roi_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
-        
+
         ctk.CTkButton(
             left_frame,
             text="💾 Save Settings",
@@ -437,10 +438,10 @@ class PortfolioPanel(ctk.CTkFrame):
             height=38,
             corner_radius=8,
         ).grid(row=r, column=0, columnspan=2, padx=16, pady=20, sticky="ew"); r+=1
-        
+
         info_card = ctk.CTkFrame(right_frame, fg_color=BG_CARD, corner_radius=12)
         info_card.pack(fill="x", padx=16, pady=8)
-        
+
         info_text = (
             "The Portfolio Manager translates AI-generated signals into real orders (via CCXT) or simulated ones, implementing advanced risk controls and position sizing.\n\n"
             "🛡️ RISK MANAGEMENT & SIZING:\n"
@@ -463,7 +464,7 @@ class PortfolioPanel(ctk.CTkFrame):
             info_card, text=info_text, font=ctk.CTkFont(ui_font_family(), 11),
             text_color=("#c0c8e0", "#c0c8e0"), justify="left", anchor="w", wraplength=380
         ).pack(fill="both", expand=True, padx=16, pady=16)
-        
+
     def _save_settings(self):
         try:
             pm_settings = self.settings.get("portfolio_manager", {})
@@ -488,7 +489,7 @@ class PortfolioPanel(ctk.CTkFrame):
                 "pre_flight_drift_threshold": float(self._pre_flight_drift_var.get()),
                 "pre_flight_imbalance_threshold": float(self._pre_flight_imb_var.get())
             }
-            
+
             # Root settings updates per Risk Management
             self.settings["sizing_mode"] = self._sizing_mode_var.get()
             self.settings["risk_per_trade_pct"] = float(self._risk_pct_var.get())
@@ -496,7 +497,7 @@ class PortfolioPanel(ctk.CTkFrame):
             self.settings["allow_multiple_entries"] = self._multi_entry_var.get()
             self.settings["stop_and_reverse"] = self._stop_rev_var.get()
             self.settings["ensemble_min_return_pct"] = float(self._min_exp_ret_var.get())
-            
+
             save_settings(self.settings)
             self.pm = PortfolioManager(self.settings) # re-init
             self._status("✅ Settings saved. Exchange re-initialized.")
@@ -510,7 +511,7 @@ class PortfolioPanel(ctk.CTkFrame):
     @staticmethod
     def _calc_sl_tp_roi(price_val, entry_price, direction="LONG", leverage=1) -> str:
         """Returns the ROI% of an SL/TP level compared to the entry price.
-        
+
         ROI% = price_change% * leverage
         LONG:  change = (target - entry) / entry
         SHORT: change = (entry - target) / entry
@@ -539,20 +540,20 @@ class PortfolioPanel(ctk.CTkFrame):
     # ─────────────────────────────────────────────────────────────
     def _build_portfolio_tab(self):
         tab = self._tabs.tab("🏦 Portfolio Status")
-        
+
         toolbar = ctk.CTkFrame(tab, fg_color="transparent")
         toolbar.pack(fill="x", padx=10, pady=10)
-        
+
         self._lbl_balance = ctk.CTkLabel(toolbar, text="Balance: ...", font=ctk.CTkFont(ui_font_family(), 12, "bold"))
         self._lbl_balance.pack(side="left")
-        
+
         self._btn_sell = ctk.CTkButton(toolbar, text="📉 Sell Selected", command=self._sell_selected_portfolio, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont(ui_font_family(), 12, "bold"))
         self._btn_sell.pack(side="right", padx=(10, 0))
-        
+
         # Table
         tree_frame = tk.Frame(tab, bg="#0d0d1a")
         tree_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
+
         cols = [
             ("sel", "✓", 40),
             ("asset", "Asset", 70),
@@ -571,10 +572,10 @@ class PortfolioPanel(ctk.CTkFrame):
         for c in cols:
             self._tree_port.heading(c[0], text=c[1], command=lambda _c=c[0]: self._sort_portfolio(_c))
             self._tree_port.column(c[0], width=c[2], anchor="center" if c[0]=="sel" else "e")
-            
+
         self._tree_port.tag_configure("POS", foreground="#00e676")
         self._tree_port.tag_configure("NEG", foreground="#ff5252")
-            
+
         self._tree_port.pack(fill="both", expand=True)
         self._port_selected_iids = set()
         self._tree_port.bind("<Button-1>", self._on_port_tree_click)
@@ -584,7 +585,7 @@ class PortfolioPanel(ctk.CTkFrame):
             return
         self._is_updating = True
         self._status("Updating portfolio...")
-        
+
         # In background
         def work():
             try:
@@ -599,9 +600,9 @@ class PortfolioPanel(ctk.CTkFrame):
                 self._queue.put(lambda m=msg: self._status(m))
             finally:
                 self._queue.put(lambda: setattr(self, "_is_updating", False))
-                
+
         threading.Thread(target=work, daemon=True).start()
-        
+
     def _on_port_tree_click(self, event):
         region = self._tree_port.identify("region", event.x, event.y)
         if region != "cell": return
@@ -621,17 +622,17 @@ class PortfolioPanel(ctk.CTkFrame):
         else:
             self._sort_port_col = col
             self._sort_port_asc = True
-            
+
         if not hasattr(self, '_current_positions'):
             return
-            
+
         asc = self._sort_port_asc
         reverse = not asc
-        
+
         def safe_float(v):
             try: return float(str(v).replace('x',''))
-            except: return 0.0
-            
+            except Exception: return 0.0
+
         key_map = {
             "asset": lambda p: p.get("asset", "").lower(),
             "type": lambda p: p.get("type", "").lower(),
@@ -645,10 +646,10 @@ class PortfolioPanel(ctk.CTkFrame):
             "pnl_pct": lambda p: safe_float(p.get("pnl_pct", 0)),
             "pnl": lambda p: safe_float(p.get("pnl", 0))
         }
-        
+
         if col in key_map:
             self._current_positions.sort(key=key_map[col], reverse=reverse)
-            
+
         if hasattr(self, '_last_bal'):
             self._refresh_portfolio_ui(self._last_bal, self._current_positions)
 
@@ -657,7 +658,7 @@ class PortfolioPanel(ctk.CTkFrame):
         self._current_positions = pos
         now_str = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         self._lbl_balance.configure(text=f"Total Balance: {bal.get('total', 0):.2f} {bal.get('currency', 'USDT')} (Available: {bal.get('available', 0):.2f}) | Last Update: {now_str}")
-        
+
         col_configs = [
             ("sel", "✓"), ("asset", "Asset"), ("type", "Type"), ("dir", "Dir"), ("leverage", "Leverage"),
             ("qty", "Quantity"), ("price", "Price"), ("val", "Estimated Value"),
@@ -670,15 +671,15 @@ class PortfolioPanel(ctk.CTkFrame):
             if cid == col_id:
                 arrow = " ▲" if asc else " ▼"
             self._tree_port.heading(cid, text=f"{header}{arrow}")
-        
+
         for item in self._tree_port.get_children():
             self._tree_port.delete(item)
         self._port_selected_iids.clear()
-            
+
         for i, p in enumerate(pos):
             pnl_pct = p.get('pnl_pct', 0.0)
             tag = "POS" if pnl_pct > 0 else ("NEG" if pnl_pct < 0 else "")
-            
+
             self._tree_port.insert("", "end", iid=str(i), values=(
                 "☐",
                 p.get("asset", ""),
@@ -693,7 +694,7 @@ class PortfolioPanel(ctk.CTkFrame):
                 f"{pnl_pct:.2f}%",
                 f"{p.get('pnl', 0.0):.2f}"
             ), tags=(tag,) if tag else ())
-            
+
         self._current_positions = pos
         self._status("✅ Portfolio updated.")
 
@@ -702,10 +703,10 @@ class PortfolioPanel(ctk.CTkFrame):
         if not selected_iids:
             messagebox.showinfo("No selection", "Select at least one asset to sell.")
             return
-            
+
         if not messagebox.askyesno("Confirmation", f"Are you sure you want to market sell the entire position of the {len(selected_iids)} selected assets?"):
             return
-            
+
         # Read straight from the position records instead of re-parsing the
         # formatted tree cells (the iid is the index into _current_positions).
         positions = getattr(self, "_current_positions", []) or []
@@ -735,12 +736,12 @@ class PortfolioPanel(ctk.CTkFrame):
 
         self._btn_sell.configure(state="disabled")
         self._status("🚀 Selling assets in progress...")
-        
+
         def work():
             results = self.pm.sell_portfolio_assets(items_to_sell)
             success = sum(1 for r in results if r.get("status") == "EXECUTED")
             self._queue.put(lambda: self._on_assets_sold(success, len(results)))
-            
+
         threading.Thread(target=work, daemon=True).start()
 
     def _on_assets_sold(self, success, total):
@@ -753,43 +754,43 @@ class PortfolioPanel(ctk.CTkFrame):
     # ─────────────────────────────────────────────────────────────
     def _build_orders_tab(self):
         tab = self._tabs.tab("📋 Proposed Orders")
-        
+
         toolbar = ctk.CTkFrame(tab, fg_color="transparent")
         toolbar.pack(fill="x", padx=10, pady=10)
-        
+
         self._btn_generate = ctk.CTkButton(toolbar, text="🔄 Generate Proposals", command=self._generate_orders, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont(ui_font_family(), 12, "bold"))
         self._btn_generate.pack(side="left")
-        
+
         self._btn_execute = ctk.CTkButton(toolbar, text="🚀 Execute Orders", command=self._execute_orders, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont(ui_font_family(), 12, "bold"), state="disabled")
         self._btn_execute.pack(side="right", padx=(10, 0))
-        
+
         self._btn_delete = ctk.CTkButton(toolbar, text="🗑️ Delete Selected", command=self._delete_selected_orders, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont(ui_font_family(), 12, "bold"), state="disabled")
         self._btn_delete.pack(side="right")
-        
+
         tree_frame = tk.Frame(tab, bg="#0d0d1a")
         tree_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
+
         cols = [
             ("sel", "✓", 40),
-            ("action", "Action", 70), 
-            ("asset", "Asset", 70), 
+            ("action", "Action", 70),
+            ("asset", "Asset", 70),
             ("dir", "Dir", 50),
             ("lev", "Leverage", 50),
-            ("amount", "Amount", 80), 
-            ("sl", "SL (ROI%)", 80), 
-            ("tp", "TP (ROI%)", 80), 
+            ("amount", "Amount", 80),
+            ("sl", "SL (ROI%)", 80),
+            ("tp", "TP (ROI%)", 80),
             ("reason", "Reason", 150)
         ]
         self._tree_orders = ttk.Treeview(tree_frame, columns=[c[0] for c in cols], show="headings", style="Argus.Treeview")
         for c in cols:
             self._tree_orders.heading(c[0], text=c[1], command=lambda _c=c[0]: self._sort_orders(_c))
             self._tree_orders.column(c[0], width=c[2], anchor="center" if c[0] in ("sel", "action", "dir", "lev") else "w" if c[0]=="reason" else "e")
-            
+
         self._tree_orders.tag_configure("BUY", background="#0d2e1a", foreground="#00e676")
         self._tree_orders.tag_configure("SELL", background="#2e0d0d", foreground="#ff5252")
         self._tree_orders.tag_configure("CLOSE", background="#2e0d0d", foreground="#ff5252")
         self._tree_orders.pack(fill="both", expand=True)
-        
+
         self._orders_selected_iids = set()
         self._tree_orders.bind("<Button-1>", self._on_orders_tree_click)
 
@@ -812,17 +813,17 @@ class PortfolioPanel(ctk.CTkFrame):
         else:
             self._sort_orders_col = col
             self._sort_orders_asc = True
-            
+
         if not getattr(self, '_proposed_orders', None):
             return
-            
+
         asc = self._sort_orders_asc
         reverse = not asc
-        
+
         def safe_float(v):
             try: return float(v)
-            except: return 0.0
-            
+            except Exception: return 0.0
+
         key_map = {
             "action": lambda o: o.get("action", "").lower(),
             "asset": lambda o: o.get("asset", "").lower(),
@@ -833,16 +834,16 @@ class PortfolioPanel(ctk.CTkFrame):
             "tp": lambda o: safe_float(o.get("takeProfit", 0)),
             "reason": lambda o: o.get("reason", "").lower()
         }
-        
+
         if col in key_map:
             self._proposed_orders.sort(key=key_map[col], reverse=reverse)
-            
+
         self._refresh_orders_ui()
 
     def _refresh_orders_ui(self):
         col_configs = [
-            ("sel", "✓"), ("action", "Action"), ("asset", "Asset"), 
-            ("dir", "Dir"), ("lev", "Leverage"), ("amount", "Amount"), 
+            ("sel", "✓"), ("action", "Action"), ("asset", "Asset"),
+            ("dir", "Dir"), ("lev", "Leverage"), ("amount", "Amount"),
             ("sl", "SL (ROI%)"), ("tp", "TP (ROI%)"), ("reason", "Reason")
         ]
         col_id = getattr(self, '_sort_orders_col', None)
@@ -852,11 +853,11 @@ class PortfolioPanel(ctk.CTkFrame):
             if cid == col_id:
                 arrow = " ▲" if asc else " ▼"
             self._tree_orders.heading(cid, text=f"{header}{arrow}")
-            
+
         for item in self._tree_orders.get_children():
             self._tree_orders.delete(item)
         self._orders_selected_iids.clear()
-            
+
         for i, o in enumerate(self._proposed_orders):
             # Calcola ROI% di SL/TP dal prezzo corrente e leva
             curr_p = o.get("current_price", 0)
@@ -875,7 +876,7 @@ class PortfolioPanel(ctk.CTkFrame):
                 tp_str,
                 o.get("reason", "")
             ), tags=(o["action"],))
-            
+
         if self._proposed_orders:
             self._btn_execute.configure(state="normal")
             self._btn_delete.configure(state="normal")
@@ -890,18 +891,18 @@ class PortfolioPanel(ctk.CTkFrame):
         if not sessions:
             self._status("No analysis session found.")
             return
-            
+
         now = datetime.datetime.now()
         valid_results = {}
-        
+
         for session in sessions:
             for r in session.get("results", []):
                 sym = r.get("symbol")
                 if not sym: continue
-                
+
                 analyzed_at_str = r.get("analyzed_at", "")
                 if not analyzed_at_str: continue
-                
+
                 try:
                     dt = datetime.datetime.fromisoformat(analyzed_at_str)
                     # Consider valid only analyses performed within the last hour
@@ -911,7 +912,7 @@ class PortfolioPanel(ctk.CTkFrame):
                             valid_results[sym] = r
                 except Exception:
                     pass
-                    
+
         latest_results = list(valid_results.values())
         if not latest_results:
             if not silent:
@@ -919,35 +920,35 @@ class PortfolioPanel(ctk.CTkFrame):
             self._proposed_orders = []
             self._refresh_orders_ui()
             return
-            
+
         orders = self.pm.generate_orders(latest_results)
         self._proposed_orders = orders
         self._refresh_orders_ui()
-        
+
         if not silent:
             self._status(f"🎯 Generated {len(orders)} proposals based on valid analyses (last hour).")
-            
+
     def _delete_selected_orders(self):
         selected_iids = list(self._orders_selected_iids)
         if not selected_iids:
             messagebox.showinfo("No selection", "Select at least one order to delete.")
             return
-            
+
         indices_to_delete = [int(iid) for iid in selected_iids]
-            
+
         for idx in sorted(indices_to_delete, reverse=True):
             if idx < len(self._proposed_orders):
                 del self._proposed_orders[idx]
-                
+
         self._status(f"🗑️ Deleted {len(indices_to_delete)} orders. Remaining: {len(self._proposed_orders)}")
         self._refresh_orders_ui()
 
     def _execute_orders(self, silent=False):
         if not getattr(self, '_proposed_orders', None):
             return
-            
+
         selected_iids = list(self._orders_selected_iids)
-        
+
         # If there are selected orders, execute only those, otherwise ask for all
         if selected_iids:
             indices = [int(iid) for iid in selected_iids]
@@ -956,26 +957,26 @@ class PortfolioPanel(ctk.CTkFrame):
         else:
             orders_to_execute = self._proposed_orders
             msg = f"Are you sure you want to execute ALL the {len(orders_to_execute)} orders in the list?"
-            
+
         if not silent and not messagebox.askyesno("Confirmation", msg):
             return
-            
+
         self._btn_execute.configure(state="disabled")
         self._btn_delete.configure(state="disabled")
         self._status("🚀 Executing orders...")
-        
+
         def work():
             results = self.pm.place_orders(orders_to_execute)
             success = sum(1 for r in results if r.get("status") in ("EXECUTED", "SIMULATED"))
-            
+
             # Unselected ones remain in the list
             self._queue.put(lambda: self._on_orders_executed(success, len(results), indices if selected_iids else None))
-            
+
         threading.Thread(target=work, daemon=True).start()
 
     def _on_orders_executed(self, success, total, indices_executed):
         self._status(f"✅ Orders executed: {success}/{total} successfully.")
-        
+
         if indices_executed:
             for idx in sorted(indices_executed, reverse=True):
                 if idx < len(self._proposed_orders):
@@ -985,5 +986,5 @@ class PortfolioPanel(ctk.CTkFrame):
             # Clear all proposed orders and reload
             self._proposed_orders = []
             self._refresh_orders_ui()
-                
+
         self._update_portfolio_view()

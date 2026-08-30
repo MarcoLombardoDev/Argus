@@ -42,12 +42,12 @@ class CryptoForecaster:
                     df_tail["High"] = pd.to_numeric(df_tail["High"], errors="coerce")
                     df_tail["Low"] = pd.to_numeric(df_tail["Low"], errors="coerce")
                     df_tail["Close"] = pd.to_numeric(df_tail["Close"], errors="coerce")
-                    
+
                     df_tail['H-L'] = df_tail['High'] - df_tail['Low']
                     df_tail['H-C'] = (df_tail['High'] - df_tail['Close'].shift(1)).abs()
                     df_tail['L-C'] = (df_tail['Low'] - df_tail['Close'].shift(1)).abs()
                     df_tail['TR'] = df_tail[['H-L', 'H-C', 'L-C']].max(axis=1)
-                    
+
                     atr_series = df_tail['TR'].rolling(14).mean()
                     if not atr_series.dropna().empty:
                         atr_val = float(atr_series.dropna().iloc[-1])
@@ -55,7 +55,7 @@ class CryptoForecaster:
                             return atr_val
         except Exception as e:
             print(f"[Forecaster] Error calculating ATR: {e}")
-            
+
         # Fallback if not calculable or equal to 0 (e.g. 1.5% of price)
         return fallback_price * 0.015
 
@@ -82,7 +82,7 @@ class CryptoForecaster:
             except Exception as e:
                 print(f"[Forecaster] Unable to load HF token from settings: {e}")
 
-            from timesfm import TimesFM_2p5_200M_torch, ForecastConfig
+            from timesfm import ForecastConfig, TimesFM_2p5_200M_torch
 
             if progress_callback:
                 progress_callback(
@@ -169,7 +169,7 @@ class CryptoForecaster:
         try:
             # Extracts the last 96 candles for context (24 hours at 15m)
             series = price_series.tail(96).copy().ffill().bfill()
-            
+
             # TimesFM forecast accepts a list of inputs
             point_forecasts, quantile_forecasts = self._model.forecast(
                 horizon=horizon,
@@ -188,10 +188,10 @@ class CryptoForecaster:
                 low_bound = float(quantile_forecasts[0][horizon - 1][1])
                 high_bound = float(quantile_forecasts[0][horizon - 1][9])
                 quantile_50 = predicted_price
-                
+
                 spread_assoluto = high_bound - low_bound
                 spread_relativo = spread_assoluto / quantile_50
-                
+
                 # Calibration for 15-minute micro-volatility over 2 hours (8 candles).
                 # A relative spread of 10.0% or higher sets confidence to 0.0%
                 confidence_score = 100.0 * (1.0 - spread_relativo / 0.10)
@@ -292,10 +292,10 @@ class CryptoForecaster:
                         low_bound = float(quantile_forecasts[i][horizon - 1][1])
                         high_bound = float(quantile_forecasts[i][horizon - 1][9])
                         quantile_50 = preds[horizon - 1] if len(preds) >= horizon else preds[-1]
-                        
+
                         spread_assoluto = high_bound - low_bound
                         spread_relativo = spread_assoluto / quantile_50
-                        
+
                         # Calibration for 15-minute micro-volatility over 2 hours (8 candles).
                         # A relative spread of 10.0% or higher sets confidence to 0.0%
                         confidence_score = 100.0 * (1.0 - spread_relativo / 0.10)

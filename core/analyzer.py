@@ -12,8 +12,8 @@ Calculates BUY / HOLD / SELL signals and forecast expiry dates.
 """
 
 from datetime import datetime, timedelta
-import pandas as pd
 
+import pandas as pd
 
 # Signal mapping removed, now only percentages are used.
 
@@ -42,7 +42,7 @@ def calculate_change_pct(
 def compute_expiry_date(validity_hours: int = 1, from_date: datetime | None = None) -> str:
     """
     Calculates the expiration date of the analysis validity.
-    
+
     Returns:
         Expiration date in 'YYYY-MM-DD %H:%M:%S' format.
     """
@@ -81,9 +81,9 @@ def build_results(
     for coin in crypto_list:
         symbol = coin["symbol"]
         current_price = coin.get("current_price", 0.0)
-        
+
         forecast_entry = forecasts.get(symbol) if forecasts else None
-        
+
         if forecast_entry is None or not isinstance(forecast_entry, dict):
             target_1d = None
             pct_1d = None
@@ -106,14 +106,14 @@ def build_results(
             "symbol": symbol,
             "confidence": confidence,
             "last_price": round(current_price, 6) if current_price else None,
-            
+
             "target_price_1d": target_1d,
             "change_pct_1d": pct_1d,
-            
+
             # Legacy fields for backward compatibility
             "forecast_price": target_1d,
             "change_pct": pct_1d,
-            
+
             "horizon_days": 1,
             "run_date": run_date,
             "expiry_date": expiry_date,
@@ -186,21 +186,22 @@ def verify_past_forecasts() -> list[dict]:
     Loads the forecast history from forecast_history.csv and crosses it
     with real current/historical prices saved locally to calculate the outcome.
     """
-    from core.data_manager import load_historical, FORECAST_HISTORY_PATH
-    import pandas as pd
     import numpy as np
-    
+    import pandas as pd
+
+    from core.data_manager import FORECAST_HISTORY_PATH, load_historical
+
     if not FORECAST_HISTORY_PATH.exists():
         return []
-        
+
     try:
         df_history = pd.read_csv(FORECAST_HISTORY_PATH, encoding="utf-8")
     except Exception as e:
         print(f"[Analyzer] Error loading forecast_history: {e}")
         return []
-        
+
     verified_results = []
-    
+
     # Load all unique symbols present in history
     if "symbol" not in df_history.columns:
         return []
@@ -231,7 +232,7 @@ def verify_past_forecasts() -> list[dict]:
         name = row.get("name", symbol)
         rank = row.get("rank", 999)
         change_pct = row.get("change_pct")
-        
+
         # Convert to safe float/int
         try:
             last_price = float(last_price) if pd.notna(last_price) else None
@@ -240,26 +241,26 @@ def verify_past_forecasts() -> list[dict]:
             change_pct = float(change_pct) if pd.notna(change_pct) else 0.0
         except (ValueError, TypeError):
             continue
-            
+
         actual_price = None
         actual_price_time = "N/A"
         status = "⚪ N/A"
         error_pct = None
-        
+
         # Convert date strings to datetime objects for correct comparison
         now_dt = datetime.now()
         try:
             expiry_dt = pd.to_datetime(expiry_date_str)
         except Exception:
             expiry_dt = None
-            
+
         if expiry_dt is not None and expiry_dt > now_dt:
             # Forecast has not expired yet (is in the future)
             status = "Pending"
         else:
             # Load the local historical DataFrame of the symbol
             df_hist = historical_dfs.get(symbol)
-            
+
             if df_hist is not None and not df_hist.empty:
                 # Find match with expiry_date_str (date only for matching with historical data)
                 expiry_date_only = expiry_dt.strftime("%Y-%m-%d") if expiry_dt else str(expiry_date_str).split()[0]
@@ -268,7 +269,7 @@ def verify_past_forecasts() -> list[dict]:
                     if not isinstance(df_temp.index, pd.DatetimeIndex):
                         df_temp.index = pd.to_datetime(df_temp.index)
                     df_temp.index = df_temp.index.strftime("%Y-%m-%d")
-                    
+
                     matching_indices = [i for i, idx_str in enumerate(df_temp.index) if idx_str == expiry_date_only]
                     if matching_indices:
                         orig_idx = df_hist.index[matching_indices[0]]
@@ -299,31 +300,31 @@ def verify_past_forecasts() -> list[dict]:
                             pass
                 except Exception as e:
                     print(f"[Analyzer] Error processing history for {symbol}: {e}")
-            
+
             if actual_price is not None:
                 error_pct = (forecast_price - actual_price) / actual_price * 100.0
-                
+
                 # Signal evaluation
                 price_change = actual_price - last_price if last_price is not None else 0.0
                 price_change_pct = (price_change / last_price) * 100.0 if last_price and last_price > 0 else 0.0
-                
+
                 # Threshold for BUY/SELL
                 threshold = float(row.get("signal_threshold_pct", 2.0)) if "signal_threshold_pct" in row else 2.0
-                
+
                 if price_change_pct > threshold:
                     actual_signal = "BUY"
                 elif price_change_pct < -threshold:
                     actual_signal = "SELL"
                 else:
                     actual_signal = "HOLD"
-                    
+
                 if signal == actual_signal:
                     status = "CORRECT"
                 else:
                     status = "WRONG"
             else:
                 status = "N/A"
-            
+
         verified_results.append({
             "rank": rank,
             "name": name,
@@ -340,7 +341,7 @@ def verify_past_forecasts() -> list[dict]:
             "error_pct": round(error_pct, 2) if error_pct is not None else None,
             "status": status
         })
-        
+
     # Sort by descending run_date
     verified_results.sort(key=lambda x: x["run_date"], reverse=True)
     return verified_results

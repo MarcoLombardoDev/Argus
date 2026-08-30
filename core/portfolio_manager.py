@@ -6,14 +6,16 @@
 # A commercial licence, without the AGPL's obligations, is available for use
 # in proprietary or closed-source products — see COMMERCIAL-LICENSE.md.
 
+import contextlib
 import json
 import os
 import threading
-import ccxt
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Any
 
-from core.data_manager import load_settings, BASE_DIR
+import ccxt
+
+from core.data_manager import BASE_DIR, load_settings
 from core.pre_flight_checker import PreFlightChecker
 
 # Path for the portfolio audit file
@@ -56,7 +58,7 @@ class PortfolioManager:
     Manages portfolio logic, target calculations, and orders.
     Interacts with CCXT to execute orders on the exchange.
     """
-    
+
     def __init__(self, settings: dict = None, defer_network: bool = True, connect: bool = True):
         """
         Args:
@@ -117,7 +119,7 @@ class PortfolioManager:
             w_tfm -= 0.025
             if enable_ai: w_ai -= 0.025
             else: w_tfm -= 0.025
-            
+
         # --- Dynamic adjustment based on TimesFM (Temporal Analysis) Confidence ---
         if tfm_conf <= 33.0:
             w_tfm -= 0.05
@@ -140,12 +142,12 @@ class PortfolioManager:
                 w_ai += 0.05
                 w_tfm -= 0.025
                 w_pm -= 0.025
-            
+
         # Ensure weights do not become negative
         w_tfm = max(0.0, w_tfm)
         w_pm = max(0.0, w_pm)
         w_ai = max(0.0, w_ai)
-        
+
         # Weight normalization to 1.0 in case of aberrations
         total_w = w_tfm + w_pm + w_ai
         if total_w > 0:
@@ -154,33 +156,33 @@ class PortfolioManager:
             w_ai /= total_w
 
         expected_return_pct = (tfm_pct * w_tfm) + (pm_pct * w_pm) + (ai_pct * w_ai)
-        
+
         # Check agreement
         pos_count = sum(1 for p in [tfm_pct, pm_pct, ai_pct] if p > 0)
         neg_count = sum(1 for p in [tfm_pct, pm_pct, ai_pct] if p < 0)
-        
+
         final_signal = "HOLD"
         rule_name = "NO TRADE"
-        
+
         min_ret = float(self.settings.get("ensemble_min_return_pct", 0.30))
-        
+
         if pos_count >= 2 and expected_return_pct > min_ret:
             final_signal = "BUY"
             rule_name = "ENSEMBLE LONG"
         elif neg_count >= 2 and expected_return_pct < -min_ret:
             final_signal = "SELL"
             rule_name = "ENSEMBLE SHORT"
-            
+
         # Penalties calculation
         size_multiplier = 1.0 if final_signal in ["BUY", "SELL"] else 0.0
-        
+
         if final_signal in ["BUY", "SELL"]:
             # Partial alignment
             max_agree = max(pos_count, neg_count)
             if max_agree < active_models_count:
                 size_multiplier *= 0.60  # -40% size
                 rule_name += " (Partial)"
-            
+
             if final_signal == "BUY":
                 if funding_rate > 0.05 or fng_value > 85:
                     size_multiplier *= 0.40  # -60% size
@@ -206,12 +208,12 @@ class PortfolioManager:
                 perp_symbol = f"{base}/{quote}:{quote}"
                 if perp_symbol in self.exchange.markets:
                     symbol = perp_symbol
-            
+
             funding = self.exchange.fetch_funding_rate(symbol)
             return float(funding.get('fundingRate', 0.0)) * 100
         except Exception:
             return 0.0
-        
+
     def _init_exchange(self, defer_network: bool = True):
         """Initializes the CCXT instance based on settings."""
         # Retrieve settings or set defaults
@@ -219,14 +221,14 @@ class PortfolioManager:
         exchange_id = pm_settings.get("exchange_id", "bingx").lower()
         api_key = pm_settings.get("api_key", "")
         api_secret = pm_settings.get("api_secret", "")
-        
+
         if exchange_id and hasattr(ccxt, exchange_id):
             exchange_class = getattr(ccxt, exchange_id)
-            
+
             # Coinbase and PEM keys: ensure any literal "\\n" become real newlines
             if exchange_id == "coinbase":
                 api_secret = api_secret.replace("\\n", "\n")
-                
+
             self.exchange = exchange_class({
                 'apiKey': api_key,
                 'secret': api_secret,
@@ -236,7 +238,7 @@ class PortfolioManager:
                     'recvWindow': 10000
                 }
             })
-            
+
             # Monkeypatch nonce method for BingX, since native CCXT implementation
             # does not subtract 'timeDifference' in ccxt.bingx.nonce()
             if exchange_id == "bingx":
@@ -292,7 +294,7 @@ class PortfolioManager:
                 print(f"[PortfolioManager] ensure_markets failed: {e}")
         return bool(getattr(self.exchange, "markets", None))
 
-    def get_balance(self, positions: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    def get_balance(self, positions: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         """Retrieves the balance via the exchange. If not configured, does not attempt download."""
         if self.exchange and self.exchange.apiKey:
             try:
@@ -306,52 +308,52 @@ class PortfolioManager:
                             if i_type not in unique_internal:
                                 unique_internal.add(i_type)
                                 account_types.append(c_type)
-                
+
                 if not account_types:
                     account_types = ['spot', 'swap', 'funding']
-                
+
                 usdt_available = 0.0
                 usdt_total_wallets = 0.0
                 raw_balances = {}
                 seen_signatures = set()
-                
+
                 for acc_type in account_types:
                     params = {'type': acc_type} if acc_type else {}
                     try:
                         balance = self.exchange.fetch_balance(params)
-                        
+
                         sig_items = []
                         for currency, data in balance.items():
                             if isinstance(data, dict) and 'total' in data and data['total'] > 0:
                                 sig_items.append(f"{currency}:{data.get('free', 0)}:{data.get('total', 0)}")
-                        
+
                         signature = "|".join(sorted(sig_items))
                         if signature and signature in seen_signatures:
                             continue
                         if signature:
                             seen_signatures.add(signature)
-                            
+
                         if acc_type:
                             raw_balances[acc_type] = balance
                         else:
                             raw_balances = balance
-                            
+
                         usdt_available += balance.get('USDT', {}).get('free', 0.0)
                         usdt_total_wallets += balance.get('USDT', {}).get('total', 0.0)
                     except Exception:
                         # Some types might not be supported or have no balance
                         pass
-                
+
                 if positions is None:
                     positions = self.get_positions()
-                    
+
                 total_usdt = sum(p.get('value', 0.0) for p in positions if p.get('type') != 'Futures')
                 if total_usdt == 0:
                     total_usdt = usdt_total_wallets
-                
+
                 # Add unrealized PnL if necessary (note: often already included in USDT swap balance)
                 # If preferred to display it: total_usdt += total_pnl
-                
+
                 return {
                     "available": usdt_available,
                     "total": total_usdt,
@@ -360,7 +362,7 @@ class PortfolioManager:
                 }
             except Exception as e:
                 print(f"[PortfolioManager] Error fetching balance: {e}")
-                
+
         # If not configured or in error, returns empty balance
         return {
             "available": 0.0,
@@ -368,8 +370,8 @@ class PortfolioManager:
             "currency": "USDT",
             "raw": {}
         }
-        
-    def get_positions(self) -> List[Dict[str, Any]]:
+
+    def get_positions(self) -> list[dict[str, Any]]:
         """Retrieves open positions via the exchange."""
         if self.exchange and self.exchange.apiKey:
             # Called from worker threads; markets may still be warming up.
@@ -393,29 +395,29 @@ class PortfolioManager:
                             if i_type not in unique_internal:
                                 unique_internal.add(i_type)
                                 account_types.append(c_type)
-                
+
                 if not account_types:
                     account_types = ['spot', 'swap', 'funding']
-                
+
                 seen_signatures = set()
-                
+
                 for acc_type in account_types:
                     params = {'type': acc_type} if acc_type else {}
                     try:
                         balance = self.exchange.fetch_balance(params)
-                        
+
                         # Generates signature to deduplicate unified wallets returned multiple times
                         sig_items = []
                         for currency, data in balance.items():
                             if isinstance(data, dict) and 'total' in data and data['total'] > 0:
                                 sig_items.append(f"{currency}:{data.get('free', 0)}:{data.get('total', 0)}")
-                        
+
                         signature = "|".join(sorted(sig_items))
                         if signature and signature in seen_signatures:
                             continue
                         if signature:
                             seen_signatures.add(signature)
-                            
+
                         for currency, data in balance.get('total', {}).items():
                             if data > 0:
                                 symbol = f"{currency}/USDT"
@@ -426,7 +428,7 @@ class PortfolioManager:
                                     price = tickers[symbol].get('last', 0.0)
                                 elif f"{currency}USDT" in tickers and tickers[f"{currency}USDT"].get('last'):
                                     price = tickers[f"{currency}USDT"].get('last', 0.0)
-                                
+
                                 # Fallback
                                 if price == 0.0 and currency != 'USDT':
                                     try:
@@ -437,14 +439,14 @@ class PortfolioManager:
                                         if p: price = p
                                     except Exception:
                                         pass
-                                    
+
                                 value = data * price
-                                
+
                                 currency_info = self.exchange.currencies.get(currency, {}) if hasattr(self.exchange, 'currencies') and self.exchange.currencies else {}
                                 fullname = currency_info.get('name') or currency
-                                
+
                                 type_label = f"Spot ({acc_type})" if acc_type else "Spot"
-                                
+
                                 positions.append({
                                     "asset": currency,
                                     "fullname": fullname,
@@ -463,7 +465,7 @@ class PortfolioManager:
                         pass
             except Exception as e:
                 print(f"[PortfolioManager] Error fetching spot balance: {e}")
-                
+
             # Fetch derivatives positions if supported
             if self.exchange.has.get('fetchPositions'):
                 # Avoid fetchPositions on coinbase if not configured
@@ -473,13 +475,13 @@ class PortfolioManager:
                         for p in deriv_positions:
                             if p.get('contracts', 0) > 0:
                                 asset_name = p.get('symbol', '').replace('/USDT:USDT', '').replace(':USDT', '')
-                                
+
                                 pnl = float(p.get('unrealizedPnl', 0.0))
                                 entry_price = float(p.get('entryPrice', 0.0))
                                 mark_price = float(p.get('markPrice', 0.0))
                                 leverage = float(p.get('leverage', 1.0))
                                 side = p.get('side', 'long')
-                                
+
                                 # For maximum robustness and consistency across exchanges, always calculate manually if we have entry/mark prices
                                 pnl_pct = None
                                 if entry_price > 0 and mark_price > 0:
@@ -487,12 +489,12 @@ class PortfolioManager:
                                         pnl_pct = (mark_price - entry_price) / entry_price * 100 * leverage
                                     elif side == 'short':
                                         pnl_pct = (entry_price - mark_price) / entry_price * 100 * leverage
-                                
+
                                 if pnl_pct is None:
                                     pnl_pct = p.get('percentage')
                                 if pnl_pct is None:
                                     pnl_pct = 0.0
-                                            
+
                                 # Retrieves active SL/TP from the exchange for this position
                                 sl_price = 'N/A'
                                 tp_price = 'N/A'
@@ -503,7 +505,7 @@ class PortfolioManager:
                                         for o in open_orders:
                                             order_pos_side = o.get('info', {}).get('positionSide', '').upper()
                                             pos_side_upper = side.upper()
-                                            
+
                                             if order_pos_side == pos_side_upper:
                                                 is_sl = False
                                                 is_tp = False
@@ -512,24 +514,22 @@ class PortfolioManager:
                                                     is_sl = True
                                                 elif 'TAKE_PROFIT' in o_type:
                                                     is_tp = True
-                                                    
+
                                                 stop_pr_val = o.get('stopLossPrice') or o.get('takeProfitPrice') or o.get('stopPrice') or o.get('triggerPrice')
                                                 if not stop_pr_val:
                                                     stop_pr_val = o.get('info', {}).get('stopPrice')
-                                                    
+
                                                 if stop_pr_val:
-                                                    try:
+                                                    with contextlib.suppress(Exception):
                                                         stop_pr_val = float(stop_pr_val)
-                                                    except:
-                                                        pass
-                                                        
+
                                                 if is_sl and stop_pr_val:
                                                     sl_price = str(stop_pr_val)
                                                 elif is_tp and stop_pr_val:
                                                     tp_price = str(stop_pr_val)
                                 except Exception as e_ord:
                                     print(f"[PortfolioManager] Unable to retrieve orders for {p.get('symbol')}: {e_ord}")
-                                            
+
                                 positions.append({
                                     "asset": asset_name,
                                     "fullname": p.get('symbol', asset_name),
@@ -547,16 +547,16 @@ class PortfolioManager:
                                 })
                     except Exception as e:
                         print(f"[PortfolioManager] Error fetching futures positions: {e}")
-            
+
             return positions
         return []
 
-    def generate_orders(self, analysis_results: List[Dict[str, Any]], discarded_callback=None) -> List[Dict[str, Any]]:
+    def generate_orders(self, analysis_results: list[dict[str, Any]], discarded_callback=None) -> list[dict[str, Any]]:
         """
         Generates orders on derivatives with leverage proportional to confidence and sizing based on signals.
         """
         pm_settings = self.settings.get("portfolio_manager", {})
-        
+
         min_confidence = float(pm_settings.get("minimumConfidence", 50.0))
         max_open_pos = int(pm_settings.get("maxOpenPositions", 5))
         max_pos_pct = float(pm_settings.get("maxPositionPercent", 20.0)) / 100.0
@@ -564,7 +564,7 @@ class PortfolioManager:
         balance_info = self.get_balance()
         total_capital = balance_info["total"]
         available_capital = balance_info["available"]
-        
+
         # Assets already in portfolio (only Futures considered for max_open_pos count)
         current_positions = self.get_positions()
         active_assets = {}
@@ -574,10 +574,10 @@ class PortfolioManager:
                 if asset not in active_assets:
                     active_assets[asset] = []
                 active_assets[asset].append(p)
-        
+
         max_cap_usage_pct = float(pm_settings.get("maxCapitalUsagePercent", 100.0)) / 100.0
         investable_capital = total_capital * max_cap_usage_pct
-        
+
         # --- New Risk Management Settings ---
         allow_multiple_entries = self.settings.get("allow_multiple_entries", False)
         dca_distance_pct = float(self.settings.get("dca_distance_pct", 2.0)) / 100.0
@@ -586,36 +586,36 @@ class PortfolioManager:
         # acts on it. Documented as such under Scope and limitations in the
         # README; do not wire it up without deciding what it should mean.
         stop_and_reverse = self.settings.get("stop_and_reverse", True)
-        
+
         valid_signals = []
         for res in analysis_results:
             fng_value = res.get("market_context", {}).get("fng_value", 50)
             asset_sym = res.get("symbol", "")
-            
+
             tfm_pct = res.get("change_pct_1d", 0.0)  # TimesFM % (default)
             if tfm_pct is None: tfm_pct = 0.0
-            
+
             pm_pct = res.get("btc_expected_move", 0.0)  # Pattern Matching %
             if pm_pct is None: pm_pct = 0.0
-            
+
             ai_pct = res.get("ai_change_pct_1d", tfm_pct)  # AI Analyst % (If none, fallback to tfm)
             if ai_pct is None: ai_pct = 0.0
-            
+
             funding_rate = self.get_funding_rate(asset_sym)
-            
+
             pm_conf = res.get("btc_pred_confidence", 50.0)
             if pm_conf is None: pm_conf = 50.0
-            
+
             ai_conf = res.get("confidence", 50.0)
             if ai_conf is None or str(ai_conf).upper() in ["N/A", "DISABLED"]: ai_conf = 50.0
             else: ai_conf = float(ai_conf)
-            
+
             tfm_conf = res.get("tfm_confidence") or res.get("confidence")
             if tfm_conf is None or str(tfm_conf).upper() in ["N/A", "DISABLED"]: tfm_conf = 50.0
             else: tfm_conf = float(tfm_conf)
 
             ai_disabled = (str(res.get("signal", "")).upper() == "DISABLED")
-            
+
             rule_name, final_signal, size_multiplier, exp_ret = self.calculate_sizing(
                 tfm_pct=tfm_pct,
                 pm_pct=pm_pct,
@@ -627,15 +627,15 @@ class PortfolioManager:
                 tfm_conf=tfm_conf,
                 ai_disabled=ai_disabled
             )
-            
+
             res["expected_return_pct"] = exp_ret
             res["signal_1d"] = final_signal
-            
+
             if ai_disabled:
                 conf = (pm_conf + tfm_conf) / 2.0
             else:
                 conf = float(res.get("confidence", 50.0) if str(res.get("confidence", "")).upper() not in ["DISABLED", "N/A"] else 50.0)
-                
+
             if final_signal in ["BUY", "SELL"] and size_multiplier > 0.0:
                 asset_sym = res.get("symbol", "")
 
@@ -660,7 +660,7 @@ class PortfolioManager:
                 if asset_sym in active_assets:
                     positions_for_asset = active_assets[asset_sym]
                     signal_dir = "LONG" if final_signal == "BUY" else "SHORT"
-                    
+
                     # 1. Opposite position management (closure/stop and reverse)
                     opp_pos = next((p for p in positions_for_asset if p.get("direction") != signal_dir), None)
                     if opp_pos:
@@ -689,7 +689,7 @@ class PortfolioManager:
                                     print(f"[PortfolioManager] Error closing position on {asset_sym}: {e}")
                             else:
                                 print(f"[PortfolioManager] Position on {asset_sym} in opposite direction and in loss ({pnl_pct:.2f}%). Maintained open (hedge in loss allowed).")
-                    
+
                     # 2. Same direction position management (DCA/multi-entry)
                     same_pos = next((p for p in positions_for_asset if p.get("direction") == signal_dir), None)
                     if same_pos:
@@ -705,10 +705,10 @@ class PortfolioManager:
                                     print(f"[PortfolioManager] Price distance ({distance*100:.2f}%) < minimum DCA ({dca_distance_pct*100:.2f}%). DCA ignored for {asset_sym}.")
                                     continue
                             print(f"[PortfolioManager] DCA authorized for {asset_sym} ({signal_dir}).")
-                    
+
                 currency_info = self.exchange.currencies.get(asset_sym, {}) if hasattr(self, 'exchange') and self.exchange and hasattr(self.exchange, 'currencies') and self.exchange.currencies else {}
                 fullname = currency_info.get('name') or asset_sym
-                
+
                 valid_signals.append({
                     "asset": asset_sym,
                     "fullname": fullname,
@@ -721,21 +721,21 @@ class PortfolioManager:
                     "take_profit": res.get("take_profit"),
                     "current_price": res.get("current_price", res.get("last_price"))
                 })
-                
+
             else:
                 print(f"[PortfolioManager] Signal on {res.get('symbol', '')} discarded ({rule_name} -> Exp. Return: {exp_ret:.2f}%).")
-                
+
         # Sort by descending confidence
         valid_signals.sort(key=lambda x: x["confidence"], reverse=True)
-        
+
         # Pre-allocate according to remaining open position slots
         top_signals = []
         auto_trade_settings = self.settings.get("auto_trading", {})
-        
+
         # If there is no open position for BTC, reset the counter
         if "BTC" not in active_assets:
             auto_trade_settings["btc_trade_count"] = 0
-            
+
         slots_taken = int(auto_trade_settings.get("btc_trade_count", 0))
 
         for sig in valid_signals:
@@ -770,30 +770,30 @@ class PortfolioManager:
                     # Fallback
                     auto_trade_settings["btc_trade_count"] = 0
                     top_signals.append(sig)
-                    
+
         self.settings["auto_trading"] = auto_trade_settings
         import core.data_manager as dman
         dman.save_settings(self.settings)
 
         if len(top_signals) == 0 and valid_signals:
             print(f"[PortfolioManager] No order generated: max open positions ({max_open_pos}) reached and position in loss.")
-        
+
         sizing_mode = self.settings.get("sizing_mode", "margin_pct")
         risk_per_trade_pct = float(self.settings.get("risk_per_trade_pct", 1.5)) / 100.0
-        
+
         # Pre-calculates SL/TP to determine risk, and consequently ideal_capital
         for sig in top_signals:
             curr_p = sig.get("current_price", 0)
             leverage = int(pm_settings.get("maxLeverage", 10))
             if leverage < 1: leverage = 1
-            
+
             try:
                 sl = float(sig.get("stop_loss")) if sig.get("stop_loss") is not None else None
-            except:
+            except Exception:
                 sl = None
             try:
                 tp = float(sig.get("take_profit")) if sig.get("take_profit") is not None else None
-            except:
+            except Exception:
                 tp = None
 
             # Dynamic Fallback based on 15m ATR if SL or TP are missing
@@ -813,7 +813,7 @@ class PortfolioManager:
                             df_15["Close"] = pd.to_numeric(df_15["Close"])
                             df_15["High"] = pd.to_numeric(df_15["High"])
                             df_15["Low"] = pd.to_numeric(df_15["Low"])
-                            
+
                             df_tail = df_15.copy()
                             df_tail['H-L'] = df_tail['High'] - df_tail['Low']
                             df_tail['H-C'] = abs(df_tail['High'] - df_tail['Close'].shift(1))
@@ -835,9 +835,9 @@ class PortfolioManager:
                             df_tail['TR'] = df_tail[['H-L', 'H-C', 'L-C']].max(axis=1)
                             atr_val = df_tail['TR'].rolling(14).mean().iloc[-1]
                             atr_pct = (atr_val / curr_p) * 1.5
-                        except:
+                        except Exception:
                             pass
-                
+
                 if sl is None:
                     sl_dist = atr_pct if atr_pct > 0 else 0.03
                     if sig["signal"] == "BUY": sl = curr_p * (1 - sl_dist)
@@ -846,7 +846,7 @@ class PortfolioManager:
                     tp_dist = atr_pct * 2.0 if atr_pct > 0 else 0.05
                     if sig["signal"] == "BUY": tp = curr_p * (1 + tp_dist)
                     else: tp = curr_p * (1 - tp_dist)
-                    
+
             # Dynamic Leverage calculation based on SL
             if sl is not None and curr_p and curr_p > 0:
                 sl_dist = abs(curr_p - sl) / curr_p
@@ -861,27 +861,27 @@ class PortfolioManager:
             # Assign a weight based on confidence
             scale = 0.5 + 0.5 * ((sig["confidence"] - min_confidence) / max(1.0, 100 - min_confidence))
             scale = max(0.1, min(1.0, scale))
-            
+
             if sizing_mode == "risk_pct" and curr_p and curr_p > 0 and sl:
                 sl_distance_pct = abs(curr_p - sl) / curr_p
                 if sl_distance_pct <= 0: sl_distance_pct = 0.01
-                
+
                 risk_amount = total_capital * risk_per_trade_pct
                 nominal_size = risk_amount / sl_distance_pct
                 nominal_size = nominal_size * scale * sig["size_multiplier"]
-                
+
                 margin_required = nominal_size / leverage
-                
+
                 if margin_required > (investable_capital * max_pos_pct):
                     margin_required = investable_capital * max_pos_pct
-                    
+
                 sig["ideal_capital"] = margin_required
             else:
                 ideal_pos_capital = investable_capital * max_pos_pct
                 sig["ideal_capital"] = ideal_pos_capital * scale * sig["size_multiplier"]
-            
+
         total_needed = sum(sig["ideal_capital"] for sig in top_signals)
-        
+
         if top_signals and total_needed > available_capital:
             # Reduce proportionally to fit the available budget
             reduction_factor = available_capital / total_needed
@@ -890,13 +890,13 @@ class PortfolioManager:
         else:
             for sig in top_signals:
                 sig["actual_capital"] = sig.get("ideal_capital", 0.0)
-            
+
         orders = []
         for sig in top_signals:
             if sig["actual_capital"] <= 0:
                 print(f"[PortfolioManager] No order generated for {sig['asset']}: Allocated capital <= 0 (Available: {available_capital}).")
                 continue
-                
+
             leverage = sig["calc_leverage"]
             sl = sig["calc_sl"]
             tp = sig["calc_tp"]
@@ -906,7 +906,7 @@ class PortfolioManager:
             if curr_p and curr_p > 0:
                 max_sl_roi = float(pm_settings.get("maxStopLossROI", 80.0))
                 max_tp_roi = float(pm_settings.get("maxTakeProfitROI", 200.0))
-                
+
                 if sl is not None:
                     sl_dist = abs(curr_p - sl) / curr_p
                     sl_roi = sl_dist * leverage * 100
@@ -916,7 +916,7 @@ class PortfolioManager:
                             sl = curr_p * (1 - allowed_dist)
                         else:
                             sl = curr_p * (1 + allowed_dist)
-                            
+
                 if tp is not None:
                     tp_dist = abs(curr_p - tp) / curr_p
                     tp_roi = tp_dist * leverage * 100
@@ -948,7 +948,7 @@ class PortfolioManager:
 
             direction = "LONG" if sig["signal"] == "BUY" else "SHORT"
             action = "BUY" if sig["signal"] == "BUY" else "SELL"
-            
+
             orders.append({
                 "action": action,
                 "asset": sig["asset"],
@@ -963,10 +963,10 @@ class PortfolioManager:
                 "priority": "NORMAL",
                 "reason": f"[{sig['rule_name']}] {direction} (Conf: {sig['confidence']:.0f}%)"
             })
-            
+
         return orders
 
-    def place_orders(self, orders: List[Dict[str, Any]]):
+    def place_orders(self, orders: list[dict[str, Any]]):
         """
         Executes orders via CCXT (Derivatives).
         """
@@ -983,11 +983,11 @@ class PortfolioManager:
                 order["status"] = "SIMULATED"
                 executed.append(order)
                 continue
-                
+
             try:
                 # Base CCXT convention for USDT-margined swap
-                symbol = f"{order['asset']}/USDT:USDT" 
-                
+                symbol = f"{order['asset']}/USDT:USDT"
+
                 try:
                     # Set leverage
                     if self.exchange.has.get('setLeverage'):
@@ -995,9 +995,9 @@ class PortfolioManager:
                         self.exchange.set_leverage(order["leverage"], symbol, params={"side": order["direction"]})
                 except Exception as e:
                     print(f"Error setting leverage for {symbol}: {e}")
-                
+
                 side = 'buy' if order["direction"] == "LONG" else 'sell'
-                
+
                 # --- PRE-FLIGHT CHECK ---
                 pf_passed, pf_reason = PreFlightChecker.run_checks(
                     order, self.exchange, symbol, self.settings
@@ -1009,24 +1009,24 @@ class PortfolioManager:
                     executed.append(order)
                     continue
                 # ------------------------
-                
+
                 # Use the price updated by PreFlightChecker
                 current_price = order.get("current_price")
                 if not current_price or current_price <= 0:
                     try:
                         ticker = self.exchange.fetch_ticker(symbol)
                         current_price = ticker['last']
-                    except:
+                    except Exception:
                         current_price = 1.0  # unlikely fallback, avoids crash
-                    
+
                 notional = order["amount"] * order["leverage"]
                 quantity = notional / current_price if current_price > 0 else 0
                 order["quantity"] = quantity
-                
+
                 params = {
                     "positionSide": order["direction"]  # Fundamental in Hedge mode
                 }
-                
+
                 # We first execute the main order
                 res = self.exchange.create_order(
                     symbol=symbol,
@@ -1036,7 +1036,7 @@ class PortfolioManager:
                     params=params
                 )
                 order["warning"] = "Order opened."
-                
+
                 # SL and TP are passed directly from the order generated by the AI
                 exec_price = res.get('average') or res.get('price') or current_price
                 if exec_price:
@@ -1051,11 +1051,11 @@ class PortfolioManager:
                     try:
                         latest_ticker = self.exchange.fetch_ticker(symbol)
                         latest_price = latest_ticker['last']
-                    except:
+                    except Exception:
                         latest_price = exec_price
-                    
+
                     close_side = 'sell' if order["direction"] == "LONG" else 'buy'
-                    
+
                     if order.get("stopLoss"):
                         sl_price = float(order["stopLoss"])
                         # For LONGs, SL must be < current price. For SHORTs, SL must be > current price.
@@ -1063,7 +1063,7 @@ class PortfolioManager:
                             sl_price = latest_price * 0.999  # adjust slightly below current price
                         elif order["direction"] == "SHORT" and sl_price <= latest_price:
                             sl_price = latest_price * 1.001
-                            
+
                         try:
                             self.exchange.create_order(
                                 symbol=symbol,
@@ -1081,7 +1081,7 @@ class PortfolioManager:
                         except Exception as esl:
                             print(f"Error setting SL for {symbol}: {esl}")
                             order["warning"] += " SL Error."
-                            
+
                     if order.get("takeProfit"):
                         tp_price = float(order["takeProfit"])
                         # For LONGs, TP must be > current price. For SHORTs, TP must be < current price.
@@ -1089,7 +1089,7 @@ class PortfolioManager:
                             tp_price = latest_price * 1.001
                         elif order["direction"] == "SHORT" and tp_price >= latest_price:
                             tp_price = latest_price * 0.999
- 
+
                         try:
                             self.exchange.create_order(
                                 symbol=symbol,
@@ -1107,7 +1107,7 @@ class PortfolioManager:
                         except Exception as etp:
                             print(f"Error setting TP for {symbol}: {etp}")
                             order["warning"] += " TP Error."
-                
+
                 order["status"] = "EXECUTED"
                 order["exchange_id"] = res.get("id")
                 executed.append(order)
@@ -1116,32 +1116,32 @@ class PortfolioManager:
                 order["status"] = "FAILED"
                 order["error"] = str(e)
                 executed.append(order)
-                
+
         self.save_audit(executed)
         return executed
-        
-    def save_audit(self, orders: List[Dict[str, Any]]):
+
+    def save_audit(self, orders: list[dict[str, Any]]):
         """Saves order history."""
         history = []
         if os.path.exists(PORTFOLIO_AUDIT_PATH):
             try:
-                with open(PORTFOLIO_AUDIT_PATH, "r", encoding="utf-8") as f:
+                with open(PORTFOLIO_AUDIT_PATH, encoding="utf-8") as f:
                     history = json.load(f)
             except Exception:
                 history = []
-                
+
         now = datetime.now().isoformat()
         for o in orders:
             o["timestamp"] = now
             history.append(o)
-            
+
         try:
             with open(PORTFOLIO_AUDIT_PATH, "w", encoding="utf-8") as f:
                 json.dump(history, f, indent=2)
         except Exception as e:
             print(f"[PortfolioManager] Unable to save audit: {e}")
 
-    def sell_portfolio_assets(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def sell_portfolio_assets(self, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Immediately sells selected assets from the portfolio at market price."""
         executed = []
         if not self.exchange or not self.exchange.apiKey:
@@ -1165,7 +1165,7 @@ class PortfolioManager:
                 # If derivative
                 if "Futures" in asset_type:
                     symbol = f"{asset}/USDT:USDT"
-                    
+
                     pos = None
                     try:
                         positions = self.exchange.fetch_positions([symbol])
@@ -1182,20 +1182,18 @@ class PortfolioManager:
                                 pos = positions[0]
                     except Exception as e_fetch:
                         print(f"[PortfolioManager] Error retrieving specific position for {symbol}: {e_fetch}")
-                    except:
-                        pass
-                        
+
                     if pos:
                         pos_side_raw = pos.get('side', 'long')
                         pos_side_lower = str(pos_side_raw).lower()
                         close_side = 'sell' if pos_side_lower == 'long' else 'buy'
                         position_side_str = 'LONG' if pos_side_lower == 'long' else 'SHORT'
-                        
+
                         params = {
                             'positionSide': position_side_str,
-                            'PositionSide': position_side_str 
+                            'PositionSide': position_side_str
                         }
-                        
+
                         try:
                             res = self.exchange.create_order(
                                 symbol=symbol,
@@ -1215,7 +1213,7 @@ class PortfolioManager:
                     symbol = f"{asset}/USDT"
                     if asset == "USDT":
                         continue  # do not sell usdt for usdt
-                        
+
                     # 1. If the fund comes from a non-spot account (e.g. funding), try to transfer it
                     if "(" in asset_type:
                         acc_type = asset_type.split("(")[1].replace(")", "").strip().lower()
@@ -1225,7 +1223,7 @@ class PortfolioManager:
                                 print(f"[PortfolioManager] Transferred {qty} {asset} from {acc_type} to spot")
                             except Exception as e:
                                 print(f"[PortfolioManager] Unable to transfer {asset}: {e}")
-                                
+
                     # 2. Check the free balance on spot (to avoid avail: 0 errors due to open orders)
                     try:
                         spot_balance = self.exchange.fetch_balance({'type': 'spot'})
@@ -1249,7 +1247,7 @@ class PortfolioManager:
             except Exception as e:
                 print(f"[PortfolioManager] Error selling {asset}: {e}")
                 executed.append({"asset": asset, "status": "FAILED", "error": str(e), "type": asset_type})
-                
+
         # We could also save these sales in the audit if we wish
         self.save_audit(executed)
         return executed

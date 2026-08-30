@@ -72,7 +72,11 @@ executable has no source tree to derive one from.
 
 ## Style
 
-- `python -m pyflakes core/ gui/ main.py` must be clean.
+- `ruff check .` must be clean. The rules are in `ruff.toml`, and they are the ones
+  the sibling products use. Three are switched off there rather than worked around,
+  each with the reason beside it: this codebase writes long lines and one-line `if`
+  bodies on purpose, and rewrapping somebody else's style is not a defect being
+  fixed. Everything else applies, to every file.
 - Comments explain *why*, not *what*. If a line encodes a non-obvious fact about an
   exchange's API, a CCXT quirk or a model's output format, say so — the next person will
   not rediscover it.

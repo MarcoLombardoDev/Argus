@@ -16,13 +16,12 @@ with name YYYYMMDD_HHMMSS_<n_crypto>crypto.json
 
 import json
 from datetime import datetime
-from typing import Optional
 
 import pandas as pd
 
-from core.portfolio_manager import PortfolioManager
 from core.data_manager import load_settings
 from core.paths import writable_base_dir
+from core.portfolio_manager import PortfolioManager
 
 # ─────────────────────────────────────────────────────────────
 # Paths
@@ -90,7 +89,7 @@ def load_all_sessions() -> list[dict]:
     sessions = []
     for filepath in sorted(AI_ANALYSIS_DIR.glob("*.json"), reverse=True):
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 data = json.load(f)
             sessions.append({
                 "session_id": data.get("session_id", filepath.stem),
@@ -104,7 +103,7 @@ def load_all_sessions() -> list[dict]:
     return sessions
 
 
-def load_session(session_id: str) -> Optional[dict]:
+def load_session(session_id: str) -> dict | None:
     """
     Loads a complete session by session_id.
 
@@ -116,7 +115,7 @@ def load_session(session_id: str) -> Optional[dict]:
     if not filepath.exists():
         return None
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         print(f"[AIStore] Error loading session {session_id}: {e}")
@@ -142,20 +141,20 @@ def delete_analysis(session_id: str, symbol: str) -> bool:
     if not filepath.exists():
         return False
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             data = json.load(f)
-        
+
         original_len = len(data.get("results", []))
         data["results"] = [r for r in data.get("results", []) if r.get("symbol") != symbol]
-        
+
         if len(data["results"]) == original_len:
             return False  # Not found
-            
+
         if len(data["results"]) == 0:
             filepath.unlink()
             print(f"[AIStore] Session {session_id} deleted because it was empty.")
             return True
-            
+
         data["n_crypto"] = len(data["results"])
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False, default=str)
@@ -329,11 +328,11 @@ def export_session_excel(session_id: str, output_path: str) -> bool:
         df = _results_to_df(session.get("results", []))
         meta = session.get("meta", {})
         created_at = session.get("created_at", "")
-        
+
         with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
             # Results sheet
             df.to_excel(writer, sheet_name="Results", index=False)
-            
+
             # Metadata sheet
             meta_rows = [
                 ["Session ID", session_id],
@@ -344,7 +343,7 @@ def export_session_excel(session_id: str, output_path: str) -> bool:
             ]
             df_meta = pd.DataFrame(meta_rows, columns=["Parameter", "Value"])
             df_meta.to_excel(writer, sheet_name="Session Info", index=False)
-            
+
             # Agent debug sheet (if available)
             debug_rows = []
             for r in session.get("results", []):
@@ -381,14 +380,18 @@ def export_session_pdf(session_id: str, output_path: str) -> bool:
         True if successful, False otherwise. Returns False if reportlab is not installed.
     """
     try:
-        from reportlab.lib.pagesizes import A4, landscape
         from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
         from reportlab.lib.units import cm
         from reportlab.platypus import (
-            SimpleDocTemplate, Table, TableStyle, Paragraph,
-            Spacer, HRFlowable
+            HRFlowable,
+            Paragraph,
+            SimpleDocTemplate,
+            Spacer,
+            Table,
+            TableStyle,
         )
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     except ImportError:
         print("[AIStore] reportlab is not installed. Use 'pip install reportlab'.")
         return False
@@ -412,7 +415,7 @@ def export_session_pdf(session_id: str, output_path: str) -> bool:
                                       fontSize=16, spaceAfter=6)
         sub_style = ParagraphStyle("sub", parent=styles["Normal"],
                                     fontSize=9, textColor=colors.gray, spaceAfter=12)
-        
+
         meta = session.get("meta", {})
         story.append(Paragraph("👁️ ARGUS — Advanced AI Crypto Analysis", title_style))
         story.append(Paragraph(
@@ -474,7 +477,7 @@ def export_session_pdf(session_id: str, output_path: str) -> bool:
                 tfm_conf=tfm_conf
             )
             sizing_str = f"{int(size_mult * 100)}%" if size_mult > 0 else "0%"
-            
+
             curr_p = _num(r.get("current_price") or r.get("last_price"))
             # Per-row leverage derived from the configured cap — never carried
             # over from the previous row.

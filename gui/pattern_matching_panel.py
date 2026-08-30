@@ -6,12 +6,14 @@
 # A commercial licence, without the AGPL's obligations, is available for use
 # in proprietary or closed-source products — see COMMERCIAL-LICENSE.md.
 
-import customtkinter as ctk
 import threading
 from tkinter import ttk
-from core.fonts import ui_font_family
+
+import customtkinter as ctk
+
 from core.btc_pattern_matcher import BTCPatternMatcher
-from core.data_manager import save_pm_history, load_pm_history, save_settings
+from core.data_manager import load_pm_history, save_pm_history, save_settings
+from core.fonts import ui_font_family
 from gui.utils import apply_binance_tab_style, dark_scrollbar
 
 _BG_PANEL = "#181a20"
@@ -26,10 +28,10 @@ class PatternMatchingPanel(ctk.CTkFrame):
     def __init__(self, master, settings: dict = None, **kwargs):
         super().__init__(master, fg_color=_BG_PANEL, border_color=_SEP, border_width=1, corner_radius=12, **kwargs)
         self.settings = settings or {}
-        
+
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
-        
+
         # Inizializzazione variabili per le impostazioni
         self._cg_key_var = ctk.StringVar(value=self.settings.get("coingecko_api_key", ""))
         self._cg_plan_var = ctk.StringVar(value=self.settings.get("coingecko_api_plan", "demo"))
@@ -38,12 +40,12 @@ class PatternMatchingPanel(ctk.CTkFrame):
         self._projection_window_var = ctk.StringVar(value="16")
         self._history_years_var = ctk.StringVar(value=str(self.settings.get("pm_history_years", 1)))
         self._n_neighbors_var = ctk.StringVar(value=str(self.settings.get("pm_n_neighbors", 5)))
-        
+
         self.matcher = BTCPatternMatcher()
         self._history = load_pm_history()
         self._build_ui()
         self._load_history_to_ui()
-        
+
     def _load_history_to_ui(self):
         for row in reversed(self._history):
             self._tree.insert("", 0, values=(
@@ -55,7 +57,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
                 row.get("move", "0.00%"),
                 row.get("expiry", "")
             ), tags=(row.get("tag", "neutral"),))
-            
+
     def _build_ui(self):
         # ── Sub-header: title + status + run button ────────────
         sub_hdr = ctk.CTkFrame(self, fg_color="transparent", height=48)
@@ -137,7 +139,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
             ("expiry_date", "Expiry", 130, "center")
         ]
         col_ids = [c[0] for c in cols]
-        
+
         self._tree = ttk.Treeview(
             tree_frame, columns=col_ids, show="headings", style="Argus.Treeview", selectmode="browse"
         )
@@ -366,10 +368,10 @@ class PatternMatchingPanel(ctk.CTkFrame):
             proj_win = 16
             hist_y = int(self._history_years_var.get())
             n_neigh = int(self._n_neighbors_var.get())
-            
+
             if hist_y <= 0 or n_neigh <= 0:
                 raise ValueError("All numerical parameters must be positive integers greater than zero.")
-                
+
             self.settings["coingecko_api_key"] = self._cg_key_var.get().strip()
             self.settings["coingecko_api_plan"] = self._cg_plan_var.get()
             self.settings["pm_interval"] = "15m"
@@ -377,7 +379,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
             self.settings["pm_projection_window"] = proj_win
             self.settings["pm_history_years"] = hist_y
             self.settings["pm_n_neighbors"] = n_neigh
-            
+
             save_settings(self.settings)
             self.status_label.configure(text="· Settings saved successfully.")
         except Exception as e:
@@ -388,7 +390,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
         self.btn_run.configure(state="disabled", text="Running...")
         self.status_label.configure(text="· Downloading data...")
         threading.Thread(target=self._run_bg, daemon=True).start()
-        
+
     def _run_bg(self):
         try:
             self.matcher = BTCPatternMatcher()
@@ -397,12 +399,12 @@ class PatternMatchingPanel(ctk.CTkFrame):
             conf = res.get("btc_pred_confidence", 0.0)
             matches = res.get("matches_count", 0)
             target = res.get("btc_target_price", 0.0)
-            
+
             tag = "positive" if move > 0 else ("negative" if move < 0 else "neutral")
             move_str = f"+{move:.2f}%" if move > 0 else f"{move:.2f}%"
             conf_str = f"{conf:.2f}%"
             target_str = f"${target:.2f}" if target > 0 else "N/A"
-            
+
             self.after(0, lambda: self._update_ui_success(matches, conf_str, target_str, move_str, tag))
         except Exception as e:
             # `e` is unbound once the except block exits — capture it eagerly,
@@ -410,11 +412,11 @@ class PatternMatchingPanel(ctk.CTkFrame):
             # the error.
             err = str(e)
             self.after(0, lambda m=err: self._update_ui_error(m))
-            
+
     def _update_ui_success(self, matches, conf, target, move, tag):
         from datetime import datetime, timedelta
         expiry = (datetime.now() + timedelta(hours=2)).strftime("%d/%m/%Y %H:%M")
-        
+
         new_row = {
             "name": "Bitcoin",
             "symbol": "BTC",
@@ -426,22 +428,22 @@ class PatternMatchingPanel(ctk.CTkFrame):
             "tag": tag
         }
         self._history.insert(0, new_row)
-        
+
         self._tree.insert("", 0, values=("Bitcoin", "BTC", matches, conf, target, move, expiry), tags=(tag,))
-        
+
         if len(self._history) > 50:
             self._history = self._history[:50]
-            
+
         children = self._tree.get_children()
         if len(children) > 50:
             for iid in children[50:]:
                 self._tree.delete(iid)
-                
+
         save_pm_history(self._history)
-                
+
         self.status_label.configure(text=f"· Analysis completed. Found {matches} similar patterns.")
         self.btn_run.configure(state="normal", text="▶  Run Pattern Matching")
-        
+
     def _update_ui_error(self, err_msg):
         self.status_label.configure(text=f"· Error: {err_msg}")
         self.btn_run.configure(state="normal", text="▶  Retry")

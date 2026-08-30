@@ -11,12 +11,13 @@ data_manager.py — Argus
 Management of reading/writing CSV (historical and forecast log) and JSON (settings) files.
 """
 
+import contextlib
 import json
 import os
 import time
+from datetime import datetime, timezone
 
 import pandas as pd
-from datetime import datetime, timezone
 from dotenv import load_dotenv, set_key
 
 from core.paths import writable_base_dir
@@ -116,16 +117,16 @@ def load_settings() -> dict:
     ensure_dirs()
     if ENV_PATH.exists():
         load_dotenv(dotenv_path=ENV_PATH)
-        
+
     settings = DEFAULT_SETTINGS.copy()
     if SETTINGS_PATH.exists():
         try:
-            with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+            with open(SETTINGS_PATH, encoding="utf-8") as f:
                 loaded = json.load(f)
             settings.update(loaded)
         except Exception as e:
             print(f"[DataManager] Error reading settings: {e}. Using defaults.")
-            
+
     # Integrate sensitive keys from .env/environment if present
     sensitive_keys = {
         "hf_token": "HF_TOKEN",
@@ -134,12 +135,12 @@ def load_settings() -> dict:
         "ai_finnhub_key": "AI_FINNHUB_KEY",
         "ai_coingecko_key": "AI_COINGECKO_KEY"
     }
-    
+
     for settings_key, env_key in sensitive_keys.items():
         val = os.getenv(env_key)
         if val is not None:
             settings[settings_key] = val
-            
+
     # Portfolio manager management
     pm_settings = settings.setdefault("portfolio_manager", {})
     for pm_key in ["api_key", "api_secret"]:
@@ -147,7 +148,7 @@ def load_settings() -> dict:
         val = os.getenv(env_key)
         if val is not None:
             pm_settings[pm_key] = val
-            
+
     return settings
 
 
@@ -170,10 +171,10 @@ def _write_env_key(env_key: str, value, attempts: int = 3) -> bool:
 def save_settings(settings: dict):
     """Saves configuration to settings.json, keeping sensitive keys in .env."""
     ensure_dirs()
-    
+
     import copy
     settings_to_save = copy.deepcopy(settings)
-    
+
     sensitive_keys = {
         "hf_token": "HF_TOKEN",
         "coingecko_api_key": "COINGECKO_API_KEY",
@@ -181,13 +182,11 @@ def save_settings(settings: dict):
         "ai_finnhub_key": "AI_FINNHUB_KEY",
         "ai_coingecko_key": "AI_COINGECKO_KEY"
     }
-    
+
     if not ENV_PATH.exists():
-        try:
+        with contextlib.suppress(Exception):
             ENV_PATH.touch()
-        except Exception:
-            pass
-        
+
     # Save sensitive keys in the .env file
     for settings_key, env_key in sensitive_keys.items():
         _write_env_key(env_key, settings_to_save.get(settings_key, ""))
@@ -270,7 +269,7 @@ def save_forecast_log(results: list[dict]):
 
 def append_to_forecast_history(results: list[dict]):
     """
-    Saves the current results by appending them to forecast_history.csv, 
+    Saves the current results by appending them to forecast_history.csv,
     maintaining up to 2500 historical analyses (e.g. 50 runs of 50 assets).
     """
     ensure_dirs()
@@ -280,23 +279,23 @@ def append_to_forecast_history(results: list[dict]):
         new_df = pd.DataFrame(results)
         if FORECAST_HISTORY_PATH.exists():
             old_df = pd.read_csv(FORECAST_HISTORY_PATH, encoding="utf-8")
-            
+
             # Avoid DataFrame concatenation with all-NA entries FutureWarning
             old_df = old_df.dropna(axis=1, how='all')
             new_df = new_df.dropna(axis=1, how='all')
-            
+
             if old_df.empty:
                 combined_df = new_df
             elif new_df.empty:
                 combined_df = old_df
             else:
                 combined_df = pd.concat([old_df, new_df], ignore_index=True)
-                
+
             # Keep the last 2500 rows to handle multiple runs with large lists
             combined_df = combined_df.tail(2500)
         else:
             combined_df = new_df
-            
+
         combined_df.to_csv(FORECAST_HISTORY_PATH, index=False, encoding="utf-8")
         print("[DataManager] History forecast_history.csv updated (appended, max 2500).")
     except Exception as e:
@@ -352,7 +351,7 @@ def load_pm_history() -> list[dict]:
     if not PM_HISTORY_PATH.exists():
         return []
     try:
-        with open(PM_HISTORY_PATH, "r", encoding="utf-8") as f:
+        with open(PM_HISTORY_PATH, encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         print(f"[DataManager] Error reading PM history: {e}")
@@ -378,20 +377,20 @@ def save_market_list(market_type: str, asset_list: list[dict]):
         print(f"[DataManager] Unknown market type: {market_type}")
         return
     path = MARKET_LISTS_DIR / filename
-    
+
     # Load existing history
     existing = []
     if path.exists():
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 existing = json.load(f)
                 if not isinstance(existing, list):
                     existing = []
         except Exception:
             existing = []
-            
+
     now_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    
+
     # Create new records
     new_records = []
     for asset in asset_list:
@@ -403,7 +402,7 @@ def save_market_list(market_type: str, asset_list: list[dict]):
         rec = asset.copy()
         rec["updated_at"] = now_str
         new_records.append(rec)
-        
+
     if new_records != asset_list:
         # We added new records, so we prepend them
         combined = new_records + existing
@@ -413,7 +412,7 @@ def save_market_list(market_type: str, asset_list: list[dict]):
 
     # Keep only the first 50
     combined = combined[:50]
-    
+
     try:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(combined, f, indent=2, default=str)
@@ -436,7 +435,7 @@ def load_market_list(market_type: str) -> list[dict]:
     if not path.exists():
         return btc_default
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
             # Force only BTC if there are others
             btc_only = [item for item in data if item.get("symbol") == "BTC"]
@@ -503,7 +502,7 @@ def load_autotrading_logs() -> list[dict]:
     if not AUTOTRADING_LOGS_PATH.exists():
         return []
     try:
-        with open(AUTOTRADING_LOGS_PATH, "r", encoding="utf-8") as f:
+        with open(AUTOTRADING_LOGS_PATH, encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         print(f"[DataManager] Error reading autotrading log: {e}")

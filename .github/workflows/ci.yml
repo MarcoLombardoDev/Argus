@@ -37,13 +37,20 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      # pyflakes parses the source instead of importing it, so it needs none of
-      # the project's dependencies. CONTRIBUTING.md states this must stay clean.
-      - name: Install pyflakes
-        run: pip install pyflakes
+      # ruff parses the source instead of importing it, so it needs none of the
+      # project's dependencies -- which is what lets this job answer in under a
+      # minute while the test job is still installing torch. The rules are the
+      # ones the sibling products use, in ruff.toml.
+      #
+      # It replaces pyflakes, which it is a superset of: pyflakes saw core/,
+      # gui/ and main.py, and ruff sees every file, which is how a licence
+      # header with an import wedged into the middle of it went unnoticed in
+      # gui/config_panel.py.
+      - name: Install ruff
+        run: pip install ruff
 
-      - name: Check for unused imports and undefined names
-        run: python -m pyflakes core/ gui/ main.py
+      - name: Lint
+        run: ruff check .
 
   docs:
     name: Documentation guards

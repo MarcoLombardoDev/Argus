@@ -1075,7 +1075,7 @@ before the first patch:
 Static analysis is expected to stay clean:
 
 ```bash
-pip install pyflakes && python -m pyflakes core/ gui/ main.py
+pip install ruff && ruff check .
 ```
 
 ## Testing
@@ -1112,7 +1112,7 @@ Two things the suite deliberately guards against, because they only ever surface
 - **Deferred callbacks.** Worker threads report results through a queue, so an exception raised inside a callback would surface long after the code that scheduled it. The error paths are exercised explicitly.
 
 CI runs the suite on **Ubuntu and Windows** against **Python 3.10 and 3.12**, alongside a
-`pyflakes` lint job and a fast job that runs the documentation guards on their own — those
+`ruff` lint job and a fast job that runs the documentation guards on their own — those
 two need none of the runtime dependencies, so they answer in under a minute rather than
 waiting on a torch install. macOS is covered by the release workflow instead, which builds
 a bundle there and smoke-tests it before publishing.

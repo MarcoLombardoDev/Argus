@@ -34,26 +34,26 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 # ─────────────────────────────────────────────────────────────
 
 def test_all_core_modules_import():
-    import core.analyzer          # noqa: F401
     import core.ai_analysis_store  # noqa: F401
-    import core.ai_analyst        # noqa: F401
+    import core.ai_analyst  # noqa: F401
+    import core.analyzer  # noqa: F401
     import core.btc_pattern_matcher  # noqa: F401
-    import core.data_fetcher      # noqa: F401
-    import core.data_manager      # noqa: F401
-    import core.forecaster        # noqa: F401
+    import core.data_fetcher  # noqa: F401
+    import core.data_manager  # noqa: F401
+    import core.forecaster  # noqa: F401
     import core.market_enrichment  # noqa: F401
-    import core.portfolio_manager    # noqa: F401
-    import core.pre_flight_checker   # noqa: F401
+    import core.portfolio_manager  # noqa: F401
+    import core.pre_flight_checker  # noqa: F401
 
 
 def test_declared_requirements_are_installed():
     """Every third-party module imported by the code must be installable from
     requirements.txt (scikit-learn and beautifulsoup4 used to be missing)."""
-    import bs4          # noqa: F401
-    import ccxt         # noqa: F401
-    import openai       # noqa: F401
-    import sklearn      # noqa: F401
-    import yfinance     # noqa: F401
+    import bs4  # noqa: F401
+    import ccxt  # noqa: F401
+    import openai  # noqa: F401
+    import sklearn  # noqa: F401
+    import yfinance  # noqa: F401
 
 
 # ─────────────────────────────────────────────────────────────
@@ -209,7 +209,7 @@ def test_build_results_zero_price():
 
 
 def test_formatters():
-    from core.analyzer import format_price, format_change_pct
+    from core.analyzer import format_change_pct, format_price
     assert format_price(None) == "N/A"
     assert format_price(12345.678) == "$12,345.68"
     assert format_price(0.00001234).startswith("$0.0000")
@@ -221,7 +221,7 @@ def test_formatters():
 def test_formatters_tolerate_non_numeric_input():
     """Regression: values reloaded from CSV arrive as strings and
     format_price("65000.0") raised TypeError while rendering the results table."""
-    from core.analyzer import format_price, format_change_pct
+    from core.analyzer import format_change_pct, format_price
     assert format_price("65000.0") == "$65,000.00"
     assert format_change_pct("-1.5") == "-1.50%"
     assert format_change_pct("+1,5%") == "+1.50%"
@@ -298,6 +298,7 @@ def test_rss_title_regex_is_valid():
     """Regression: the CDATA pattern was unescaped and raised re.error, silently
     disabling the Investing.com RSS fallback."""
     import re
+
     import core.ai_analyst as aa
     src = Path(aa.__file__).read_text(encoding="utf-8")
     assert r"<title><!\[CDATA\[" in src, "CDATA brackets must be escaped"
@@ -337,7 +338,8 @@ def test_describe_span_labels_the_real_window():
     """The backtest header used to claim a fixed '6 months' / '30 days' while
     actually running over whatever 15m history the Markets panel had cached."""
     from core.ai_analyst import _describe_span
-    mk = lambda n, freq="15min": pd.date_range("2026-01-01", periods=n, freq=freq)
+    def mk(n, freq="15min"):
+        return pd.date_range("2026-01-01", periods=n, freq=freq)
     assert "days" in _describe_span(mk(96 * 10))          # ~10 days
     assert "months" in _describe_span(mk(96 * 90))        # ~3 months
     assert "years" in _describe_span(mk(96 * 400))        # >1 year
@@ -474,7 +476,7 @@ def test_no_commons_clause_dependency_remains():
         for line in (root / "requirements.txt").read_text(encoding="utf-8").splitlines()
         if line.strip() and not line.strip().startswith("#")
     ]
-    assert not [l for l in req_lines if "vectorbt" in l], \
+    assert not [line for line in req_lines if "vectorbt" in line], \
         "vectorbt reintroduced into requirements.txt"
 
 
@@ -790,7 +792,7 @@ def test_delete_analysis_keeps_other_symbols(store):
 # ─────────────────────────────────────────────────────────────
 
 def test_forecaster_refuses_to_run_without_a_model():
-    from core.forecaster import CryptoForecaster, MIN_CONTEXT_POINTS
+    from core.forecaster import MIN_CONTEXT_POINTS, CryptoForecaster
     f = CryptoForecaster()
     assert f._model_loaded is False
     df = pd.DataFrame({"Close": np.arange(MIN_CONTEXT_POINTS + 10, dtype=float)})
