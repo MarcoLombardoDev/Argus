@@ -26,6 +26,7 @@ from datetime import datetime
 import customtkinter as ctk
 import pandas as pd
 
+from core.fonts import ui_font_family
 from core.ai_analyst import AIAnalyst
 from core.ai_analysis_store import (
     save_ai_session, load_all_sessions,
@@ -123,14 +124,14 @@ def _setup_treeview_style(style_name: str = "Argus.Treeview"):
         foreground="#eaecef",
         fieldbackground="#181a20",
         rowheight=30,
-        font=("Segoe UI", 10),
+        font=(ui_font_family(), 10),
         borderwidth=0,
     )
     style.configure(
         f"{style_name}.Heading",
         background="#1e2329",
         foreground="#f0b90b",
-        font=("Segoe UI", 10, "bold"),
+        font=(ui_font_family(), 10, "bold"),
         borderwidth=0,
         relief="flat",
     )
@@ -217,14 +218,14 @@ class AIAnalysisPanel(ctk.CTkFrame):
         # Titolo
         ctk.CTkLabel(
             bar, text="Advanced Analysis",
-            font=ctk.CTkFont("Segoe UI", 13, "bold"),
+            font=ctk.CTkFont(ui_font_family(), 13, "bold"),
             text_color=COLOR_ACCENT,
         ).grid(row=0, column=0, sticky="w", padx=(0, 20))
 
         # Status label
         self._status_lbl = ctk.CTkLabel(
             bar, text="Select assets and run the analysis.",
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             text_color=COLOR_MUTED, anchor="w",
         )
         self._status_lbl.grid(row=0, column=1, padx=(10, 8), sticky="ew")
@@ -233,7 +234,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         self._btn_run = ctk.CTkButton(
             bar, text="▶  Run Advanced Analysis",
             command=self._start_analysis,
-            font=ctk.CTkFont("Segoe UI", 12, "bold"),
+            font=ctk.CTkFont(ui_font_family(), 12, "bold"),
             fg_color=COLOR_ACCENT, hover_color=COLOR_HOVER,
             text_color="#181a20",
             height=34, width=210, corner_radius=8,
@@ -299,12 +300,12 @@ class AIAnalysisPanel(ctk.CTkFrame):
 
         ctk.CTkLabel(
             toolbar, text="Select assets to analyze with AI:",
-            font=ctk.CTkFont("Segoe UI", 11), text_color=COLOR_MUTED,
+            font=ctk.CTkFont(ui_font_family(), 11), text_color=COLOR_MUTED,
         ).grid(row=0, column=0, padx=16, pady=12, sticky="w")
 
         ctk.CTkButton(
             toolbar, text="☑ All", command=self._select_all,
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             fg_color=BG_INPUT, hover_color=("#343a40", "#343a40"),
             border_color=COLOR_ACCENT, border_width=1,
             height=30, width=90, corner_radius=6,
@@ -312,7 +313,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
 
         ctk.CTkButton(
             toolbar, text="☐ None", command=self._deselect_all,
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             fg_color=BG_INPUT, hover_color=("#343a40", "#343a40"),
             border_color=COLOR_SEP, border_width=1,
             height=30, width=100, corner_radius=6,
@@ -325,7 +326,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
             toolbar, textvariable=self._search_var,
             placeholder_text="🔍 Search asset...",
             width=150, height=30,
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             fg_color=BG_INPUT, border_color=COLOR_SEP, border_width=1,
             corner_radius=6
         )
@@ -513,12 +514,12 @@ class AIAnalysisPanel(ctk.CTkFrame):
 
         ctk.CTkLabel(
             toolbar, text="AI Analysis History:",
-            font=ctk.CTkFont("Segoe UI", 11), text_color=COLOR_MUTED,
+            font=ctk.CTkFont(ui_font_family(), 11), text_color=COLOR_MUTED,
         ).grid(row=0, column=0, padx=16, pady=12, sticky="w")
 
         ctk.CTkButton(
             toolbar, text="☑ All", command=self._results_select_all,
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             fg_color=BG_INPUT, hover_color=("#343a40", "#343a40"),
             border_color=COLOR_ACCENT, border_width=1,
             height=30, width=90, corner_radius=6,
@@ -526,7 +527,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
 
         ctk.CTkButton(
             toolbar, text="☐ None", command=self._results_deselect_all,
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             fg_color=BG_INPUT, hover_color=("#343a40", "#343a40"),
             border_color=COLOR_SEP, border_width=1,
             height=30, width=100, corner_radius=6,
@@ -535,7 +536,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         ctk.CTkButton(
             toolbar, text="🗑 Delete Analysis",
             command=self._delete_selected_analyses,
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             fg_color=BG_INPUT, hover_color=("#343a40", "#343a40"),
             border_color=COLOR_ACCENT, border_width=1,
             height=30, width=120, corner_radius=6,
@@ -547,7 +548,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         ctk.CTkButton(
             btn_frame, text="📊 Excel",
             command=lambda: self._export_current("excel"),
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             fg_color=BG_INPUT, hover_color=("#343a40", "#343a40"),
             border_color=COLOR_ACCENT, border_width=1,
             height=30, width=80, corner_radius=6,
@@ -607,7 +608,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         # Label istruzione
         ctk.CTkLabel(
             container, text="💡 Double click on a row to see the complete debate between agents",
-            font=ctk.CTkFont("Segoe UI", 10), text_color=COLOR_MUTED,
+            font=ctk.CTkFont(ui_font_family(), 10), text_color=COLOR_MUTED,
         ).grid(row=2, column=0, pady=(4, 0), sticky="w", padx=8)
 
     def _populate_results_tree(self, results: list[dict] = None):
@@ -894,14 +895,14 @@ class AIAnalysisPanel(ctk.CTkFrame):
         def section_title(text, parent, row):
             ctk.CTkLabel(
                 parent, text=text,
-                font=ctk.CTkFont("Segoe UI", 11, "bold"),
+                font=ctk.CTkFont(ui_font_family(), 11, "bold"),
                 text_color=COLOR_ACCENT, anchor="w",
             ).grid(row=row, column=0, padx=16, pady=(16, 4), sticky="ew")
 
         def lbl(text, parent, row):
             ctk.CTkLabel(
                 parent, text=text,
-                font=ctk.CTkFont("Segoe UI", 11),
+                font=ctk.CTkFont(ui_font_family(), 11),
                 text_color=("#808080", "#a0a0a0"), anchor="w",
             ).grid(row=row, column=0, padx=16, pady=(8, 2), sticky="ew")
 
@@ -932,7 +933,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
             left_frame,
             values=["openrouter", "claude", "openai", "ollama"],
             variable=self._provider_var,
-            font=ctk.CTkFont("Segoe UI", 12),
+            font=ctk.CTkFont(ui_font_family(), 12),
             fg_color=BG_INPUT,
             button_color=COLOR_ACCENT,
             button_hover_color=COLOR_HOVER,
@@ -943,7 +944,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
             height=36,
         )
         self._provider_menu.grid(row=r, column=0, padx=16, pady=(4, 2), sticky="ew"); r += 1
-        ctk.CTkLabel(left_frame, text="Select the provider for advanced multi-agent model analysis (OpenRouter, Claude, OpenAI, Ollama).", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
+        ctk.CTkLabel(left_frame, text="Select the provider for advanced multi-agent model analysis (OpenRouter, Claude, OpenAI, Ollama).", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
 
         # Container dinamico per API Key e Ollama URL
         self._provider_config_frame = ctk.CTkFrame(left_frame, fg_color="transparent")
@@ -953,7 +954,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         # API Key (OpenRouter)
         self._ai_apikey_label = ctk.CTkLabel(
             self._provider_config_frame, text="API Key Provider (OpenRouter)",
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             text_color=("#808080", "#a0a0a0"), anchor="w",
         )
         self._ai_apikey_var = ctk.StringVar(value="")
@@ -963,7 +964,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
 
         self._ai_apikey_entry = ctk.CTkEntry(
             self._ai_apikey_frame, textvariable=self._ai_apikey_var,
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             placeholder_text="sk-or-xxxxxxxxxxxxxxxxxxxx",
             show="*",
             fg_color=BG_INPUT, border_color=COLOR_ACCENT, border_width=1, height=36,
@@ -988,13 +989,13 @@ class AIAnalysisPanel(ctk.CTkFrame):
         # Ollama Host URL
         self._ollama_host_label = ctk.CTkLabel(
             self._provider_config_frame, text="Ollama Host URL",
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             text_color=("#808080", "#a0a0a0"), anchor="w",
         )
         self._ollama_host_var = ctk.StringVar(value="http://localhost:11434/v1")
         self._ollama_host_entry = ctk.CTkEntry(
             self._provider_config_frame, textvariable=self._ollama_host_var,
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             placeholder_text="e.g. http://localhost:11434/v1",
             fg_color=BG_INPUT, border_color=COLOR_ACCENT, border_width=1, height=36,
         )
@@ -1004,33 +1005,33 @@ class AIAnalysisPanel(ctk.CTkFrame):
         self._model_quick_var = ctk.StringVar(value="anthropic/claude-3-haiku")
         ctk.CTkEntry(
             left_frame, textvariable=self._model_quick_var,
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             placeholder_text="e.g. anthropic/claude-3-haiku or mistral",
             fg_color=BG_INPUT, border_color=COLOR_ACCENT, border_width=1, height=36,
         ).grid(row=r, column=0, padx=16, pady=(4, 2), sticky="ew"); r += 1
-        ctk.CTkLabel(left_frame, text="Lightweight and cost-effective model used for preliminary sentiment and news analysis.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
+        ctk.CTkLabel(left_frame, text="Lightweight and cost-effective model used for preliminary sentiment and news analysis.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
 
         # Modello Deep
         lbl("Deep Thinking Model (Researchers & Decision Maker)", left_frame, row=r); r += 1
         self._model_deep_var = ctk.StringVar(value="anthropic/claude-3-5-sonnet")
         ctk.CTkEntry(
             left_frame, textvariable=self._model_deep_var,
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             placeholder_text="e.g. anthropic/claude-3-5-sonnet or llama3.1",
             fg_color=BG_INPUT, border_color=COLOR_ACCENT, border_width=1, height=36,
         ).grid(row=r, column=0, padx=16, pady=(4, 2), sticky="ew"); r += 1
-        ctk.CTkLabel(left_frame, text="Advanced 'reasoning' model that handles critical debate and formulates final consensus.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
+        ctk.CTkLabel(left_frame, text="Advanced 'reasoning' model that handles critical debate and formulates final consensus.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
 
         # Modello Fallback
         lbl("Fallback Model (on error)", left_frame, row=r); r += 1
         self._model_fallback_var = ctk.StringVar(value="google/gemini-2.5-flash")
         ctk.CTkEntry(
             left_frame, textvariable=self._model_fallback_var,
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             placeholder_text="e.g. google/gemini-2.5-flash",
             fg_color=BG_INPUT, border_color=COLOR_ACCENT, border_width=1, height=36,
         ).grid(row=r, column=0, padx=16, pady=(4, 2), sticky="ew"); r += 1
-        ctk.CTkLabel(left_frame, text="Backup model used if the primary model encounters errors or rate limits.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
+        ctk.CTkLabel(left_frame, text="Backup model used if the primary model encounters errors or rate limits.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
 
         # Research Rounds
         lbl("Search Depth (Debate rounds)", left_frame, row=r); r += 1
@@ -1038,7 +1039,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         self._rounds_seg = ctk.CTkSegmentedButton(
             left_frame, values=["1", "2", "3", "5"],
             variable=self._research_rounds_var,
-            font=ctk.CTkFont("Segoe UI", 12),
+            font=ctk.CTkFont(ui_font_family(), 12),
             fg_color=BG_INPUT, selected_color=COLOR_ACCENT,
             selected_hover_color=COLOR_HOVER,
             unselected_color=BG_INPUT,
@@ -1047,7 +1048,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         )
         self._rounds_seg.grid(row=r, column=0, padx=16, pady=(4, 2), sticky="ew"); r += 1
         apply_binance_tab_style(self._rounds_seg)
-        ctk.CTkLabel(left_frame, text="Number of debate steps between Bull and Bear. More rounds increase accuracy but consume more tokens.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
+        ctk.CTkLabel(left_frame, text="Number of debate steps between Bull and Bear. More rounds increase accuracy but consume more tokens.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
 
         # --- Pesi Ensemble Quantitativo ---
         section_title("⚖️  QUANTITATIVE ENSEMBLE WEIGHTS", left_frame, row=r); r += 1
@@ -1062,9 +1063,9 @@ class AIAnalysisPanel(ctk.CTkFrame):
             command=lambda v: self._w_pm_label.configure(text=f"{int(v)} %")
         )
         self._w_pm_slider.grid(row=r, column=0, padx=16, pady=(4, 0), sticky="ew"); r += 1
-        self._w_pm_label = ctk.CTkLabel(left_frame, text="35 %", font=ctk.CTkFont("Segoe UI", 11), text_color=COLOR_MUTED)
+        self._w_pm_label = ctk.CTkLabel(left_frame, text="35 %", font=ctk.CTkFont(ui_font_family(), 11), text_color=COLOR_MUTED)
         self._w_pm_label.grid(row=r, column=0, padx=16, pady=(2, 2), sticky="e"); r += 1
-        ctk.CTkLabel(left_frame, text="Percentage influence of the KNN-DTW module in the final signal calculation.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 8), sticky="ew"); r += 1
+        ctk.CTkLabel(left_frame, text="Percentage influence of the KNN-DTW module in the final signal calculation.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 8), sticky="ew"); r += 1
 
         # Peso TFM
         lbl("Time-Series Analysis Weight (%)", left_frame, row=r); r += 1
@@ -1075,9 +1076,9 @@ class AIAnalysisPanel(ctk.CTkFrame):
             command=lambda v: self._w_tfm_label.configure(text=f"{int(v)} %")
         )
         self._w_tfm_slider.grid(row=r, column=0, padx=16, pady=(4, 0), sticky="ew"); r += 1
-        self._w_tfm_label = ctk.CTkLabel(left_frame, text="40 %", font=ctk.CTkFont("Segoe UI", 11), text_color=COLOR_MUTED)
+        self._w_tfm_label = ctk.CTkLabel(left_frame, text="40 %", font=ctk.CTkFont(ui_font_family(), 11), text_color=COLOR_MUTED)
         self._w_tfm_label.grid(row=r, column=0, padx=16, pady=(2, 2), sticky="e"); r += 1
-        ctk.CTkLabel(left_frame, text="Percentage influence of TimesFM forecasts in the final signal calculation.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 8), sticky="ew"); r += 1
+        ctk.CTkLabel(left_frame, text="Percentage influence of TimesFM forecasts in the final signal calculation.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 8), sticky="ew"); r += 1
 
         # Peso AI
         lbl("Advanced Analysis Weight (%)", left_frame, row=r); r += 1
@@ -1088,13 +1089,13 @@ class AIAnalysisPanel(ctk.CTkFrame):
             command=lambda v: self._w_ai_label.configure(text=f"{int(v)} %")
         )
         self._w_ai_slider.grid(row=r, column=0, padx=16, pady=(4, 0), sticky="ew"); r += 1
-        self._w_ai_label = ctk.CTkLabel(left_frame, text="25 %", font=ctk.CTkFont("Segoe UI", 11), text_color=COLOR_MUTED)
+        self._w_ai_label = ctk.CTkLabel(left_frame, text="25 %", font=ctk.CTkFont(ui_font_family(), 11), text_color=COLOR_MUTED)
         self._w_ai_label.grid(row=r, column=0, padx=16, pady=(2, 2), sticky="e"); r += 1
-        ctk.CTkLabel(left_frame, text="Percentage influence of the AI agent committee in the final signal calculation.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
+        ctk.CTkLabel(left_frame, text="Percentage influence of the AI agent committee in the final signal calculation.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
 
         self._enable_ai_auto_trade_var = ctk.BooleanVar(value=self._app_settings.get("enable_ai_auto_trade", True))
-        ctk.CTkSwitch(left_frame, text="Enable Advanced Analysis in Auto Trading", variable=self._enable_ai_auto_trade_var, font=ctk.CTkFont("Segoe UI", 11, "bold"), progress_color=COLOR_ACCENT).grid(row=r, column=0, padx=16, pady=(8, 0), sticky="w"); r += 1
-        ctk.CTkLabel(left_frame, text="If disabled, Auto Trading will skip the AI analysis module. Its weight will be distributed equally between Pattern Matching and Time Series.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left", anchor="w", wraplength=400).grid(row=r, column=0, padx=16, pady=(4, 12), sticky="ew"); r += 1
+        ctk.CTkSwitch(left_frame, text="Enable Advanced Analysis in Auto Trading", variable=self._enable_ai_auto_trade_var, font=ctk.CTkFont(ui_font_family(), 11, "bold"), progress_color=COLOR_ACCENT).grid(row=r, column=0, padx=16, pady=(8, 0), sticky="w"); r += 1
+        ctk.CTkLabel(left_frame, text="If disabled, Auto Trading will skip the AI analysis module. Its weight will be distributed equally between Pattern Matching and Time Series.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left", anchor="w", wraplength=400).grid(row=r, column=0, padx=16, pady=(4, 12), sticky="ew"); r += 1
 
         sep(left_frame, row=r); r += 1
 
@@ -1112,7 +1113,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
 
         finnhub_entry = ctk.CTkEntry(
             finnhub_frame, textvariable=self._finnhub_var,
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             placeholder_text="xxxxxxxxxxxxxxxxxxxx",
             show="*",
             fg_color=BG_INPUT, border_color=COLOR_ACCENT, border_width=1, height=36,
@@ -1133,7 +1134,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
             border_color=COLOR_ACCENT, border_width=1, command=toggle_finnhub
         )
         finnhub_btn.grid(row=0, column=1, padx=(4, 0))
-        ctk.CTkLabel(left_frame, text="Finnhub API Key (optional) to allow the sentiment agent to download real macroeconomic news.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
+        ctk.CTkLabel(left_frame, text="Finnhub API Key (optional) to allow the sentiment agent to download real macroeconomic news.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
 
 
         # CoinGecko API Key indipendente
@@ -1146,7 +1147,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
 
         cg_ai_entry = ctk.CTkEntry(
             cg_ai_frame, textvariable=self._cg_ai_key_var,
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             placeholder_text="CG-xxxxxxxxxxxxxxxxxxxx",
             show="*",
             fg_color=BG_INPUT, border_color=COLOR_ACCENT, border_width=1, height=36,
@@ -1174,7 +1175,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         self._btn_save_ai = ctk.CTkButton(
             left_frame, text="💾 Save Settings",
             command=self._save_ai_settings,
-            font=ctk.CTkFont("Segoe UI", 12, "bold"),
+            font=ctk.CTkFont(ui_font_family(), 12, "bold"),
             fg_color=COLOR_ACCENT, hover_color=COLOR_HOVER,
             text_color="#181a20",
             height=38, corner_radius=8,
@@ -1196,7 +1197,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             info_card,
             text="💡 MULTI-AGENT ARCHITECTURE AND LOGIC",
-            font=ctk.CTkFont("Segoe UI", 12, "bold"),
+            font=ctk.CTkFont(ui_font_family(), 12, "bold"),
             text_color=COLOR_ACCENT,
             anchor="w",
         ).grid(row=0, column=0, padx=16, pady=(16, 8), sticky="ew")
@@ -1223,7 +1224,7 @@ class AIAnalysisPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             info_card,
             text=info_text,
-            font=ctk.CTkFont("Segoe UI", 11),
+            font=ctk.CTkFont(ui_font_family(), 11),
             text_color=("#c0c8e0", "#c0c8e0"),
             justify="left",
             anchor="w",
@@ -1485,7 +1486,7 @@ class AgentDebateWindow(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             hdr, text=f"🔍  {name} ({sym}) — Multi-Agent Debate",
-            font=ctk.CTkFont("Segoe UI", 14, "bold"), text_color=COLOR_ACCENT,
+            font=ctk.CTkFont(ui_font_family(), 14, "bold"), text_color=COLOR_ACCENT,
         ).grid(row=0, column=0, padx=20, pady=16, sticky="w")
 
         sig1 = result.get("signal_1d", "N/A")
@@ -1494,7 +1495,7 @@ class AgentDebateWindow(ctk.CTkToplevel):
             hdr,
             text=(f"Decisione: {_fmt_signal(sig1)} 2h  |  "
                   f"Confidence: {_fmt_conf(conf)}"),
-            font=ctk.CTkFont("Segoe UI", 11), text_color=COLOR_TEXT,
+            font=ctk.CTkFont(ui_font_family(), 11), text_color=COLOR_TEXT,
         ).grid(row=0, column=1, padx=20, pady=16, sticky="e")
 
         # Scroll area
@@ -1511,12 +1512,12 @@ class AgentDebateWindow(ctk.CTkToplevel):
 
             ctk.CTkLabel(
                 card, text=agent_name,
-                font=ctk.CTkFont("Segoe UI", 12, "bold"), text_color=COLOR_ACCENT, anchor="w",
+                font=ctk.CTkFont(ui_font_family(), 12, "bold"), text_color=COLOR_ACCENT, anchor="w",
             ).grid(row=0, column=0, padx=14, pady=(10, 4), sticky="w")
 
             ctk.CTkLabel(
                 card, text=content,
-                font=ctk.CTkFont("Segoe UI", 11), text_color=COLOR_TEXT,
+                font=ctk.CTkFont(ui_font_family(), 11), text_color=COLOR_TEXT,
                 anchor="w", justify="left", wraplength=820,
             ).grid(row=1, column=0, padx=14, pady=(0, 12), sticky="ew")
 
@@ -1529,12 +1530,12 @@ class AgentDebateWindow(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             backtest_card, text="📈 Instant Backtest",
-            font=ctk.CTkFont("Segoe UI", 12, "bold"), text_color=COLOR_ACCENT, anchor="w",
+            font=ctk.CTkFont(ui_font_family(), 12, "bold"), text_color=COLOR_ACCENT, anchor="w",
         ).grid(row=0, column=0, padx=14, pady=(10, 4), sticky="w")
 
         ctk.CTkLabel(
             backtest_card, text=backtest_content,
-            font=ctk.CTkFont("Segoe UI", 11), text_color=COLOR_TEXT,
+            font=ctk.CTkFont(ui_font_family(), 11), text_color=COLOR_TEXT,
             anchor="w", justify="left", wraplength=820,
         ).grid(row=1, column=0, padx=14, pady=(0, 12), sticky="ew")
 
@@ -1546,7 +1547,7 @@ class AgentDebateWindow(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             final_card, text="🎯 Portfolio Manager",
-            font=ctk.CTkFont("Segoe UI", 12, "bold"), text_color=COLOR_ACCENT, anchor="w",
+            font=ctk.CTkFont(ui_font_family(), 12, "bold"), text_color=COLOR_ACCENT, anchor="w",
         ).grid(row=0, column=0, padx=14, pady=(10, 4), sticky="w")
 
         rationale = result.get("rationale", "")
@@ -1566,6 +1567,6 @@ class AgentDebateWindow(ctk.CTkToplevel):
             
         ctk.CTkLabel(
             final_card, text=final_text,
-            font=ctk.CTkFont("Segoe UI", 11), text_color=COLOR_TEXT,
+            font=ctk.CTkFont(ui_font_family(), 11), text_color=COLOR_TEXT,
             anchor="w", justify="left", wraplength=820,
         ).grid(row=1, column=0, padx=14, pady=(0, 14), sticky="ew")

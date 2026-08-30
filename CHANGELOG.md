@@ -95,6 +95,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   answers without needing a display.
 
 ### Fixed
+- **Segoe UI was named directly in 140 places**, which is right on Windows and
+  silently wrong everywhere else: on Linux and macOS Tk substitutes something
+  for a font it does not have, without saying what. `core/fonts.py` resolves
+  the family once from the same list the other products use, and falls back to
+  the one Tk itself would have chosen.
 - **Maximising stopped at the first call that did not raise.** Not raising is
   not the same as having worked: with no window manager running, both
   `state("zoomed")` and the `-zoomed` attribute are accepted in silence and
@@ -191,6 +196,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   README's Scope section, which already documents that no code path acts on it.
 
 ### Changed
+- **One interface font across the four, named rather than left to a
+  default.** Segoe UI where the machine has it, with the equivalent on macOS
+  and Linux behind it, resolved once from a list the four products share.
+  Nothing depends any more on which family the toolkit happened to pick.
 - **The release now fails if the tag and the program disagree about the
   version.** Nothing checked it, which is exactly how a `v1.0.0` tag could
   produce `Argus-1.0.0-windows-x64.zip` containing a program that answers

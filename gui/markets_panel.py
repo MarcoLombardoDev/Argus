@@ -19,6 +19,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from gui.utils import apply_binance_tab_style, dark_scrollbar
 
+from core.fonts import ui_font_family
 from core.data_manager import (
     save_settings,
     save_market_list, load_market_list, get_market_list_info,
@@ -86,14 +87,14 @@ class MarketsPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             hdr,
             text="Markets",
-            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=13, weight="bold"),
             text_color=_ACCENT,
         ).grid(row=0, column=0, sticky="w", padx=(0, 20))
 
         self._status_label = ctk.CTkLabel(
             hdr,
             text="📂  Market prices and data (BTC Only).",
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             text_color=_MUTED,
             anchor="w",
         )
@@ -103,7 +104,7 @@ class MarketsPanel(ctk.CTkFrame):
             hdr,
             text="💵  Refresh Prices",
             command=self._on_refresh_prices_clicked,
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             fg_color=_ACCENT,
             hover_color=_HOVER,
             text_color="#181a20",
@@ -257,7 +258,7 @@ class MarketsPanel(ctk.CTkFrame):
             ctk.CTkLabel(
                 parent,
                 text=text,
-                font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+                font=ctk.CTkFont(family=ui_font_family(), size=11, weight="bold"),
                 text_color=_ACCENT,
                 anchor="w",
             ).grid(row=row, column=0, padx=8, pady=(16, 4), sticky="ew")
@@ -266,7 +267,7 @@ class MarketsPanel(ctk.CTkFrame):
             ctk.CTkLabel(
                 parent,
                 text=text,
-                font=ctk.CTkFont(family="Segoe UI", size=11),
+                font=ctk.CTkFont(family=ui_font_family(), size=11),
                 text_color=_MUTED,
                 anchor="w",
             ).grid(row=row, column=0, padx=8, pady=(8, 2), sticky="ew")
@@ -285,7 +286,7 @@ class MarketsPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             left_frame,
             text="The API key used to download crypto data from CoinGecko. For demo plans, enter the public key. It will be saved encrypted in .env.",
-            font=ctk.CTkFont(family="Segoe UI", size=10),
+            font=ctk.CTkFont(family=ui_font_family(), size=10),
             text_color=_MUTED,
             justify="left",
             anchor="w",
@@ -297,7 +298,7 @@ class MarketsPanel(ctk.CTkFrame):
             left_frame,
             text="💾 Save Settings",
             command=self._save_market_settings,
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             fg_color=_ACCENT,
             hover_color=_HOVER,
             text_color="#181a20",
@@ -325,7 +326,7 @@ class MarketsPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             info_card,
             text="💡 DATA LOADING MECHANISMS & LOGIC",
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             text_color=_ACCENT,
             anchor="w",
         ).grid(row=0, column=0, padx=16, pady=(16, 8), sticky="ew")
@@ -346,7 +347,7 @@ class MarketsPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             info_card,
             text=info_text,
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             text_color=("#c0c8e0", "#c0c8e0"),
             justify="left",
             anchor="w",
@@ -364,7 +365,7 @@ class MarketsPanel(ctk.CTkFrame):
             frame,
             textvariable=variable,
             placeholder_text=placeholder,
-            font=ctk.CTkFont(family="Segoe UI", size=12),
+            font=ctk.CTkFont(family=ui_font_family(), size=12),
             fg_color=_BG_INPUT,
             border_color=_ACCENT,
             border_width=1,

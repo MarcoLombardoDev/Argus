@@ -1,4 +1,6 @@
 # Argus — Advanced Market Forecast & AI Analysis
+from core.fonts import ui_font_family
+
 # Copyright (C) 2026 Marco Lombardo
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
@@ -58,7 +60,7 @@ class ConfigPanel(ctk.CTkScrollableFrame):
             ctk.CTkLabel(
                 left_frame,
                 text=text,
-                font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+                font=ctk.CTkFont(family=ui_font_family(), size=11, weight="bold"),
                 text_color=("#f0b90b", "#f0b90b"),
                 anchor="w",
             ).grid(row=row, column=0, padx=16, pady=(16, 4), sticky="ew")
@@ -79,7 +81,7 @@ class ConfigPanel(ctk.CTkScrollableFrame):
             left_frame,
             values=["cpu", "gpu"],
             variable=self._backend_var,
-            font=ctk.CTkFont(family="Segoe UI", size=12),
+            font=ctk.CTkFont(family=ui_font_family(), size=12),
             fg_color=("#2b3139", "#2b3139"),
             selected_color=("#f0b90b", "#f0b90b"),
             selected_hover_color=("#d39e00", "#d39e00"),
@@ -89,7 +91,7 @@ class ConfigPanel(ctk.CTkScrollableFrame):
         )
         self._backend_seg.grid(row=r, column=0, padx=16, pady=(4, 2), sticky="ew"); r += 1
         apply_binance_tab_style(self._backend_seg)
-        ctk.CTkLabel(left_frame, text="Select 'cpu' for CPU or 'gpu' if you have an NVIDIA card configured with CUDA to load TimesFM quickly.", font=ctk.CTkFont(family="Segoe UI", size=10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
+        ctk.CTkLabel(left_frame, text="Select 'cpu' for CPU or 'gpu' if you have an NVIDIA card configured with CUDA to load TimesFM quickly.", font=ctk.CTkFont(family=ui_font_family(), size=10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
 
         # Model checkpoint
         label("TimesFM Model", row=r); r += 1
@@ -102,7 +104,7 @@ class ConfigPanel(ctk.CTkScrollableFrame):
                 "google/timesfm-1.0-200m-pytorch",
             ],
             variable=self._model_var,
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             fg_color=("#2b3139", "#2b3139"),
             button_color=("#f0b90b", "#f0b90b"),
             button_hover_color=("#d39e00", "#d39e00"),
@@ -113,7 +115,7 @@ class ConfigPanel(ctk.CTkScrollableFrame):
             height=36,
         )
         self._model_menu.grid(row=r, column=0, padx=16, pady=(4, 2), sticky="ew"); r += 1
-        ctk.CTkLabel(left_frame, text="The Google TimesFM (Time Series Foundation Model) for statistical time-series forecasting.", font=ctk.CTkFont(family="Segoe UI", size=10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
+        ctk.CTkLabel(left_frame, text="The Google TimesFM (Time Series Foundation Model) for statistical time-series forecasting.", font=ctk.CTkFont(family=ui_font_family(), size=10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
         
         # HF Token
         label("Hugging Face (HF) Token (optional)", row=r); r += 1
@@ -126,7 +128,7 @@ class ConfigPanel(ctk.CTkScrollableFrame):
         self._hf_token_entry = ctk.CTkEntry(
             hf_frame,
             textvariable=self._hf_token_var,
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             placeholder_text="hf_xxxxxxxxxxxxxxxxxxxx (leave empty for anonymous)",
             show="*",
             fg_color=("#2b3139", "#2b3139"),
@@ -157,7 +159,7 @@ class ConfigPanel(ctk.CTkScrollableFrame):
         )
         hf_btn.grid(row=0, column=1, padx=(4, 0))
         
-        ctk.CTkLabel(left_frame, text="Token required if you encounter download rate limits on Hugging Face servers.", font=ctk.CTkFont(family="Segoe UI", size=10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
+        ctk.CTkLabel(left_frame, text="Token required if you encounter download rate limits on Hugging Face servers.", font=ctk.CTkFont(family=ui_font_family(), size=10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
         
         sep(row=r); r += 1
 
@@ -166,7 +168,7 @@ class ConfigPanel(ctk.CTkScrollableFrame):
             left_frame,
             text="💾 Save Settings",
             command=self._save_config,
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             fg_color=("#f0b90b", "#f0b90b"),
             hover_color=("#d39e00", "#d39e00"),
             text_color="#181a20",
@@ -190,7 +192,7 @@ class ConfigPanel(ctk.CTkScrollableFrame):
         ctk.CTkLabel(
             info_card,
             text="💡 TIME-SERIES FORECAST LOGIC",
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             text_color=("#f0b90b", "#f0b90b"),
             anchor="w",
         ).grid(row=0, column=0, padx=16, pady=(16, 8), sticky="ew")
@@ -213,7 +215,7 @@ class ConfigPanel(ctk.CTkScrollableFrame):
         ctk.CTkLabel(
             info_card,
             text=info_text,
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             text_color=("#c0c8e0", "#c0c8e0"),
             justify="left",
             anchor="w",
@@ -228,7 +230,7 @@ class ConfigPanel(ctk.CTkScrollableFrame):
         ctk.CTkLabel(
             parent,
             text=text,
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             text_color=("#8090b0", "#8090b0"),
             anchor="w",
         ).grid(row=row, column=0, padx=16, pady=(8, 2), sticky="ew")

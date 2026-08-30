@@ -314,3 +314,56 @@ class TestStartsMaximised:
         assert "self._maximize" in source.split("def _maximize", 1)[0], (
             "_maximize is defined but never scheduled"
         )
+
+
+class TestInterfaceFont:
+    """One font across the four, named rather than left to a default.
+
+    Arial was hard-coded in the other two products — nowhere else — which is what made those
+    labels the odd ones out. Nothing asks for it now, and nothing relies on
+    whichever family the toolkit would have picked.
+    """
+
+    PREFERENCE = (
+        "Segoe UI",
+        "SF Pro Text",
+        "Helvetica Neue",
+        "Noto Sans",
+        "DejaVu Sans",
+    )
+
+    def test_the_preference_list_is_the_shared_one(self):
+        from core.fonts import UI_FONT_PREFERENCE
+        assert UI_FONT_PREFERENCE == self.PREFERENCE
+
+    def test_nothing_asks_for_arial(self):
+        import re
+
+        for path in sorted(str(p.relative_to(REPO)) for p in (REPO / "gui").glob("*.py")):
+            source = (REPO / path).read_text(encoding="utf-8")
+            code = "\n".join(
+                line for line in source.splitlines()
+                if not line.lstrip().startswith("#")
+            )
+            assert not re.search(r'"Arial"', code), f"{path} still asks for Arial"
+
+    def test_the_family_resolves_to_something_real(self):
+        pytest.importorskip("tkinter", reason="the toolkit is not installed here")
+        import tkinter as tk
+
+        from core.fonts import ui_font_family
+        try:
+            root = tk.Tk()
+        except tk.TclError as exc:
+            pytest.skip(f"no display: {exc}")
+        try:
+            from tkinter import font as tkfont
+
+            family = ui_font_family()
+            assert family, "no family was resolved"
+            # Either one of ours, or the one Tk itself would have used — never
+            # a name the system will silently substitute for something else.
+            assert (family in self.PREFERENCE
+                    or family == tkfont.nametofont("TkDefaultFont").actual("family"))
+        finally:
+            root.destroy()

@@ -18,6 +18,7 @@ import threading
 import queue
 import datetime
 
+from core.fonts import ui_font_family
 from core.portfolio_manager import PortfolioManager
 from core.data_manager import save_settings
 from gui.utils import apply_binance_tab_style
@@ -49,11 +50,11 @@ class PortfolioPanel(ctk.CTkFrame):
 
         ctk.CTkLabel(
             hdr, text="💼 Portfolio",
-            font=ctk.CTkFont("Segoe UI", 13, "bold"), text_color="#f0b90b",
+            font=ctk.CTkFont(ui_font_family(), 13, "bold"), text_color="#f0b90b",
         ).grid(row=0, column=0, sticky="w", padx=(0, 20))
 
         self._status_lbl = ctk.CTkLabel(
-            hdr, text="Ready.", font=ctk.CTkFont("Segoe UI", 11), text_color=COLOR_MUTED, anchor="w",
+            hdr, text="Ready.", font=ctk.CTkFont(ui_font_family(), 11), text_color=COLOR_MUTED, anchor="w",
         )
         self._status_lbl.grid(row=0, column=1, sticky="ew")
 
@@ -142,10 +143,10 @@ class PortfolioPanel(ctk.CTkFrame):
         pm_settings = self.settings.get("portfolio_manager", {})
         
         def lbl(text, r, c):
-            ctk.CTkLabel(left_frame, text=text, font=ctk.CTkFont("Segoe UI", 11, "bold")).grid(row=r, column=c, padx=10, pady=5, sticky="w")
+            ctk.CTkLabel(left_frame, text=text, font=ctk.CTkFont(ui_font_family(), 11, "bold")).grid(row=r, column=c, padx=10, pady=5, sticky="w")
             
         def section(title, r):
-            ctk.CTkLabel(left_frame, text=title, font=ctk.CTkFont("Segoe UI", 13, "bold"), text_color=COLOR_ACCENT).grid(row=r, column=0, columnspan=2, padx=10, pady=(15,5), sticky="w")
+            ctk.CTkLabel(left_frame, text=title, font=ctk.CTkFont(ui_font_family(), 13, "bold"), text_color=COLOR_ACCENT).grid(row=r, column=0, columnspan=2, padx=10, pady=(15,5), sticky="w")
             
         r = 0
         section("Exchange Connection", r); r+=1
@@ -273,7 +274,7 @@ class PortfolioPanel(ctk.CTkFrame):
             left_frame,
             values=_exc_labels,
             variable=self._exchange_var,
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             fg_color=("#2b3139", "#2b3139"),
             button_color=("#f0b90b", "#f0b90b"),
             button_hover_color=("#d39e00", "#d39e00"),
@@ -335,7 +336,7 @@ class PortfolioPanel(ctk.CTkFrame):
         r += 1
         
         self._use_exchange_var = ctk.BooleanVar(value=pm_settings.get("useExchangeBalance", False))
-        ctk.CTkSwitch(left_frame, text="Enable Real Trading (Execute orders on Exchange)", variable=self._use_exchange_var, font=ctk.CTkFont("Segoe UI", 11, "bold"), progress_color=COLOR_ACCENT).grid(row=r, column=0, columnspan=2, padx=10, pady=5, sticky="w"); r+=1
+        ctk.CTkSwitch(left_frame, text="Enable Real Trading (Execute orders on Exchange)", variable=self._use_exchange_var, font=ctk.CTkFont(ui_font_family(), 11, "bold"), progress_color=COLOR_ACCENT).grid(row=r, column=0, columnspan=2, padx=10, pady=5, sticky="w"); r+=1
         
         lbl("Portfolio Refresh (min)", r, 0)
         self._refresh_min_var = ctk.StringVar(value=str(pm_settings.get("refresh_min", 1.0)))
@@ -363,7 +364,7 @@ class PortfolioPanel(ctk.CTkFrame):
             left_frame,
             variable=self._sizing_mode_var,
             values=["margin_pct", "risk_pct"],
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             fg_color=("#2b3139", "#2b3139"),
             button_color=("#f0b90b", "#f0b90b"),
             button_hover_color=("#d39e00", "#d39e00"),
@@ -381,15 +382,15 @@ class PortfolioPanel(ctk.CTkFrame):
         lbl("Minimum DCA Spacing (%)", r, 0)
         self._dca_dist_var = ctk.StringVar(value=str(self.settings.get("dca_distance_pct", 2.0)))
         ctk.CTkEntry(left_frame, textvariable=self._dca_dist_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
-        ctk.CTkLabel(left_frame, text="Minimum % distance from the average entry price before being able to open a new\norder in the same direction (prevents position spamming on the same level).", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
+        ctk.CTkLabel(left_frame, text="Minimum % distance from the average entry price before being able to open a new\norder in the same direction (prevents position spamming on the same level).", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
         
         self._multi_entry_var = ctk.BooleanVar(value=self.settings.get("allow_multiple_entries", False))
-        ctk.CTkSwitch(left_frame, text="Enable Multiple Entries (DCA/Grid)", variable=self._multi_entry_var, font=ctk.CTkFont("Segoe UI", 11, "bold"), progress_color=COLOR_ACCENT).grid(row=r, column=0, columnspan=2, padx=10, pady=(10, 0), sticky="w"); r+=1
-        ctk.CTkLabel(left_frame, text="If ON: accumulates positions in the same direction only if the price deviates from the DCA Spacing.\nIf OFF: discards new signals in the same direction to avoid order spamming.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
+        ctk.CTkSwitch(left_frame, text="Enable Multiple Entries (DCA/Grid)", variable=self._multi_entry_var, font=ctk.CTkFont(ui_font_family(), 11, "bold"), progress_color=COLOR_ACCENT).grid(row=r, column=0, columnspan=2, padx=10, pady=(10, 0), sticky="w"); r+=1
+        ctk.CTkLabel(left_frame, text="If ON: accumulates positions in the same direction only if the price deviates from the DCA Spacing.\nIf OFF: discards new signals in the same direction to avoid order spamming.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
         
         self._stop_rev_var = ctk.BooleanVar(value=self.settings.get("stop_and_reverse", True))
-        ctk.CTkSwitch(left_frame, text="Stop & Reverse (No simultaneous Hedge)", variable=self._stop_rev_var, font=ctk.CTkFont("Segoe UI", 11, "bold"), progress_color=COLOR_ACCENT).grid(row=r, column=0, columnspan=2, padx=10, pady=(5, 0), sticky="w"); r+=1
-        ctk.CTkLabel(left_frame, text="If ON: in case of an opposite signal, closes the old position before opening the new one (anti-double fee).\nIf OFF: keeps the old position in loss as a hedge, closes only if in profit.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
+        ctk.CTkSwitch(left_frame, text="Stop & Reverse (No simultaneous Hedge)", variable=self._stop_rev_var, font=ctk.CTkFont(ui_font_family(), 11, "bold"), progress_color=COLOR_ACCENT).grid(row=r, column=0, columnspan=2, padx=10, pady=(5, 0), sticky="w"); r+=1
+        ctk.CTkLabel(left_frame, text="If ON: in case of an opposite signal, closes the old position before opening the new one (anti-double fee).\nIf OFF: keeps the old position in loss as a hedge, closes only if in profit.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
 
         section("Trading Rules", r); r+=1
         
@@ -400,22 +401,22 @@ class PortfolioPanel(ctk.CTkFrame):
         lbl("Min Exp. Return Threshold (%)", r, 0)
         self._min_exp_ret_var = ctk.StringVar(value=str(self.settings.get("ensemble_min_return_pct", 0.30)))
         ctk.CTkEntry(left_frame, textvariable=self._min_exp_ret_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
-        ctk.CTkLabel(left_frame, text="Minimum expected % variation calculated by the Ensemble to open the order. Discards sideways markets.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
+        ctk.CTkLabel(left_frame, text="Minimum expected % variation calculated by the Ensemble to open the order. Discards sideways markets.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
         
         lbl("Pre-Flight: Max Drift (%)", r, 0)
         self._pre_flight_drift_var = ctk.StringVar(value=str(pm_settings.get("pre_flight_drift_threshold", 25.0)))
         ctk.CTkEntry(left_frame, textvariable=self._pre_flight_drift_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
-        ctk.CTkLabel(left_frame, text="Maximum % price deviation towards the target at sending time (Slippage Guard).", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
+        ctk.CTkLabel(left_frame, text="Maximum % price deviation towards the target at sending time (Slippage Guard).", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
 
         lbl("Pre-Flight: Max Imbalance (%)", r, 0)
         self._pre_flight_imb_var = ctk.StringVar(value=str(pm_settings.get("pre_flight_imbalance_threshold", 60.0)))
         ctk.CTkEntry(left_frame, textvariable=self._pre_flight_imb_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
-        ctk.CTkLabel(left_frame, text="Maximum counter-pressure % tolerated in the Order Book at sending time.", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
+        ctk.CTkLabel(left_frame, text="Maximum counter-pressure % tolerated in the Order Book at sending time.", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
         
         lbl("Maximum Allowed Leverage", r, 0)
         self._max_leverage_var = ctk.StringVar(value=str(pm_settings.get("maxLeverage", 10)))
         ctk.CTkEntry(left_frame, textvariable=self._max_leverage_var).grid(row=r, column=1, padx=10, pady=5, sticky="ew"); r+=1
-        ctk.CTkLabel(left_frame, text="Upper limit of dynamic leverage (calculated based on 15m ATR and SL).", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
+        ctk.CTkLabel(left_frame, text="Upper limit of dynamic leverage (calculated based on 15m ATR and SL).", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left").grid(row=r, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w"); r+=1
         
         lbl("Max SL Cap (ROI %)", r, 0)
         self._max_sl_roi_var = ctk.StringVar(value=str(pm_settings.get("maxStopLossROI", 80.0)))
@@ -429,7 +430,7 @@ class PortfolioPanel(ctk.CTkFrame):
             left_frame,
             text="💾 Save Settings",
             command=self._save_settings,
-            font=ctk.CTkFont("Segoe UI", 12, "bold"),
+            font=ctk.CTkFont(ui_font_family(), 12, "bold"),
             fg_color="#f0b90b",
             hover_color="#d39e00",
             text_color="#181a20",
@@ -459,7 +460,7 @@ class PortfolioPanel(ctk.CTkFrame):
             "• TECHNICAL SL/TP: The levels suggested by the AI are used, otherwise the system applies a dynamic calculation based on the 14-period ATR (Average True Range)."
         )
         ctk.CTkLabel(
-            info_card, text=info_text, font=ctk.CTkFont("Segoe UI", 11),
+            info_card, text=info_text, font=ctk.CTkFont(ui_font_family(), 11),
             text_color=("#c0c8e0", "#c0c8e0"), justify="left", anchor="w", wraplength=380
         ).pack(fill="both", expand=True, padx=16, pady=16)
         
@@ -542,10 +543,10 @@ class PortfolioPanel(ctk.CTkFrame):
         toolbar = ctk.CTkFrame(tab, fg_color="transparent")
         toolbar.pack(fill="x", padx=10, pady=10)
         
-        self._lbl_balance = ctk.CTkLabel(toolbar, text="Balance: ...", font=ctk.CTkFont("Segoe UI", 12, "bold"))
+        self._lbl_balance = ctk.CTkLabel(toolbar, text="Balance: ...", font=ctk.CTkFont(ui_font_family(), 12, "bold"))
         self._lbl_balance.pack(side="left")
         
-        self._btn_sell = ctk.CTkButton(toolbar, text="📉 Sell Selected", command=self._sell_selected_portfolio, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont("Segoe UI", 12, "bold"))
+        self._btn_sell = ctk.CTkButton(toolbar, text="📉 Sell Selected", command=self._sell_selected_portfolio, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont(ui_font_family(), 12, "bold"))
         self._btn_sell.pack(side="right", padx=(10, 0))
         
         # Table
@@ -756,13 +757,13 @@ class PortfolioPanel(ctk.CTkFrame):
         toolbar = ctk.CTkFrame(tab, fg_color="transparent")
         toolbar.pack(fill="x", padx=10, pady=10)
         
-        self._btn_generate = ctk.CTkButton(toolbar, text="🔄 Generate Proposals", command=self._generate_orders, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont("Segoe UI", 12, "bold"))
+        self._btn_generate = ctk.CTkButton(toolbar, text="🔄 Generate Proposals", command=self._generate_orders, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont(ui_font_family(), 12, "bold"))
         self._btn_generate.pack(side="left")
         
-        self._btn_execute = ctk.CTkButton(toolbar, text="🚀 Execute Orders", command=self._execute_orders, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont("Segoe UI", 12, "bold"), state="disabled")
+        self._btn_execute = ctk.CTkButton(toolbar, text="🚀 Execute Orders", command=self._execute_orders, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont(ui_font_family(), 12, "bold"), state="disabled")
         self._btn_execute.pack(side="right", padx=(10, 0))
         
-        self._btn_delete = ctk.CTkButton(toolbar, text="🗑️ Delete Selected", command=self._delete_selected_orders, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont("Segoe UI", 12, "bold"), state="disabled")
+        self._btn_delete = ctk.CTkButton(toolbar, text="🗑️ Delete Selected", command=self._delete_selected_orders, width=150, fg_color="#f0b90b", hover_color="#d39e00", text_color="#181a20", font=ctk.CTkFont(ui_font_family(), 12, "bold"), state="disabled")
         self._btn_delete.pack(side="right")
         
         tree_frame = tk.Frame(tab, bg="#0d0d1a")

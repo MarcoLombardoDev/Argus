@@ -16,6 +16,7 @@ import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
 import pandas as pd
+from core.fonts import ui_font_family
 from core.analyzer import format_price
 from gui.utils import dark_scrollbar
 
@@ -72,7 +73,7 @@ class ResultsTable(ctk.CTkFrame):
         self._last_analysis_label = ctk.CTkLabel(
             toolbar,
             text="Last Analysis: None",
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             text_color=("#848e9c", "#848e9c"),
             fg_color="transparent",
         )
@@ -84,7 +85,7 @@ class ResultsTable(ctk.CTkFrame):
             toolbar,
             placeholder_text="Search name or symbol...",
             textvariable=self._search_var,
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             fg_color=("#2b3139", "#2b3139"),
             border_color=("#f0b90b", "#f0b90b"),
             border_width=1,
@@ -99,7 +100,7 @@ class ResultsTable(ctk.CTkFrame):
             toolbar,
             text="📊 Excel",
             command=self._export_excel,
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             fg_color=("#2b3139", "#2b3139"), hover_color=("#343a40", "#343a40"),
             border_color=("#f0b90b", "#f0b90b"),
             border_width=1,
@@ -139,14 +140,14 @@ class ResultsTable(ctk.CTkFrame):
             foreground="#eaecef",
             fieldbackground="#181a20",
             rowheight=28,
-            font=("Segoe UI", 11),
+            font=(ui_font_family(), 11),
             borderwidth=0,
         )
         style.configure(
             "Argus.Treeview.Heading",
             background="#1e2329",
             foreground="#f0b90b",
-            font=("Segoe UI", 11, "bold"),
+            font=(ui_font_family(), 11, "bold"),
             borderwidth=0,
             relief="flat",
         )

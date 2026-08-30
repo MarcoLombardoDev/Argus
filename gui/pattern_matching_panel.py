@@ -9,6 +9,7 @@
 import customtkinter as ctk
 import threading
 from tkinter import ttk
+from core.fonts import ui_font_family
 from core.btc_pattern_matcher import BTCPatternMatcher
 from core.data_manager import save_pm_history, load_pm_history, save_settings
 from gui.utils import apply_binance_tab_style, dark_scrollbar
@@ -64,14 +65,14 @@ class PatternMatchingPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             sub_hdr,
             text="BTC Pattern Matching",
-            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=13, weight="bold"),
             text_color=_ACCENT,
         ).grid(row=0, column=0, sticky="w", padx=(0, 20))
 
         self.status_label = ctk.CTkLabel(
             sub_hdr,
             text="·  Ready. Run an analysis.",
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             text_color=_MUTED,
             anchor="w",
         )
@@ -81,7 +82,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
             sub_hdr,
             text="▶  Run Pattern Matching",
             command=self._start_analysis,
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             fg_color=_ACCENT,
             hover_color=_HOVER,
             text_color="#181a20",
@@ -177,7 +178,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
             ctk.CTkLabel(
                 parent,
                 text=text,
-                font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+                font=ctk.CTkFont(family=ui_font_family(), size=11, weight="bold"),
                 text_color=_ACCENT,
                 anchor="w",
             ).grid(row=row, column=0, padx=8, pady=(16, 4), sticky="ew")
@@ -186,7 +187,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
             ctk.CTkLabel(
                 parent,
                 text=text,
-                font=ctk.CTkFont(family="Segoe UI", size=11),
+                font=ctk.CTkFont(family=ui_font_family(), size=11),
                 text_color=_MUTED,
                 anchor="w",
             ).grid(row=row, column=0, padx=8, pady=(8, 2), sticky="ew")
@@ -205,7 +206,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             left_frame,
             text="The API key to authenticate historical price requests to CoinGecko (optional for demo limits).",
-            font=ctk.CTkFont(family="Segoe UI", size=10),
+            font=ctk.CTkFont(family=ui_font_family(), size=10),
             text_color=_MUTED,
             justify="left",
             anchor="w",
@@ -220,7 +221,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
         ctk.CTkEntry(
             left_frame,
             textvariable=self._history_years_var,
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             fg_color=("#16213e", "#16213e"),
             border_color=_ACCENT,
             border_width=1,
@@ -229,7 +230,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             left_frame,
             text="The amount of past years over which the KNN algorithm will search for historical patterns similar to the current one.",
-            font=ctk.CTkFont(family="Segoe UI", size=10),
+            font=ctk.CTkFont(family=ui_font_family(), size=10),
             text_color=_MUTED,
             justify="left",
             anchor="w",
@@ -240,7 +241,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
         ctk.CTkEntry(
             left_frame,
             textvariable=self._n_neighbors_var,
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             fg_color=("#2b3139", "#2b3139"),
             border_color=_ACCENT,
             border_width=1,
@@ -249,7 +250,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             left_frame,
             text="The number of most similar historical patterns (K) to consider for formulating the projection (default 5).",
-            font=ctk.CTkFont(family="Segoe UI", size=10),
+            font=ctk.CTkFont(family=ui_font_family(), size=10),
             text_color=_MUTED,
             justify="left",
             anchor="w",
@@ -261,7 +262,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
             left_frame,
             text="💾 Save Settings",
             command=self._save_pm_settings,
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             fg_color=_ACCENT,
             hover_color=_HOVER,
             text_color="#181a20",
@@ -288,7 +289,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             info_card,
             text="💡 KNN-DTW PATTERN MATCHING METHODOLOGY",
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             text_color=_ACCENT,
             anchor="w",
         ).grid(row=0, column=0, padx=16, pady=(16, 8), sticky="ew")
@@ -311,7 +312,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
         ctk.CTkLabel(
             info_card,
             text=info_text,
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             text_color=("#c0c8e0", "#c0c8e0"),
             justify="left",
             anchor="w",
@@ -329,7 +330,7 @@ class PatternMatchingPanel(ctk.CTkFrame):
             frame,
             textvariable=variable,
             placeholder_text=placeholder,
-            font=ctk.CTkFont(family="Segoe UI", size=12),
+            font=ctk.CTkFont(family=ui_font_family(), size=12),
             fg_color=("#2b3139", "#2b3139"),
             border_color=_ACCENT,
             border_width=1,

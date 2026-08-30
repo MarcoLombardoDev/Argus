@@ -18,6 +18,7 @@ import datetime
 import customtkinter as ctk
 from tkinter import ttk, messagebox
 
+from core.fonts import ui_font_family
 from core.data_manager import save_autotrading_log, load_autotrading_logs, save_settings
 from gui.utils import apply_binance_tab_style
 
@@ -80,7 +81,7 @@ class AutoTradingPanel(ctk.CTkFrame):
         except:
             pass
         style.configure("Auto.Treeview", background="#181a20", foreground="#eaecef", fieldbackground="#181a20", rowheight=30, borderwidth=0)
-        style.configure("Auto.Treeview.Heading", background="#1e2329", foreground=COLOR_ACCENT, font=("Segoe UI", 10, "bold"), borderwidth=0)
+        style.configure("Auto.Treeview.Heading", background="#1e2329", foreground=COLOR_ACCENT, font=(ui_font_family(), 10, "bold"), borderwidth=0)
         style.map("Auto.Treeview",
             background=[("selected", COLOR_ACCENT)],
             foreground=[("selected", "#181a20")],
@@ -96,11 +97,11 @@ class AutoTradingPanel(ctk.CTkFrame):
 
         ctk.CTkLabel(
             hdr, text="🤖 Auto Trading",
-            font=ctk.CTkFont("Segoe UI", 13, "bold"), text_color=COLOR_ACCENT,
+            font=ctk.CTkFont(ui_font_family(), 13, "bold"), text_color=COLOR_ACCENT,
         ).grid(row=0, column=0, sticky="w", padx=(0, 20))
 
         self._status_lbl = ctk.CTkLabel(
-            hdr, text="Inactive.", font=ctk.CTkFont("Segoe UI", 11), text_color=COLOR_MUTED, anchor="w",
+            hdr, text="Inactive.", font=ctk.CTkFont(ui_font_family(), 11), text_color=COLOR_MUTED, anchor="w",
         )
         self._status_lbl.grid(row=0, column=1, sticky="ew")
 
@@ -114,13 +115,13 @@ class AutoTradingPanel(ctk.CTkFrame):
         toolbar = ctk.CTkFrame(tab, fg_color="transparent")
         toolbar.pack(fill="x", padx=10, pady=10)
         
-        self._btn_start = ctk.CTkButton(toolbar, text="▶ Start", command=self._start_auto, width=150, fg_color=COLOR_ACCENT, hover_color=COLOR_HOVER, text_color="#181a20", font=ctk.CTkFont("Segoe UI", 12, "bold"))
+        self._btn_start = ctk.CTkButton(toolbar, text="▶ Start", command=self._start_auto, width=150, fg_color=COLOR_ACCENT, hover_color=COLOR_HOVER, text_color="#181a20", font=ctk.CTkFont(ui_font_family(), 12, "bold"))
         self._btn_start.pack(side="left")
         
-        self._countdown_lbl = ctk.CTkLabel(toolbar, text="", font=ctk.CTkFont("Segoe UI", 12, "bold"), text_color=COLOR_ACCENT)
+        self._countdown_lbl = ctk.CTkLabel(toolbar, text="", font=ctk.CTkFont(ui_font_family(), 12, "bold"), text_color=COLOR_ACCENT)
         self._countdown_lbl.pack(side="left", padx=20)
         
-        self._btn_stop = ctk.CTkButton(toolbar, text="⏹ Stop", command=self._stop_auto, width=150, fg_color=COLOR_ACCENT, hover_color=COLOR_HOVER, text_color="#181a20", font=ctk.CTkFont("Segoe UI", 12, "bold"), state="disabled")
+        self._btn_stop = ctk.CTkButton(toolbar, text="⏹ Stop", command=self._stop_auto, width=150, fg_color=COLOR_ACCENT, hover_color=COLOR_HOVER, text_color="#181a20", font=ctk.CTkFont(ui_font_family(), 12, "bold"), state="disabled")
         self._btn_stop.pack(side="right")
         
         # Log Treeview
@@ -157,8 +158,8 @@ class AutoTradingPanel(ctk.CTkFrame):
         right_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         right_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
         
-        ctk.CTkLabel(left_frame, text="Execution Interval", font=ctk.CTkFont("Segoe UI", 11, "bold")).grid(row=0, column=0, padx=10, pady=15, sticky="w")
-        ctk.CTkLabel(left_frame, text="Automatic (30s after the close of every 15 min candle)", font=ctk.CTkFont("Segoe UI", 11, slant="italic"), text_color=("#888888", "#888888")).grid(row=0, column=1, padx=10, pady=15, sticky="w")
+        ctk.CTkLabel(left_frame, text="Execution Interval", font=ctk.CTkFont(ui_font_family(), 11, "bold")).grid(row=0, column=0, padx=10, pady=15, sticky="w")
+        ctk.CTkLabel(left_frame, text="Automatic (30s after the close of every 15 min candle)", font=ctk.CTkFont(ui_font_family(), 11, slant="italic"), text_color=("#888888", "#888888")).grid(row=0, column=1, padx=10, pady=15, sticky="w")
 
         # Toggle for run weekend option
         auto_settings = self.settings.get("auto_trading", {})
@@ -167,16 +168,16 @@ class AutoTradingPanel(ctk.CTkFrame):
             left_frame,
             text="Execute also during weekends",
             variable=self._run_weekend_var,
-            font=ctk.CTkFont("Segoe UI", 11)
+            font=ctk.CTkFont(ui_font_family(), 11)
         )
         self._run_weekend_switch.grid(row=1, column=0, columnspan=2, padx=10, pady=(10, 2), sticky="w")
-        ctk.CTkLabel(left_frame, text="If active, the bot continues auto-trading on Saturdays and Sundays.\nIf deactivated, scans and orders are suspended during the weekend (low liquidity).", font=ctk.CTkFont("Segoe UI", 10), text_color="#888888", justify="left").grid(row=2, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w")
+        ctk.CTkLabel(left_frame, text="If active, the bot continues auto-trading on Saturdays and Sundays.\nIf deactivated, scans and orders are suspended during the weekend (low liquidity).", font=ctk.CTkFont(ui_font_family(), 10), text_color="#888888", justify="left").grid(row=2, column=0, columnspan=2, padx=35, pady=(0, 10), sticky="w")
 
         ctk.CTkButton(
             left_frame,
             text="💾 Save Settings",
             command=self._save_settings,
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             fg_color=COLOR_ACCENT,
             hover_color=COLOR_HOVER,
             text_color="#181a20",
@@ -210,7 +211,7 @@ class AutoTradingPanel(ctk.CTkFrame):
             "• Calculates correct Position Sizing based on the set risk and routes the order with SL/TP directly to the configured Exchange.\n\n"
             "💡 NOTE: Runs repeat automatically at the specified interval. The countdown shows the time remaining before the next cycle starts."
         )
-        ctk.CTkLabel(info_card, text=info_text, font=ctk.CTkFont("Segoe UI", 11), text_color=("#c0c8e0", "#c0c8e0"), justify="left", anchor="w", wraplength=380).pack(fill="both", expand=True, padx=16, pady=16)
+        ctk.CTkLabel(info_card, text=info_text, font=ctk.CTkFont(ui_font_family(), 11), text_color=("#c0c8e0", "#c0c8e0"), justify="left", anchor="w", wraplength=380).pack(fill="both", expand=True, padx=16, pady=16)
         
         # Populate logs on startup
         self._refresh_logs_ui()

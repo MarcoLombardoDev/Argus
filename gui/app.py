@@ -32,6 +32,7 @@ from urllib.parse import quote
 import customtkinter as ctk
 from tkinter import messagebox
 
+from core.fonts import ui_font_family
 from core.version import APP_TITLE, CONTACT_EMAIL, __version__
 
 from core.data_manager import (
@@ -272,7 +273,7 @@ class ArgusApp(ctk.CTk):
                 "© 2026 Marco Lombardo — Argus  |  Licensed under AGPL-3.0  |  "
                 "Commercial licensing:"
             ),
-            font=ctk.CTkFont(family="Segoe UI", size=9),
+            font=ctk.CTkFont(family=ui_font_family(), size=9),
             text_color=("#4a5568", "#4a5568"),
         )
         self._footer_label.pack(side="left")
@@ -280,7 +281,7 @@ class ArgusApp(ctk.CTk):
         self._footer_email = ctk.CTkLabel(
             center,
             text=CONTACT_EMAIL,
-            font=ctk.CTkFont(family="Segoe UI", size=9, underline=True),
+            font=ctk.CTkFont(family=ui_font_family(), size=9, underline=True),
             text_color=("#4a9eff", "#4a9eff"),
             cursor="hand2",
         )
@@ -313,7 +314,7 @@ class ArgusApp(ctk.CTk):
         ctk.CTkLabel(
             topbar,
             text="👁️ ARGUS",
-            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=18, weight="bold"),
             text_color=_ACCENT,
         ).grid(row=0, column=0, padx=(20, 16), sticky="w")
 
@@ -331,7 +332,7 @@ class ArgusApp(ctk.CTk):
             nav_frame,
             text="🤖  Auto Trading",
             command=lambda: self._switch_view("autotrading"),
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             fg_color=_BG_INPUT,
             hover_color=_HOVER,
             border_color=_ACCENT,
@@ -346,7 +347,7 @@ class ArgusApp(ctk.CTk):
             nav_frame,
             text="💼  Portfolio",
             command=lambda: self._switch_view("portfolio"),
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             fg_color=_BG_INPUT,
             hover_color=_HOVER,
             border_color=_ACCENT,
@@ -361,7 +362,7 @@ class ArgusApp(ctk.CTk):
             nav_frame,
             text="🌐  Market",
             command=lambda: self._switch_view("markets"),
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             fg_color=_BG_INPUT,
             hover_color=_HOVER,
             border_color=_ACCENT,
@@ -376,7 +377,7 @@ class ArgusApp(ctk.CTk):
             nav_frame,
             text="🔍  Pattern Matching",
             command=lambda: self._switch_view("pm"),
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             fg_color=_BG_INPUT,
             hover_color=_HOVER,
             border_color=_ACCENT,
@@ -391,7 +392,7 @@ class ArgusApp(ctk.CTk):
             nav_frame,
             text="📈  Time-Series Analysis",
             command=lambda: self._switch_view("temporal"),
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             fg_color=_ACCENT,
             hover_color=_HOVER,
             height=40,
@@ -403,7 +404,7 @@ class ArgusApp(ctk.CTk):
             nav_frame,
             text="🤖  Advanced Analysis",
             command=lambda: self._switch_view("ai"),
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             fg_color=_BG_INPUT,
             hover_color=_HOVER,
             border_color=_ACCENT,
@@ -498,7 +499,7 @@ class ArgusApp(ctk.CTk):
         ctk.CTkLabel(
             sub_hdr,
             text="Time-Series Analysis",
-            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=13, weight="bold"),
             text_color=_ACCENT,
         ).grid(row=0, column=0, sticky="w", padx=(0, 20))
 
@@ -506,7 +507,7 @@ class ArgusApp(ctk.CTk):
         self._status_label = ctk.CTkLabel(
             sub_hdr,
             text="·  Ready. Run an analysis.",
-            font=ctk.CTkFont(family="Segoe UI", size=11),
+            font=ctk.CTkFont(family=ui_font_family(), size=11),
             text_color=_MUTED,
             anchor="w",
         )
@@ -517,7 +518,7 @@ class ArgusApp(ctk.CTk):
             sub_hdr,
             text="▶  Run Time-Series Analysis",
             command=self._start_analysis,
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            font=ctk.CTkFont(family=ui_font_family(), size=12, weight="bold"),
             fg_color=_ACCENT,
             hover_color=_HOVER,
             text_color="#181a20",
