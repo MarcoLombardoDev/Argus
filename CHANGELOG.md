@@ -7,6 +7,50 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Changed
+- **TimesFM 3.0 is now the model Argus loads.** `timesfm` is pinned to
+  `>=3.0.0`, the default checkpoint is `google/timesfm-3.0-pytorch`, and
+  `huggingface-hub` moves to `>=0.28.0` to match what the new release
+  requires.
+
+  TimesFM 3.0 is not a drop-in swap. It lives in a separate `timesfm3`
+  package with a different API: a `TimesFM3Forecaster` that builds its model
+  in the constructor with no `compile` step, and `predict`/`predict_batch`
+  returning `ForecastOutput` objects instead of a `forecast` returning a
+  `(point, quantile)` tuple — and `predict_batch` *yields*, so its result has
+  to be drained before anything indexes it.
+
+  **The older generations still load.** The same `timesfm` release still ships
+  the 2.5 models, so `core/forecaster.py` decides which API a checkpoint needs
+  from its name and branches. A settings file pinned to a 1.x or 2.x
+  checkpoint keeps working rather than breaking on upgrade, and the model
+  dropdown still offers them.
+
+- **The quantile columns moved, and reading the old ones would have been
+  silent.** 2.5 returns the point forecast first and the nine quantiles after
+  it, so the 10th percentile is column 1 and the 90th is column 9. 3.0 returns
+  one column per configured quantile — nine of them — so those become columns
+  0 and 8. Carrying the old indices over raises `IndexError` on a 3.0 row,
+  which the surrounding `except` turns into a confidence of `0.0`: every
+  forecast would have reported zero confidence, and the ensemble would have
+  quietly weighted TimesFM out of the orders it sizes. The positions are now
+  looked up from the model's own quantile list instead of hard-coded, with a
+  regression test that fails if either layout is assumed.
+
+  The confidence *formula* is unchanged, and its `0.10` divisor is still the
+  one calibrated against 2.5. A different model's fan need not be the same
+  width, so the score it produces is worth re-checking against live output —
+  noted in `core/forecaster.py` and in the README rather than left implicit.
+
+- The context window (96 candles) and horizon (8) are deliberately unchanged.
+  TimesFM 3.0 accepts a far longer context, but widening it changes what the
+  forecast means to the ensemble and to order sizing, which is a strategy
+  decision rather than part of a version upgrade.
+
+- The default checkpoint had been written out as a literal in four places.
+  It is now `core.forecaster.DEFAULT_CHECKPOINT`, imported by the GUI, so the
+  loader and the interface cannot drift apart.
+
 ### Added
 - **An application icon, where there was none.** The spec had the line
   commented out with "uncomment once an icon file exists", and nothing set the

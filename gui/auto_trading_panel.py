@@ -22,6 +22,7 @@ import customtkinter as ctk
 
 from core.data_manager import load_autotrading_logs, save_autotrading_log, save_settings
 from core.fonts import ui_font_family
+from core.forecaster import DEFAULT_CHECKPOINT
 from gui.utils import apply_binance_tab_style
 
 COLOR_ACCENT = "#f0b90b"
@@ -498,7 +499,7 @@ class AutoTradingPanel(ctk.CTkFrame):
             backend = cfg.get("backend") or "cpu"
             # "model_checkpoint" is persisted as "" — a present-but-empty key, so
             # the `.get(k, default)` fallback would never fire.
-            checkpoint = cfg.get("model_checkpoint") or "google/timesfm-2.5-200m-pytorch"
+            checkpoint = cfg.get("model_checkpoint") or DEFAULT_CHECKPOINT
 
 
             cg_key     = cfg.get("coingecko_api_key", "")

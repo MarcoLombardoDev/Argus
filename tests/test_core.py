@@ -812,5 +812,178 @@ def test_forecaster_atr_fallback():
     assert atr > 0
 
 
+# ─────────────────────────────────────────────────────────────
+# TimesFM 3.0 vs the 1.x/2.x API
+#
+# The weights are never downloaded here; these drive the two code paths with
+# stand-ins shaped like the real models, which is the part Argus owns.
+# ─────────────────────────────────────────────────────────────
+
+class _FakeV3Config:
+    """Mirrors timesfm3's _ModelConfig fields that the forecaster reads."""
+    quantiles = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    median_quantile_index = 4
+
+
+class _FakeV3Output:
+    def __init__(self, forecast, quantiles):
+        self.forecast = forecast
+        self.quantiles = quantiles
+
+
+class _FakeV3Model:
+    """TimesFM 3.0 returns ForecastOutput objects; quantiles are one column
+    per configured quantile, so q0.1 is column 0 and q0.9 is column 8."""
+
+    def __init__(self, low=99.0, mid=100.0, high=101.0):
+        self.config = _FakeV3Config()
+        self.calls = []
+        row = [low, 0, 0, 0, mid, 0, 0, 0, high]
+        self._quantiles = np.array([row] * 8, dtype=float)
+        self._forecast = np.array([mid] * 8, dtype=float)
+
+    def predict(self, context, horizon, return_quantiles=False, **kw):
+        self.calls.append(("predict", len(context), horizon, return_quantiles))
+        return _FakeV3Output(self._forecast, self._quantiles)
+
+    def predict_batch(self, contexts, horizon, return_quantiles=False, **kw):
+        self.calls.append(("predict_batch", len(contexts), horizon, return_quantiles))
+        # The real one is a generator: returning an iterator here is the point.
+        return iter(
+            _FakeV3Output(self._forecast, self._quantiles) for _ in contexts
+        )
+
+
+class _FakeLegacyModel:
+    """TimesFM 2.5 returns (point, quantile) tuples, and its quantile rows put
+    the point forecast first, so q0.1 is column 1 and q0.9 is column 9."""
+
+    def __init__(self, low=99.0, mid=100.0, high=101.0):
+        self.calls = []
+        self._points = [[mid] * 8]
+        row = [mid, low, 0, 0, 0, 0, 0, 0, 0, high]
+        self._quantiles = [[row] * 8]
+
+    def forecast(self, horizon, inputs):
+        self.calls.append(("forecast", len(inputs), horizon))
+        return self._points * len(inputs), self._quantiles * len(inputs)
+
+
+def _context_frame(points=120, price=100.0):
+    return pd.DataFrame({"Close": np.full(points, price, dtype=float)})
+
+
+def test_checkpoint_decides_which_timesfm_api_is_used():
+    from core.forecaster import CryptoForecaster, uses_legacy_api
+
+    assert uses_legacy_api("google/timesfm-2.5-200m-pytorch") is True
+    assert uses_legacy_api("google/timesfm-2.0-500m-pytorch") is True
+    assert uses_legacy_api("google/timesfm-1.0-200m-pytorch") is True
+    assert uses_legacy_api("google/timesfm-3.0-pytorch") is False
+    # A local directory or a private fine-tune is treated as the current
+    # generation rather than silently routed to the old loader.
+    assert uses_legacy_api("/models/my-finetune") is False
+    assert uses_legacy_api("") is False
+
+    assert CryptoForecaster("google/timesfm-2.5-200m-pytorch")._legacy is True
+    assert CryptoForecaster()._legacy is False
+
+
+def test_v3_reads_the_tenth_and_ninetieth_percentile_from_the_right_columns():
+    """Regression: 2.5's quantile row has ten columns and 3.0's has nine, so
+    the 2.5 indices would read the wrong percentiles out of a 3.0 row — or
+    raise, which the caller turns into a silent 0% confidence."""
+    from core.forecaster import CryptoForecaster
+
+    f = CryptoForecaster()
+    f._model = _FakeV3Model()
+    f._model_loaded = True
+
+    assert f._v3_quantile_indices() == (0, 8)
+
+    # A 2% band on a mid of 100 is a fifth of the 10% zero point -> 80%.
+    price, confidence = f.forecast("BTC", _context_frame(), horizon=8)
+    assert price == pytest.approx(100.0)
+    assert confidence == pytest.approx(80.0)
+
+
+def test_v3_quantile_indices_survive_a_different_quantile_set():
+    from core.forecaster import CryptoForecaster
+
+    f = CryptoForecaster()
+    f._model = _FakeV3Model()
+    f._model.config.quantiles = [0.25, 0.5, 0.75]
+    # No 0.1/0.9 to find: fall back to the widest pair available.
+    assert f._v3_quantile_indices() == (0, 2)
+
+
+def test_v3_forecast_asks_for_quantiles_and_passes_the_context():
+    from core.forecaster import CryptoForecaster
+
+    f = CryptoForecaster()
+    f._model = _FakeV3Model()
+    f._model_loaded = True
+    f.forecast("BTC", _context_frame(points=200), horizon=8)
+
+    kind, context_len, horizon, return_quantiles = f._model.calls[0]
+    assert kind == "predict"
+    assert context_len == 96          # the window is trimmed, not sent whole
+    assert horizon == 8
+    assert return_quantiles is True   # without it, quantiles come back None
+
+
+def test_v3_batch_drains_the_iterator_it_is_given():
+    """predict_batch yields; indexing into a generator would raise."""
+    from core.forecaster import CryptoForecaster
+
+    f = CryptoForecaster()
+    f._model = _FakeV3Model()
+    f._model_loaded = True
+
+    out = f.forecast_batch({"BTC": _context_frame(), "ETH": _context_frame()}, horizon=8)
+    assert set(out) == {"BTC", "ETH"}
+    for row in out.values():
+        assert row["confidence"] == pytest.approx(80.0)
+        assert len(row["preds"]) == 8
+
+
+def test_legacy_path_still_reads_its_own_column_layout():
+    from core.forecaster import CryptoForecaster
+
+    f = CryptoForecaster("google/timesfm-2.5-200m-pytorch")
+    f._model = _FakeLegacyModel()
+    f._model_loaded = True
+
+    price, confidence = f.forecast("BTC", _context_frame(), horizon=8)
+    assert price == pytest.approx(100.0)
+    assert confidence == pytest.approx(80.0)
+
+    batch = f.forecast_batch({"BTC": _context_frame()}, horizon=8)
+    assert batch["BTC"]["confidence"] == pytest.approx(80.0)
+
+
+def test_confidence_is_zero_when_the_band_is_wide_and_full_when_it_is_tight():
+    from core.forecaster import CryptoForecaster
+
+    wide = CryptoForecaster()
+    wide._model = _FakeV3Model(low=90.0, mid=100.0, high=110.0)   # 20% band
+    wide._model_loaded = True
+    assert wide.forecast("BTC", _context_frame(), horizon=8)[1] == 0.0
+
+    tight = CryptoForecaster()
+    tight._model = _FakeV3Model(low=100.0, mid=100.0, high=100.0)  # no spread
+    tight._model_loaded = True
+    assert tight.forecast("BTC", _context_frame(), horizon=8)[1] == pytest.approx(100.0)
+
+
+def test_backend_setting_maps_onto_a_torch_device():
+    from core.forecaster import CryptoForecaster
+
+    assert CryptoForecaster(backend="gpu")._torch_device() == "cuda"
+    assert CryptoForecaster(backend="cuda")._torch_device() == "cuda"
+    assert CryptoForecaster(backend="cpu")._torch_device() == "cpu"
+    assert CryptoForecaster(backend="")._torch_device() == "cpu"
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))

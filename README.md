@@ -57,7 +57,7 @@ integrated portfolio manager and an autonomous trading scheduler.
 
 Argus is an advanced Python desktop application for **quantitative price forecasting and
 AI-driven analysis** of cryptocurrency assets. It combines Google Research's **TimesFM
-2.5** foundation model for temporal prediction, a cooperative **multi-agent LLM pipeline**
+3.0** foundation model for temporal prediction, a cooperative **multi-agent LLM pipeline**
 for qualitative analysis and debate, and a **built-in instant backtester** to constrain AI
 decisions with real mathematical evidence.
 
@@ -72,7 +72,7 @@ your exchange, your LLM provider, and the market-data sources.
 ## Features
 
 **Forecasting**
-- **TimesFM 2.5** temporal forecast over the cached 15-minute BTC history, with
+- **TimesFM 3.0** temporal forecast over the cached 15-minute BTC history, with
   quantile-derived confidence
 - **KNN-DTW pattern matching** on normalised log-returns, with persistent match history
 - **Instant backtest** of every proposed decision, with no dependency beyond pandas and
@@ -263,7 +263,7 @@ Argus is a single window with six top-level views. There is no separate "Config"
 | **Portfolio** | Spot and Futures positions via CCXT: leverage, entry/current price, unrealized P&L, SL/TP as ROI%. Generate and execute proposed orders, or market-sell selected positions. | Exchange + API keys, capital and position limits, sizing mode, risk %, DCA, stop-and-reverse, leverage and ROI caps, pre-flight thresholds |
 | **Market** | Price table for the tracked assets. "Refresh Prices" syncs live prices and downloads up to 365 days of 15m BTC history into the local cache. | CoinGecko API key |
 | **Pattern Matching** | Runs the BTC KNN analysis. Shows match count, confidence, expected 2h move and target price, with persistent history. | History depth, K neighbours, CoinGecko key |
-| **Time-Series Analysis** | Runs TimesFM 2.5 on the cached BTC history. Shows forecast price, 2h % change and quantile-derived confidence. | Backend (CPU/GPU), model checkpoint, HuggingFace token |
+| **Time-Series Analysis** | Runs TimesFM 3.0 on the cached BTC history. Shows forecast price, 2h % change and quantile-derived confidence. | Backend (CPU/GPU), model checkpoint, HuggingFace token |
 | **Advanced Analysis (AI)** | Runs the 6-agent pipeline. Double-click any row to read the full agent debate and backtest. Export to Excel. | LLM provider, quick/deep/fallback models, debate rounds, ensemble weights, Finnhub and CoinGecko keys |
 
 > Every panel runs its long operations on a worker thread and marshals UI updates back through a queue, so network calls and model inference never freeze the window.
@@ -554,13 +554,15 @@ A high standard deviation of future returns across matches indicates diverging h
 
 **File:** [`core/forecaster.py`](core/forecaster.py)
 
-Argus integrates **TimesFM 2.5 (200M parameter PyTorch model)** by Google Research — a foundation time series model pre-trained on large-scale real-world datasets.
+Argus integrates **TimesFM 3.0** by Google Research — a foundation time series model pre-trained on large-scale real-world datasets.
+
+The earlier generations still load. TimesFM 3.0 exposes a different API from 2.5 — a `TimesFM3Forecaster` that needs no compile step, and `predict`/`predict_batch` in place of `forecast` — so [`core/forecaster.py`](core/forecaster.py) picks the right one from the checkpoint name. A settings file still pinned to a 1.x or 2.x checkpoint keeps working through the older path rather than breaking on upgrade.
 
 ##### Configuration
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| Checkpoint | HuggingFace model ID | `google/timesfm-2.5-200m-pytorch` |
+| Checkpoint | HuggingFace model ID | `google/timesfm-3.0-pytorch` |
 | Backend | `cpu` or `gpu` | `gpu` (falls back to CPU if CUDA is unavailable) |
 | Horizon | Forecast steps | `8` candles (2 hours @ 15m) |
 | Context window | Minimum historical points | `96` candles |
@@ -579,13 +581,17 @@ $$\Delta P_{\text{tfm}} = \frac{P_{\text{forecast},h} - P_{\text{last}}}{P_{\tex
 
 ##### Confidence from the Quantile Spread
 
-The model is compiled with `use_continuous_quantile_head=True`, so alongside the point forecast it emits a full quantile fan. Confidence is derived from how **tight** that fan is at the forecast horizon — a wide spread means the model itself is uncertain:
+Alongside the point forecast the model emits a full quantile fan — requested with `return_quantiles=True` on TimesFM 3.0, and by compiling with `use_continuous_quantile_head=True` on 2.5. Confidence is derived from how **tight** that fan is at the forecast horizon — a wide spread means the model itself is uncertain:
 
 $$\text{Spread}_{\text{rel}} = \frac{q_{90} - q_{10}}{q_{50}}$$
 
 $$\text{Confidence}_{\text{tfm}} = \text{clip}\!\left(100 \times \left(1 - \frac{\text{Spread}_{\text{rel}}}{0.10}\right),\ 0,\ 100\right)$$
 
 The `0.10` divisor is a calibration constant for 15-minute micro-volatility over a 2-hour horizon: a relative spread of 10% or more collapses confidence to `0`. This score is what feeds the Ensemble's dynamic weighting — see [Ensemble Engine](#4-ensemble-engine--mathematical-formulas).
+
+> **The divisor was calibrated against TimesFM 2.5.** TimesFM 3.0 is a different model, and there is no guarantee its quantile fan is as wide at the same horizon. The formula is unchanged, so a systematically tighter or wider fan shifts every confidence score — and with it the ensemble weight the forecast carries into order sizing. Worth checking against live output before trusting the number.
+
+Where the two generations differ is *which column* holds each percentile: 2.5 returns the point forecast first and the nine quantiles after it, so $q_{10}$ is column 1; 3.0 returns one column per configured quantile, so $q_{10}$ is column 0. `core/forecaster.py` looks the positions up from the model's own quantile list rather than hard-coding either layout.
 
 > **Note:** `CryptoForecaster` also exposes a `_calculate_atr()` helper (14-period ATR over the last 15 bars). It is currently **not wired into** the forecast or the Ensemble — the ATR actually used for SL/TP fallback is computed independently inside the Portfolio Manager (see [ATR Fallback](#atr-fallback-for-missing-sltp)).
 
@@ -997,7 +1003,7 @@ Argus/
 │   ├── btc_pattern_matcher.py    # KNN BTC pattern matching engine
 │   ├── data_fetcher.py           # Market data via CCXT / CoinGecko / yfinance
 │   ├── data_manager.py           # JSON/CSV persistence, settings, secret splitting
-│   ├── forecaster.py             # TimesFM 2.5 wrapper (lazy loading)
+│   ├── forecaster.py             # TimesFM 3.0 wrapper (lazy loading)
 │   ├── market_enrichment.py      # Macro regime, BTC correlation, Fear & Greed
 │   ├── portfolio_manager.py      # Ensemble engine, sizing, CCXT order routing
 │   └── pre_flight_checker.py     # Real-time pre-order validation
@@ -1033,7 +1039,7 @@ Key dependencies (see [`requirements.txt`](requirements.txt) for the full list):
 | Package | Purpose |
 |---------|---------|
 | `customtkinter` | Modern dark-mode GUI framework |
-| `timesfm` | Google Research TimesFM 2.5 foundation model |
+| `timesfm` | Google Research TimesFM 3.0 foundation model |
 | `ccxt` | Unified crypto exchange API library |
 | `yfinance` | Historical OHLCV data |
 | `scikit-learn` | KNN for Pattern Matching |

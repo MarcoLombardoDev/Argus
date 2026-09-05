@@ -1,7 +1,7 @@
 **Argus — Advanced Market Forecast & AI Analysis.** Quantitative price forecasting and
 AI-driven analysis of cryptocurrency assets, with an integrated portfolio manager.
 
-- **Forecast** — Google Research's TimesFM 2.5 foundation model for temporal prediction,
+- **Forecast** — Google Research's TimesFM 3.0 foundation model for temporal prediction,
   and KNN-DTW pattern matching over normalised log-returns.
 - **Analyse** — a cooperative multi-agent LLM pipeline that debates the qualitative case,
   constrained by a built-in instant backtester so decisions rest on real evidence.

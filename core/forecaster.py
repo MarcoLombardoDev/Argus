@@ -8,13 +8,73 @@
 
 """
 forecaster.py — Argus
-Wrapper for TimesFM 2.5. Manages model loading and generating
-price forecasts for cryptos.
+Wrapper for TimesFM. Manages model loading and generating price forecasts
+for cryptos.
+
+Two model generations are supported, because a user's saved
+``model_checkpoint`` may still name an older one:
+
+* **TimesFM 3.0** (default) — ``timesfm3.TimesFM3Forecaster``. Loaded in one
+  step; inference through ``predict`` / ``predict_batch``, which return
+  ``ForecastOutput`` objects.
+* **TimesFM 1.0 / 2.0 / 2.5** (legacy) — ``timesfm.TimesFM_2p5_200M_torch``.
+  Loaded, then ``compile``d with a ``ForecastConfig``; inference through
+  ``forecast``, which returns a ``(point, quantile)`` tuple.
+
+The two APIs share nothing but the idea, so which one a checkpoint needs is
+decided by :func:`uses_legacy_api` and every call site branches on it.
+
+The context window (96 candles) and horizon (8) are deliberately unchanged
+from the 2.5 integration. TimesFM 3.0 accepts a far longer context, but
+widening it would change what the forecast means to every downstream
+consumer — the ensemble weighting and the orders it sizes — so it is a
+strategy decision, not part of a version upgrade.
 """
 
+import numpy as np
 import pandas as pd
 
 MIN_CONTEXT_POINTS = 96   # minimum historical points required by TimesFM (set to 96 for 15m granularity)
+
+CONTEXT_CANDLES = 96      # 24 hours at 15m
+MAX_HORIZON = 8           # 2 hours at 15m
+
+DEFAULT_CHECKPOINT = "google/timesfm-3.0-pytorch"
+
+# Checkpoint families that need the pre-3.0 API. Anything not matching one of
+# these — the 3.0 checkpoint, a local directory, a private fine-tune — is
+# treated as TimesFM 3.0, which is the current generation.
+LEGACY_CHECKPOINT_MARKERS = ("timesfm-1.", "timesfm-2.", "timesfm_1", "timesfm_2")
+
+# Relative quantile spread at which confidence reaches 0%. Calibrated against
+# TimesFM 2.5 on 15-minute candles over a 2-hour horizon; TimesFM 3.0 is a
+# different model and its spreads are not guaranteed to be on the same scale,
+# so this is worth re-checking against live output before trusting the number.
+CONFIDENCE_ZERO_SPREAD = 0.10
+
+
+def uses_legacy_api(checkpoint: str) -> bool:
+    """True when *checkpoint* names a TimesFM 1.x/2.x model.
+
+    The decision has to be made from the checkpoint string alone, because that
+    is all the settings file stores.
+    """
+    name = (checkpoint or "").lower()
+    return any(marker in name for marker in LEGACY_CHECKPOINT_MARKERS)
+
+
+def _confidence_from_spread(low: float, high: float, mid: float) -> float:
+    """Maps a quantile spread to a 0-100 confidence score.
+
+    A wide band between the 10th and 90th percentile means the model is
+    unsure. ``CONFIDENCE_ZERO_SPREAD`` is the relative width at which that
+    reaches zero.
+    """
+    if mid <= 0:
+        return 0.0
+    spread_relative = (high - low) / mid
+    score = 100.0 * (1.0 - spread_relative / CONFIDENCE_ZERO_SPREAD)
+    return max(0.0, min(100.0, score))
 
 
 class CryptoForecaster:
@@ -23,11 +83,12 @@ class CryptoForecaster:
     The model is loaded lazily (only upon the first forecast).
     """
 
-    def __init__(self, checkpoint: str = "google/timesfm-2.5-200m-pytorch", backend: str = "cpu"):
+    def __init__(self, checkpoint: str = DEFAULT_CHECKPOINT, backend: str = "cpu"):
         self.checkpoint = checkpoint
         self.backend = backend
         self._model = None
         self._model_loaded = False
+        self._legacy = uses_legacy_api(checkpoint)
 
     def _calculate_atr(self, df: pd.DataFrame, fallback_price: float) -> float:
         """
@@ -59,6 +120,10 @@ class CryptoForecaster:
         # Fallback if not calculable or equal to 0 (e.g. 1.5% of price)
         return fallback_price * 0.015
 
+    def _torch_device(self) -> str:
+        """Maps Argus's backend setting onto a torch device string."""
+        return "cuda" if str(self.backend).lower() in ("gpu", "cuda") else "cpu"
+
     def load_model(self, progress_callback=None):
         """
         Loads the TimesFM model from HuggingFace (downloads if necessary).
@@ -82,33 +147,15 @@ class CryptoForecaster:
             except Exception as e:
                 print(f"[Forecaster] Unable to load HF token from settings: {e}")
 
-            from timesfm import ForecastConfig, TimesFM_2p5_200M_torch
-
             if progress_callback:
                 progress_callback(
                     f"Downloading/verifying checkpoint {self.checkpoint} from HuggingFace...", 0.1
                 )
 
-            # Load the pre-trained model
-            # We use torch_compile=False to speed up startup and avoid issues on Windows/CPU
-            self._model = TimesFM_2p5_200M_torch.from_pretrained(
-                self.checkpoint,
-                torch_compile=False
-            )
-
-            if progress_callback:
-                progress_callback("Compiling forecast config...", 0.8)
-
-            # Configuration and compilation for horizon t+8 and context 96
-            # Enable use_continuous_quantile_head to calculate confidence
-            fc = ForecastConfig(
-                max_context=96,
-                max_horizon=8,
-                per_core_batch_size=32,
-                use_continuous_quantile_head=True,
-                fix_quantile_crossing=True,
-            )
-            self._model.compile(fc)
+            if self._legacy:
+                self._load_legacy_model(progress_callback)
+            else:
+                self._load_v3_model(progress_callback)
 
             self._model_loaded = True
             if progress_callback:
@@ -130,6 +177,87 @@ class CryptoForecaster:
                 progress_callback(msg, 0.0)
             print(f"[Forecaster] {msg}")
             return False
+
+    def _load_v3_model(self, progress_callback=None):
+        """Loads a TimesFM 3.0 checkpoint.
+
+        There is no separate compile step: the forecaster builds the model in
+        its constructor, so this returns ready to predict.
+        """
+        from timesfm3 import TimesFM3Forecaster
+
+        self._model = TimesFM3Forecaster.from_pretrained(
+            self.checkpoint,
+            device=self._torch_device(),
+        )
+
+    def _load_legacy_model(self, progress_callback=None):
+        """Loads and compiles a TimesFM 1.x/2.x checkpoint."""
+        from timesfm import ForecastConfig, TimesFM_2p5_200M_torch
+
+        # We use torch_compile=False to speed up startup and avoid issues on Windows/CPU
+        self._model = TimesFM_2p5_200M_torch.from_pretrained(
+            self.checkpoint,
+            torch_compile=False
+        )
+
+        if progress_callback:
+            progress_callback("Compiling forecast config...", 0.8)
+
+        # Configuration and compilation for horizon t+8 and context 96
+        # Enable use_continuous_quantile_head to calculate confidence
+        fc = ForecastConfig(
+            max_context=CONTEXT_CANDLES,
+            max_horizon=MAX_HORIZON,
+            per_core_batch_size=32,
+            use_continuous_quantile_head=True,
+            fix_quantile_crossing=True,
+        )
+        self._model.compile(fc)
+
+    def _v3_quantile_indices(self) -> tuple[int, int]:
+        """Positions of the 10th and 90th percentile in a v3 quantile row.
+
+        TimesFM 3.0 returns one column per configured quantile — nine of them
+        by default, 0.1 through 0.9 — while 2.5 returned the point forecast
+        first and the nine quantiles after it. Reading 2.5's indices out of a
+        v3 row would silently pick the wrong percentiles, or raise and leave
+        every forecast reporting zero confidence, so the positions are looked
+        up rather than assumed.
+        """
+        quantiles = list(getattr(self._model.config, "quantiles", []) or [])
+        try:
+            return quantiles.index(0.1), quantiles.index(0.9)
+        except ValueError:
+            # A checkpoint configured with a different quantile set: fall back
+            # to the outermost pair, which is the widest band available.
+            return 0, max(0, len(quantiles) - 1)
+
+    def _v3_confidence(self, quantiles_row) -> float:
+        """Confidence for one horizon step of a v3 forecast."""
+        try:
+            low_idx, high_idx = self._v3_quantile_indices()
+            low_bound = float(quantiles_row[low_idx])
+            high_bound = float(quantiles_row[high_idx])
+            mid = float(quantiles_row[self._model.config.median_quantile_index])
+            return _confidence_from_spread(low_bound, high_bound, mid)
+        except Exception as e:
+            print(f"[Forecaster] Error calculating confidence: {e}")
+            return 0.0
+
+    def _legacy_confidence(self, quantile_forecast_row, point_value: float) -> float:
+        """Confidence for one horizon step of a 1.x/2.x forecast.
+
+        Index 1 and 9 are the 10th and 90th percentile in that layout, whose
+        first column is the point forecast.
+        """
+        try:
+            low_bound = float(quantile_forecast_row[1])
+            high_bound = float(quantile_forecast_row[9])
+            return _confidence_from_spread(low_bound, high_bound, point_value)
+        except Exception as e:
+            print(f"[Forecaster] Error calculating confidence: {e}")
+            return 0.0
 
     def forecast(
         self,
@@ -168,37 +296,30 @@ class CryptoForecaster:
 
         try:
             # Extracts the last 96 candles for context (24 hours at 15m)
-            series = price_series.tail(96).copy().ffill().bfill()
+            series = price_series.tail(CONTEXT_CANDLES).copy().ffill().bfill()
 
-            # TimesFM forecast accepts a list of inputs
-            point_forecasts, quantile_forecasts = self._model.forecast(
-                horizon=horizon,
-                inputs=[series.values.tolist()]
-            )
-
-            predicted_price = float(point_forecasts[0][horizon - 1])
+            if self._legacy:
+                point_forecasts, quantile_forecasts = self._model.forecast(
+                    horizon=horizon,
+                    inputs=[series.values.tolist()]
+                )
+                predicted_price = float(point_forecasts[0][horizon - 1])
+                confidence_score = self._legacy_confidence(
+                    quantile_forecasts[0][horizon - 1], predicted_price
+                )
+            else:
+                output = self._model.predict(
+                    context=np.asarray(series.values, dtype=np.float32),
+                    horizon=horizon,
+                    return_quantiles=True,
+                )
+                predicted_price = float(output.forecast[horizon - 1])
+                confidence_score = self._v3_confidence(output.quantiles[horizon - 1])
 
             # Sanity check: price must not be negative
             if predicted_price <= 0:
                 print(f"[Forecaster] Negative predicted price for {symbol}: {predicted_price}")
                 return None
-
-            # Calculation of real confidence based on relative quantile spread
-            try:
-                low_bound = float(quantile_forecasts[0][horizon - 1][1])
-                high_bound = float(quantile_forecasts[0][horizon - 1][9])
-                quantile_50 = predicted_price
-
-                spread_assoluto = high_bound - low_bound
-                spread_relativo = spread_assoluto / quantile_50
-
-                # Calibration for 15-minute micro-volatility over 2 hours (8 candles).
-                # A relative spread of 10.0% or higher sets confidence to 0.0%
-                confidence_score = 100.0 * (1.0 - spread_relativo / 0.10)
-                confidence_score = max(0.0, min(100.0, confidence_score))
-            except Exception as e:
-                print(f"[Forecaster] Error calculating confidence for {symbol}: {e}")
-                confidence_score = 0.0
 
             return predicted_price, confidence_score
 
@@ -255,7 +376,7 @@ class CryptoForecaster:
                 continue
 
             # Extracts the last 96 candles for context (24 hours at 15m)
-            series = price_series.tail(96).copy().ffill().bfill()
+            series = price_series.tail(CONTEXT_CANDLES).copy().ffill().bfill()
             valid_symbols.append(symbol)
             valid_inputs.append(series.values.tolist())
 
@@ -272,38 +393,19 @@ class CryptoForecaster:
             )
 
         try:
-            # We run the forecast of the entire batch in parallel!
-            # Create a copy of the list to avoid mutations
-            point_forecasts, quantile_forecasts = self._model.forecast(
-                horizon=horizon,
-                inputs=list(valid_inputs)
-            )
+            if self._legacy:
+                batch = self._legacy_batch(valid_inputs, horizon)
+            else:
+                batch = self._v3_batch(valid_inputs, horizon)
 
             for i, symbol in enumerate(valid_symbols):
                 if stop_flag and stop_flag():
                     break
-                preds = [float(val) for val in point_forecasts[i]]
-                if any(p <= 0 for p in preds):
+                preds, confidence_score = batch[i]
+                if not preds or any(p <= 0 for p in preds):
                     print(f"[Forecaster] Negative or invalid predicted prices for {symbol}: {preds}")
                     results[symbol] = None
                 else:
-                    # Calculation of real confidence based on relative quantile spread
-                    try:
-                        low_bound = float(quantile_forecasts[i][horizon - 1][1])
-                        high_bound = float(quantile_forecasts[i][horizon - 1][9])
-                        quantile_50 = preds[horizon - 1] if len(preds) >= horizon else preds[-1]
-
-                        spread_assoluto = high_bound - low_bound
-                        spread_relativo = spread_assoluto / quantile_50
-
-                        # Calibration for 15-minute micro-volatility over 2 hours (8 candles).
-                        # A relative spread of 10.0% or higher sets confidence to 0.0%
-                        confidence_score = 100.0 * (1.0 - spread_relativo / 0.10)
-                        confidence_score = max(0.0, min(100.0, confidence_score))
-                    except Exception as e:
-                        print(f"[Forecaster] Error calculating batch confidence for {symbol}: {e}")
-                        confidence_score = 0.0
-
                     results[symbol] = {
                         "preds": preds,
                         "confidence": confidence_score
@@ -318,3 +420,44 @@ class CryptoForecaster:
             progress_callback("Forecast calculation completed successfully.", 1.0)
 
         return results
+
+    def _legacy_batch(self, inputs, horizon: int) -> list[tuple[list[float], float]]:
+        """Runs a 1.x/2.x batch forecast, one (preds, confidence) pair per input."""
+        point_forecasts, quantile_forecasts = self._model.forecast(
+            horizon=horizon,
+            inputs=list(inputs)
+        )
+
+        out = []
+        for i in range(len(inputs)):
+            preds = [float(val) for val in point_forecasts[i]]
+            reference = preds[horizon - 1] if len(preds) >= horizon else preds[-1]
+            confidence = self._legacy_confidence(
+                quantile_forecasts[i][horizon - 1], reference
+            )
+            out.append((preds, confidence))
+        return out
+
+    def _v3_batch(self, inputs, horizon: int) -> list[tuple[list[float], float]]:
+        """Runs a 3.0 batch forecast, one (preds, confidence) pair per input.
+
+        ``predict_batch`` yields its results, so it is drained into a list
+        before anything indexes into it.
+        """
+        outputs = list(self._model.predict_batch(
+            contexts=[np.asarray(series, dtype=np.float32) for series in inputs],
+            horizon=horizon,
+            return_quantiles=True,
+        ))
+
+        out = []
+        for output in outputs:
+            if output.forecast is None:
+                out.append(([], 0.0))
+                continue
+            preds = [float(val) for val in output.forecast]
+            if output.quantiles is None:
+                out.append((preds, 0.0))
+                continue
+            out.append((preds, self._v3_confidence(output.quantiles[horizon - 1])))
+        return out

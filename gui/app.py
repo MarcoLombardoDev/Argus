@@ -44,7 +44,7 @@ from core.data_manager import (
     save_settings,
 )
 from core.fonts import ui_font_family
-from core.forecaster import CryptoForecaster
+from core.forecaster import DEFAULT_CHECKPOINT, CryptoForecaster
 from core.version import APP_TITLE, CONTACT_EMAIL, __version__
 from gui.ai_analysis_panel import AIAnalysisPanel
 from gui.auto_trading_panel import AutoTradingPanel
@@ -60,7 +60,10 @@ ctk.set_default_color_theme("blue")
 
 # Forecast horizon: 8 candles of 15 minutes = 2 hours.
 FORECAST_HORIZON_CANDLES = 8
-DEFAULT_TIMESFM_CHECKPOINT = "google/timesfm-2.5-200m-pytorch"
+# One source of truth, in core/forecaster.py: the loader has to agree with
+# whatever the GUI offers, and two copies of a default string are how they
+# stop agreeing.
+DEFAULT_TIMESFM_CHECKPOINT = DEFAULT_CHECKPOINT
 
 # ─── Colori tema ────────────────────────────────────────────────
 _BG_ROOT   = ("#181a20", "#181a20")

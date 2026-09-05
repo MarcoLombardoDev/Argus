@@ -14,9 +14,13 @@ yfinance>=0.2.40
 ccxt>=4.2.0
 
 # --- Time-series forecasting (TimesFM) ---
-huggingface-hub>=0.23.0
+# 3.0 is the current generation and what core/forecaster.py loads by default.
+# The floor matters: the TimesFM3Forecaster API lives in the timesfm3 package,
+# which only ships from 3.0 onwards. The same release still carries the 2.5
+# models, so a settings file pinned to an older checkpoint keeps working.
+huggingface-hub>=0.28.0
 torch>=2.1.0
-timesfm[torch]
+timesfm[torch]>=3.0.0
 
 # --- Pattern matching (KNN on normalised log-returns) ---
 scikit-learn>=1.3.0

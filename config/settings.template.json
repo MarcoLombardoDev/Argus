@@ -3,7 +3,7 @@
   "history_days": 365,
   "signal_threshold_pct": 1.0,
   "backend": "cpu",
-  "model_checkpoint": "google/timesfm-2.5-200m-pytorch",
+  "model_checkpoint": "google/timesfm-3.0-pytorch",
   "hf_token": "",
   "market_type": "crypto",
   "coingecko_api_key": "",

@@ -16,6 +16,7 @@ Top-N assets and provider configuration are now in the Markets section.
 import customtkinter as ctk
 
 from core.fonts import ui_font_family
+from core.forecaster import DEFAULT_CHECKPOINT
 from gui.utils import apply_binance_tab_style
 
 
@@ -95,10 +96,14 @@ class ConfigPanel(ctk.CTkScrollableFrame):
 
         # Model checkpoint
         label("TimesFM Model", row=r); r += 1
-        self._model_var = ctk.StringVar(value="google/timesfm-2.5-200m-pytorch")
+        self._model_var = ctk.StringVar(value=DEFAULT_CHECKPOINT)
         self._model_menu = ctk.CTkOptionMenu(
             left_frame,
+            # The older generations stay selectable: they still load, through
+            # the pre-3.0 branch in core/forecaster.py, and someone who has
+            # calibrated against one should not be moved off it by an upgrade.
             values=[
+                DEFAULT_CHECKPOINT,
                 "google/timesfm-2.5-200m-pytorch",
                 "google/timesfm-2.0-500m-pytorch",
                 "google/timesfm-1.0-200m-pytorch",
@@ -255,7 +260,7 @@ class ConfigPanel(ctk.CTkScrollableFrame):
 
         self._backend_var.set(s.get("backend", "cpu"))
         self._model_var.set(
-            s.get("model_checkpoint", "google/timesfm-2.5-200m-pytorch")
+            s.get("model_checkpoint") or DEFAULT_CHECKPOINT
         )
         self._hf_token_var.set(s.get("hf_token", ""))
 
