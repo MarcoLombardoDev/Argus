@@ -19,6 +19,16 @@ artefact a redistributor actually receives. The table below is literally the
 copy the release runner generated and packaged inside that archive as
 `licenses/THIRD-PARTY-LICENSES-linux-x64.md`, lifted out of it unchanged.
 
+> **This copy describes the 1.0.0 build, and 1.1.0 has since shipped.** The
+> v1.0.0 tag and its release were deleted when 1.1.0 was tagged, so the archive
+> named above is no longer downloadable, and 1.1.0 moved the forecast onto
+> TimesFM 3.0 — the `timesfm` row below still reads 2.0.2. **The inventory that
+> describes what you actually downloaded is the one inside your own archive**,
+> under `licenses/`, generated on the runner that built it. This file is
+> refreshed by lifting that copy out of a release archive; until that is done
+> for 1.1.0, read it as a description of 1.0.0 rather than of the current
+> release.
+
 Argus cannot be built faithfully outside CI, which is why it is done this way:
 the release installs a CPU-only PyTorch from PyTorch's own package index, and
 a build made without that index gets the CUDA wheel and 2.7 GB of NVIDIA
