@@ -5,7 +5,7 @@ All notable changes to Argus are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] — 2026-09-05
 
 ### Changed
 - **TimesFM 3.0 is now the model Argus loads.** `timesfm` is pinned to
@@ -50,6 +50,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - The default checkpoint had been written out as a literal in four places.
   It is now `core.forecaster.DEFAULT_CHECKPOINT`, imported by the GUI, so the
   loader and the interface cannot drift apart.
+
+## [1.0.0] — 2026-08-30
 
 ### Added
 - **An application icon, where there was none.** The spec had the line
