@@ -94,6 +94,21 @@ on GitHub's retention schedule. Pushing a `v*` tag additionally publishes a **Gi
 Release** with `Argus.exe` attached; release assets don't expire and need no GitHub account
 to download. Neither trigger fires on an ordinary push.
 
+**Only the newest release stays online.** Publishing a new version means deleting the
+previous release, so the Releases page never offers more than one download. That is the
+owner's standing decision, not an accident to tidy up, and it is why the README's download
+table says `Argus-<version>-...` rather than naming a version, and why
+`THIRD-PARTY-LICENSES.md` carries a note saying which build its inventory describes and
+that the archive is gone.
+
+Two things follow from it. **Push the new tag before deleting the old release**, or there
+is a window with nothing downloadable at all. And **keep the git tag even when its release
+is deleted**: AGPL-3.0 §6 obliges whoever distributed a binary to hand over the
+corresponding source, and someone who downloaded the old archive still holds it after the
+release page is gone. The commit is in the history either way, but only a tag says which
+commit that particular archive was built from. Deleting a tag to re-cut it — as v1.0.0 was
+— is a different thing from deleting the tag of a superseded version, which should stay.
+
 **The build bundles whatever `torch` is already installed** in the environment you build
 from — there is no separate pin in `Argus.spec`. A CPU-only wheel keeps the executable in
 the low hundreds of MB; the default CUDA wheel from PyPI drags in several GB of NVIDIA
