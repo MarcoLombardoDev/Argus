@@ -5,7 +5,7 @@ All notable changes to Argus are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] — 2026-09-06
+## [1.2.0] — 2026-09-06 — `dc14ec0`
 
 ### Removed
 - **The commercial licence, in full.** `COMMERCIAL-LICENSE.md` is deleted and
@@ -71,7 +71,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `tests/test_core.py::test_no_commons_clause_dependency_remains` stays the
   tripwire.
 
-## [1.1.0] — 2026-09-05
+## [1.1.0] — 2026-09-05 — `74f7264`
 
 ### Changed
 - **TimesFM 3.0 is now the model Argus loads.** `timesfm` is pinned to
@@ -138,7 +138,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `THIRD-PARTY-LICENSES.md` and `CLAUDE.md` now say so explicitly instead of
   leaving it to the general "checkpoints carry their own terms" note.
 
-## [1.0.0] — 2026-08-30
+## [1.0.0] — 2026-08-30 — commit unrecorded
 
 ### Added
 - **An application icon, where there was none.** The spec had the line
