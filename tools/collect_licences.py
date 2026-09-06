@@ -4,8 +4,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Distributed WITHOUT ANY WARRANTY; see LICENSE for the full terms.
-# A commercial licence, without the AGPL's obligations, is available for use
-# in proprietary or closed-source products — see COMMERCIAL-LICENSE.md.
 
 """Assemble the licence texts that must travel inside a release archive.
 
@@ -293,9 +291,12 @@ def collect(repo: str, staging: str) -> str:
         "# Licences of the software in this package",
         "",
         "Argus itself is licensed AGPL-3.0-or-later; the full text is in",
-        "`Argus-LICENSE.txt`. A commercial licence, without the AGPL's",
-        "obligations, is available separately — see the project's",
-        "COMMERCIAL-LICENSE.md.",
+        "`Argus-LICENSE.txt`. That is the only licence it is offered under.",
+        "",
+        "The TimesFM model weights are a separate matter and are not in this",
+        "package: Argus downloads them from Hugging Face on first use, under",
+        "Google's TimesFM Non-Commercial License, which permits testing,",
+        "evaluation and research only. Running a forecast means accepting it.",
         "",
         "Everything else in this package was written by other people, under",
         "their own terms. This directory holds those terms. The inventory of",

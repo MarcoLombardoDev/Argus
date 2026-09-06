@@ -29,8 +29,8 @@ Subject to the terms and conditions of this Agreement, You hereby grant to the P
 
 - reproduce, copy, and use Your Contributions and derivative works thereof in any form;
 - prepare, publish, display, and perform derivative works based on Your Contributions;
-- sublicense Your Contributions under any license terms, including but not limited to: open-source licenses (such as AGPL-3.0, GPL-3.0, MIT, Apache 2.0), **commercial or proprietary licenses**, and dual-licensing arrangements;
-- distribute, sell, and otherwise make available Your Contributions and derivative works thereof to any third party.
+- sublicense Your Contributions under other **free and open-source** license terms (such as AGPL-3.0, GPL-3.0, MIT or Apache 2.0), so the Project can move to another such licence without tracing every past contributor;
+- distribute and otherwise make available Your Contributions and derivative works thereof to any third party, under those terms.
 
 This copyright grant covers all present and future rights under copyright law, including moral rights waivers to the maximum extent permitted by applicable law.
 
@@ -60,16 +60,15 @@ By submitting a Contribution, You represent and warrant that:
 
 ---
 
-## 5. Dual Licensing and Commercial Use
+## 5. Licensing of the Project
 
 You explicitly acknowledge and agree that:
 
-1. The Project Owner may distribute the Project (including Your Contributions) under the **GNU Affero General Public License v3.0 (AGPL-3.0)** as the primary public license.
-2. The Project Owner **reserves the exclusive right** to offer the Project (including Your Contributions) under **alternative commercial, proprietary, or closed-source license agreements** to any third party, for a fee or otherwise, without any obligation to notify you, pay royalties, or seek further consent.
-3. This dual-licensing right is an essential basis of this Agreement. The Project Owner would not accept Contributions without this right.
-4. You will not receive any compensation, royalties, or revenue share from commercial licensing arrangements.
+1. The Project Owner distributes the Project (including Your Contributions) under the **GNU Affero General Public License v3.0 (AGPL-3.0)**, and under no other terms.
+2. **There is no commercial or proprietary licence.** The Project Owner does not offer one, and this Agreement does not grant the right to create one: the sublicensing right in §2 is limited to other free and open-source licences.
+3. Contributors receive the same rights in the Project as everybody else, under the AGPL — see [LICENSE](LICENSE).
 
-In return, contributors receive a perpetual, royalty-free commercial licence to Argus for their own use — see [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md), §12.
+This section was previously a dual-licensing reservation. It was removed when the commercial offer was withdrawn, and the sublicensing grant in §2 narrowed to match.
 
 ---
 

@@ -31,7 +31,7 @@ work both ways, so **every contributor must agree to the
 
 You keep the copyright in your work, and you receive a perpetual, royalty-free commercial
 licence to Argus for your own use — see
-[COMMERCIAL-LICENSE.md §12](COMMERCIAL-LICENSE.md#12-contributors).
+[LICENSE](LICENSE).
 
 ## Getting set up
 

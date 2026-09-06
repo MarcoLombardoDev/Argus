@@ -3,8 +3,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Distributed WITHOUT ANY WARRANTY; see LICENSE for the full terms.
-# A commercial licence, without the AGPL's obligations, is available for use
-# in proprietary or closed-source products — see COMMERCIAL-LICENSE.md.
 
 """
 config_panel.py — Argus
@@ -99,15 +97,11 @@ class ConfigPanel(ctk.CTkScrollableFrame):
         self._model_var = ctk.StringVar(value=DEFAULT_CHECKPOINT)
         self._model_menu = ctk.CTkOptionMenu(
             left_frame,
-            # The older generations stay selectable: they still load, through
-            # the pre-3.0 branch in core/forecaster.py, and someone who has
-            # calibrated against one should not be moved off it by an upgrade.
-            values=[
-                DEFAULT_CHECKPOINT,
-                "google/timesfm-2.5-200m-pytorch",
-                "google/timesfm-2.0-500m-pytorch",
-                "google/timesfm-1.0-200m-pytorch",
-            ],
+            # One entry on purpose. The older generations were dropped with the
+            # pre-3.0 code path, and their checkpoints carry the same
+            # non-commercial terms as this one, so offering them would trade
+            # one restricted model for another.
+            values=[DEFAULT_CHECKPOINT],
             variable=self._model_var,
             font=ctk.CTkFont(family=ui_font_family(), size=11),
             fg_color=("#2b3139", "#2b3139"),
@@ -120,7 +114,12 @@ class ConfigPanel(ctk.CTkScrollableFrame):
             height=36,
         )
         self._model_menu.grid(row=r, column=0, padx=16, pady=(4, 2), sticky="ew"); r += 1
-        ctk.CTkLabel(left_frame, text="The Google TimesFM (Time Series Foundation Model) for statistical time-series forecasting.", font=ctk.CTkFont(family=ui_font_family(), size=10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
+        ctk.CTkLabel(left_frame, text="The Google TimesFM (Time Series Foundation Model) for statistical time-series forecasting.", font=ctk.CTkFont(family=ui_font_family(), size=10), text_color="#888888", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 4), sticky="ew"); r += 1
+        # The weights are not free software and the restriction is not
+        # cosmetic: it excludes exactly what this application is for. Whoever
+        # downloads them is the party Google's licence binds, and this is the
+        # screen where they choose to.
+        ctk.CTkLabel(left_frame, text="⚠ The model weights are published under the TimesFM Non-Commercial License:\ntesting, evaluation and research only. Revenue-generating and production use —\nincluding trading real money — is not permitted by Google's terms. Argus's own\ncode is AGPL-3.0; the weights are not, and are downloaded under your own name.", font=ctk.CTkFont(family=ui_font_family(), size=10), text_color="#f0b90b", justify="left", anchor="w").grid(row=r, column=0, padx=16, pady=(0, 12), sticky="ew"); r += 1
 
         # HF Token
         label("Hugging Face (HF) Token (optional)", row=r); r += 1

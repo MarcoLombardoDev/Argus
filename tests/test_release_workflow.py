@@ -3,8 +3,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Distributed WITHOUT ANY WARRANTY; see LICENSE for the full terms.
-# A commercial licence, without the AGPL's obligations, is available for use
-# in proprietary or closed-source products — see COMMERCIAL-LICENSE.md.
 
 """Tests for .github/workflows/release.yml and .github/release-body.md.
 
@@ -205,10 +203,16 @@ def test_the_release_body_carries_the_version_and_tag_placeholders():
     assert "{{TAG}}" in body
 
 
-def test_the_release_body_points_at_the_licence_and_the_commercial_terms():
+def test_the_release_body_points_at_the_licence_and_warns_about_the_weights():
+    """A release page is where most people first meet Argus, and the one
+    restriction that is not AGPL-3.0 has to be visible there: the TimesFM
+    weights are Google's, under a non-commercial licence Argus cannot change."""
     body = BODY_PATH.read_text(encoding="utf-8")
     assert "AGPL-3.0" in body
-    assert "COMMERCIAL-LICENSE.md" in body
+    assert "COMMERCIAL-LICENSE.md" not in body
+    lowered = body.lower()
+    assert "timesfm" in lowered
+    assert "non-commercial" in lowered
 
 
 def test_the_smoke_test_actually_starts_the_toolkit():

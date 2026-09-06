@@ -1,9 +1,7 @@
 # Third-party licences
 
-Argus is licensed **AGPL-3.0-or-later** (see [LICENSE](LICENSE)), with a
-commercial licence available separately (see
-[COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)). That covers the code in this
-repository. It does not cover the code Argus is built on, and a
+Argus is licensed **AGPL-3.0-or-later** (see [LICENSE](LICENSE)), and under no
+other terms. That covers the code in this repository. It does not cover the code Argus is built on, and a
 downloadable release is mostly that other code: a Linux build contains
 373 native binaries and not one of them was written for Argus.
 Argus's own code travels through them as Python bytecode.
@@ -100,24 +98,36 @@ licensee to impose. It was replaced by [`core/backtest.py`](core/backtest.py),
 written for this project, with no dependencies beyond pandas and NumPy. Do not
 reintroduce it.
 
-**Model weights are licensed separately from model code.** The `timesfm`
-package is Apache-2.0; the TimesFM checkpoints downloaded from Hugging Face
-carry their own terms. Verify the licence on the specific checkpoint you deploy
-before shipping it commercially.
+### The model weights are the one real restriction
 
-The weights are not in this inventory because they are not in the bundle: they
-are fetched from Hugging Face the first time a forecast runs, onto the machine
-running it. Nothing on the releases page contains them.
+**Model weights are licensed separately from model code, and here they are not
+free software.** The `timesfm` *package* is Apache-2.0 — verified at 3.0.1:
+Apache-2.0 licence text in the wheel, the same header on all 32 source files,
+no Commons Clause and no non-commercial term. The *weights* are not.
 
-As of 1.1.0 the default checkpoint is `google/timesfm-3.0-pytorch`, where it was
-`google/timesfm-2.5-200m-pytorch` before. The **package** was re-verified at
-3.0.1 — Apache-2.0 licence text in the wheel, the same header on all 32 source
-files, no Commons Clause and no non-commercial term — and it is installed as
-`timesfm[torch]` deliberately: the `flax` and `xreg` extras pull `jax[cuda]`,
-which would bring NVIDIA's CUDA libraries and their own redistribution terms
-into a bundle this document promises is free of them. The **checkpoint's** terms
-are a separate question and were not verified: a clearance obtained for the 2.5
-weights does not cover the 3.0 ones.
+`google/timesfm-3.0-pytorch` is published under Google's **TimesFM
+Non-Commercial License**, which grants use for "testing, evaluation, or research
+not tied to commercial gain, production deployment, or revenue generation", and
+excludes by name any revenue-generating activity, any interaction with end users
+or production systems, and **Distribution of the weights or of any derivative of
+them**. The restriction extends to "any Outputs and data produced by the TimesFM
+Model" used commercially. The earlier 2.5 checkpoint carries the same terms, so
+there is no older model to fall back to.
+
+**They are not in this inventory because they are not in the bundle.** Argus
+downloads them from Hugging Face the first time a forecast runs, onto the machine
+running it — so nothing on the releases page contains them, and nothing an
+Argus redistributor hands over includes them. The person who runs the program is
+the party that licence binds.
+
+What that means in practice: Argus itself is AGPL-3.0 and may be redistributed
+freely under those terms, but **the forecast feature cannot lawfully be used for
+trading or any other production purpose** without a commercial licence from
+Google for the weights. See the README.
+
+`timesfm[torch]` is also a deliberate choice: the `flax` and `xreg` extras pull
+`jax[cuda]`, which would bring NVIDIA's CUDA libraries and their own
+redistribution terms into a bundle this document states is free of them.
 
 ## The components that actually constrain redistribution
 
@@ -148,9 +158,8 @@ and carries its own conditions.
 
 **The standard library's `readline` extension.** PyInstaller collected it by
 default, and it links `libreadline`, which is **GPL-3.0-or-later with no
-linking exception** — a GPL-3 library inside an archive offered for commercial
-redistribution, which is the one combination the whole commercial tier is
-supposed to avoid. It was in the first v1.0.0 archives, and the inventory
+linking exception** — a GPL-3 library sitting inside an AGPL-3.0 archive, whose
+section 7 does not permit a licensee to be handed added restrictions. It was in the first v1.0.0 archives, and the inventory
 generated from them recorded it.
 
 `libpython` does not link it; only that module does, and Argus is a windowed

@@ -1,7 +1,6 @@
 # 👁️ Argus — Advanced Market Forecast & AI Analysis
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Commercial Licence Available](https://img.shields.io/badge/Commercial%20Licence-Available-green.svg)](COMMERCIAL-LICENSE.md)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![CI](https://github.com/MarcoLombardoDev/Argus/actions/workflows/ci.yml/badge.svg)](https://github.com/MarcoLombardoDev/Argus/actions/workflows/ci.yml)
 
@@ -11,8 +10,7 @@ integrated portfolio manager and an autonomous trading scheduler.
 > ⚠️ The autonomous workflow currently trades **BTC only** — see
 > [Scope and limitations](#scope-and-limitations) before relying on it, and read the
 > [Disclaimer](#disclaimer) before pointing it at a funded account.
-> 💼 Commercial or redistribution use (including OEM)? See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md),
-> or write to [marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry).
+> ⚖️ The TimesFM **model weights** are licensed by Google for non-commercial, non-production use only — see [Licence](#licence) before trading real money with it.
 
 ---
 
@@ -47,7 +45,7 @@ integrated portfolio manager and an autonomous trading scheduler.
 10. [Building a standalone executable](#building-a-standalone-executable)
 11. [Troubleshooting](#troubleshooting)
 12. [Scope and limitations](#scope-and-limitations)
-13. [License & Commercial Licensing](#license--commercial-licensing)
+13. [Licence](#licence)
 14. [Contributing](#contributing)
 15. [Disclaimer](#disclaimer)
 
@@ -752,7 +750,7 @@ Before the Portfolio Manager Agent makes its final decision, an **instant histor
 
 ##### Engine and its assumptions
 
-The backtester is [`core/backtest.py`](core/backtest.py) — written for this project, with no dependencies beyond pandas and NumPy. It replaced `vectorbt`, whose Commons Clause forbids selling software that derives substantially from it and was therefore incompatible with Argus's [dual licensing](COMMERCIAL-LICENSE.md).
+The backtester is [`core/backtest.py`](core/backtest.py) — written for this project, with no dependencies beyond pandas and NumPy. It replaced `vectorbt`, whose Commons Clause forbids selling software that derives substantially from it — a restriction AGPL-3.0 §7 does not permit a licensee to pass on.
 
 Its modelling choices are deliberately conservative to state, so the numbers are interpretable rather than flattering:
 
@@ -1074,9 +1072,10 @@ before the first patch:
   is redacted on save.
 - **Every long operation runs on a worker thread** and reports back through a queue; no
   network call or model inference happens on the Tk thread.
-- **A dependency carrying a field-of-use or anti-commercial condition cannot be added** —
-  the Commons Clause is the one that already cost this project a rewrite. See
-  [COMMERCIAL-LICENSE.md §11](COMMERCIAL-LICENSE.md#11-third-party-components).
+- **A dependency carrying a field-of-use restriction cannot be added** — the Commons
+  Clause is the one that already cost this project a rewrite, because AGPL-3.0 §7 does
+  not let a licensee pass such a condition on. See
+  [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
 
 Static analysis is expected to stay clean:
 
@@ -1109,7 +1108,7 @@ means the CUDA build and several extra gigabytes.
 |------|--------|
 | `tests/test_core.py` | Ensemble weighting and sizing rules, signal building, price/percentage formatting, KNN pattern matching on synthetic prices, settings and cache persistence, pre-flight checks, and the CSV/Excel/PDF export paths |
 | `tests/test_gui_smoke.py` | Boots the real Tk application, walks every view, renders tables from mixed-quality rows, and drives the worker-thread error paths |
-| `tests/test_docs.py` | The documents themselves: the README's section order, the commercial licence's section numbering, the price list agreeing with the README, the perpetual rule, and the AGPL text left verbatim — the guards that keep Argus aligned with Orion, Iris and Proteus |
+| `tests/test_docs.py` | The documents themselves: the README's section order, the AGPL text left verbatim, and the licensing statements agreeing with one another |
 | `tests/test_release_workflow.py` | `.github/workflows/release.yml` and `.github/release-body.md` themselves: all three platforms built, every bundle smoke-tested, fixed release title and notes on both publishing paths |
 
 Two things the suite deliberately guards against, because they only ever surfaced at runtime:
@@ -1194,107 +1193,79 @@ Stated plainly, so expectations match behaviour:
 | **`CryptoForecaster._calculate_atr()`** | Implemented but not wired into the forecast; the ATR actually used for SL/TP is computed in the Portfolio Manager. |
 | **Paper trading** | Set `portfolio_manager.useExchangeBalance = false` to route every order to a `SIMULATED` status instead of the exchange. The default is `true`, so **check this before adding live API keys**. |
 
-## License & Commercial Licensing
+## Licence
 
-Argus is open-source software released under the
-**[GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE)**.
+Argus is free software released under the
+**[GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE)**, and under no
+other terms. There is no commercial licence, no paid edition, no feature gate,
+no licence key and no phone-home.
 
 Copyright © 2026 Marco Lombardo.
 
-**The free build is the whole product.** Every feature documented above is in it —
-the TimesFM forecast, the multi-agent pipeline, the backtester, the portfolio
-manager, auto-trading. There is no paid edition, no feature gate, no licence key, no
-seat limit and no phone-home. If AGPL-3.0 works for you, you are done reading —
-Argus is yours to use.
+### What AGPL-3.0 means for you
 
-### What AGPL-3.0 Means for You
-
-| Use Case | Allowed? | Obligation |
+| Use case | Allowed? | Obligation |
 |---|---|---|
 | Internal use, any number of machines and users | ✅ Yes | None |
 | Modify it and keep the changes to yourself | ✅ Yes | None |
 | Fork and publish on GitHub | ✅ Yes | Must stay AGPL-3.0 |
 | Redistribute it, modified or not, under AGPL-3.0 | ✅ Yes | Must ship the source |
 | Deploy a modified version as a network service | ✅ Yes | Must publish the source of your modified version |
-| Integrate into a **closed-source product** used internally | ⚠️ Restricted | Requires a Commercial licence |
-| Offer as a **proprietary SaaS** without sharing source | ❌ Not under AGPL | Requires a Redistribution licence |
-| Embed it in, or ship it inside, a product you **sell to third parties** | ❌ Not under AGPL | Requires a Redistribution licence |
+| Integrate into a **closed-source product** | ❌ | Not available. AGPL-3.0 is the only licence offered. |
 
-The dividing line is one rule: **AGPL-3.0 is free as long as the source stays open.**
+The rule is one line: **AGPL-3.0 is free as long as the source stays open.**
 
-### Commercial Licensing
+### The model weights are not covered by it, and they are restricted
 
-The commercial offer removes the copyleft obligation, and nothing else. It splits into two
-branches that answer different questions — **Commercial**, sized by how big the
-organisation using Argus internally is, and **Redistribution**, needed whenever the
-software (or a derivative) reaches third parties, regardless of size:
+This is the part to read before pointing Argus at a funded account.
 
-```
-Community         AGPL-3.0, free
-Commercial        Small (1–49 employees) · Medium (50–249) · Large (250–999) · Enterprise (1,000+ / group)
-Redistribution    Standard · Enterprise
-```
+Argus's forecast runs on **TimesFM 3.0**. The `timesfm` *package* is Apache-2.0,
+but the *weights* — `google/timesfm-3.0-pytorch` — are published by Google under
+the **TimesFM Non-Commercial License**, which grants use for
+"testing, evaluation, or research not tied to commercial gain, production
+deployment, or revenue generation", and excludes by name:
 
-| Tier | Price | Perpetual | Scope |
-|---|---:|---:|---|
-| **Community** | **Free** | — | Everything Argus does, under AGPL-3.0. Unlimited internal use. |
-| **Commercial — Small** | **€1,900 / year** | €5,700 | 1–49 employees, internal use, one legal entity. |
-| **Commercial — Medium** | **€3,900 / year** | €11,700 | 50–249 employees, internal use, one legal entity. |
-| **Commercial — Large** | **€7,900 / year** | €23,700 | 250–999 employees, internal use, one legal entity. |
-| **Commercial — Enterprise** | **from €14,000 / year** | — | 1,000+ employees, or a Corporate Group scope. |
-| **Redistribution — Standard** | **€4,900 / year** | €14,700 | Embed it in a product you sell, or ship it to customers. |
-| **Redistribution — Enterprise** | **from €24,900 / year** | — | Large-scale distribution — worldwide, high volume, or OEM. |
+- any **revenue-generating activity**;
+- **direct or indirect interactions with end users or production systems**;
+- **Distribution** of the weights or of anything derived from them.
 
-A perpetual licence is three times the annual rate of the same tier, bought once, covering
-the major version current at purchase. Both Enterprise tiers are negotiated per case
-instead.
+The restriction reaches the forecasts too: the licence covers "any Outputs and
+data produced by the TimesFM Model" used for commercial or production purposes.
 
-The same commitments apply at every paid tier:
+**Argus's central use case — trading real money — is outside those terms.** That
+is Google's restriction on Google's weights, and nothing in this repository can
+lift it. Concretely:
 
-- **Email support is always included** — 5 business days at Commercial Small down to 2 at
-  either Enterprise tier. It is never sold separately to a paying customer.
-- **Custom development is never included**, at any tier. It is available on request and
-  **quoted separately**, per project, at a fixed price agreed before work starts
-  (indicative day rate: **€1200 / day**).
-- **No retroactive price rise, cancel any time.** Versions released during your term stay
-  licensed to you.
-- **50% off** for organisations under 10 employees and €1M revenue. **Free** commercial
-  licences for non-profits, academia and published research — ask.
+- Argus **never ships the weights**. They are downloaded from Hugging Face the
+  first time a forecast runs, by whoever is running the program — and that person
+  is the party the licence binds, not the author of Argus.
+- Running Argus for **research, evaluation or backtesting** is what the weights
+  are licensed for.
+- Running it **to place real orders, or in any revenue-generating or production
+  setting, is not.** If that is what you want, you need a commercial licence from
+  Google for the weights, or a different forecasting model.
+- The rest of Argus — pattern matching, the backtester, the portfolio manager,
+  the AI pipeline — carries no such restriction. TimesFM is the only component
+  that does.
 
-A Commercial licence, below Enterprise, covers exactly one legal entity: it does not
-automatically extend to other companies in the same group, and it does not include
-redistribution, OEM or embedding rights — those need a Redistribution licence on top.
-Prices are per licensed legal entity, excluding VAT. **Seats are never counted.** Full
-terms, the Employee Count and Corporate Group definitions, and the third-party component
-review: **[COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)**.
+Everything else Argus is built on is permissively licensed and inventoried in
+[THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md), with the licence texts shipped
+inside every release archive.
 
-> ⚠️ **Almost every dependency is permissively licensed** — the backtester was
-> rewritten to drop `vectorbt` and its Commons Clause. Three are not: `certifi`,
-> `orjson` and `tqdm` are MPL-2.0, which is file-level copyleft and asks that the
-> source of *those files* stay available. TimesFM *checkpoints*, unlike the
-> `timesfm` package, carry their own terms: verify the one you deploy. A
-> downloadable build adds 373 native libraries no `requirements.txt` mentions;
-> all of them are inventoried in
-> [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md), and the licence texts ship
-> inside the archive. What that means for a redistributor is
-> [§11](COMMERCIAL-LICENSE.md#11-third-party-components).
+### Getting in touch
 
-### How to get in touch
+Bugs and feature requests belong in
+[GitHub Issues](https://github.com/MarcoLombardoDev/Argus/issues), where the answer
+helps whoever asks next. For anything else:
 
-Everything commercial — buying a licence, asking for a quote, commissioning custom
-development, or checking whether you need a licence at all (the answer is often *no*) —
-goes to one address:
-
-> **[marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus%20commercial%20licence%20enquiry)** — Marco Lombardo
-
-Please keep **GitHub Issues for bugs and feature requests**, not for licensing.
+> **[marco.lombardo@gmail.com](mailto:marco.lombardo@gmail.com?subject=Argus)** — Marco Lombardo
 
 ## Contributing
 
 Contributions are welcome. All contributors must agree to the
-[Contributor License Agreement (CLA)](CLA.md) before a Pull Request can be merged. The CLA
-grants the Project Owner the right to dual-license contributions under AGPL-3.0 and
-commercial terms — this is what makes the dual-licensing model sustainable.
+[Contributor License Agreement (CLA)](CLA.md) before a Pull Request can be merged. It
+keeps the copyright position of the project clear and lets contributions be relicensed
+if the project ever needs to move to another free licence.
 
 > **To agree to the CLA:** include
 > `I have read and agree to the Contributor License Agreement (CLA.md).`
@@ -1306,8 +1277,9 @@ Practical expectations:
   positions. `.env` and `config/settings.json` stay out of the repository.
 - Every bug fix arrives with a test that fails without the fix.
 - Bump the version only in `core/version.py`, and add a `CHANGELOG.md` entry.
-- A dependency carrying a field-of-use or anti-commercial condition (the Commons
-  Clause, for one) cannot be added: it would break the commercial licence.
+- A dependency carrying a field-of-use restriction (the Commons Clause, for one)
+  cannot be added: AGPL-3.0 §7 does not let a licensee pass such a condition on, so it
+  would make the project undistributable.
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) covers the process in full.
 
@@ -1328,4 +1300,4 @@ kind**, as set out in sections 15 and 16 of the AGPL-3.0.
 
 ---
 
-*Copyright © 2026 Marco Lombardo. Licensed under AGPL-3.0 — commercial licensing available.*
+*Copyright © 2026 Marco Lombardo. Licensed under AGPL-3.0.*

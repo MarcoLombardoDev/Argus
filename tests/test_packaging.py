@@ -3,8 +3,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Distributed WITHOUT ANY WARRANTY; see LICENSE for the full terms.
-# A commercial licence, without the AGPL's obligations, is available for use
-# in proprietary or closed-source products — see COMMERCIAL-LICENSE.md.
 
 """What must and must not end up inside a built bundle.
 
@@ -12,10 +10,11 @@ There is one thing in here, and it is not about size.
 
 PyInstaller collects the standard library's optional ``readline`` extension by
 default. It links ``libreadline``, which is **GPL-3.0-or-later with no linking
-exception** — so every Linux archive Argus has published contains a GPL-3
-library, inside an archive COMMERCIAL-LICENSE.md offers for redistribution in
-closed-source products. That is the one combination the commercial tier cannot
-survive, and it arrived by default rather than by decision.
+exception** — a licence Argus does not otherwise carry, pulled into every Linux
+archive it publishes, for a module nothing in the program uses. AGPL-3.0 and
+GPL-3.0 combine without trouble, so this is not a licence conflict; it is a
+component in the archive's inventory that nobody chose and nobody needs, and it
+arrived by default rather than by decision.
 
 ``libpython`` does not link it; only that module does. Nothing in Argus
 reads a line from an interactive prompt. So it is excluded — and pinned here,
@@ -448,8 +447,6 @@ class TestLicenceHeader:
         "#",
         "# SPDX-License-Identifier: AGPL-3.0-or-later",
         "# Distributed WITHOUT ANY WARRANTY; see LICENSE for the full terms.",
-        "# A commercial licence, without the AGPL's obligations, is available for use",
-        "# in proprietary or closed-source products — see COMMERCIAL-LICENSE.md.",
     )
 
     def sources(self):

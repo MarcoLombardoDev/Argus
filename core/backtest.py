@@ -3,8 +3,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Distributed WITHOUT ANY WARRANTY; see LICENSE for the full terms.
-# A commercial licence, without the AGPL's obligations, is available for use
-# in proprietary or closed-source products — see COMMERCIAL-LICENSE.md.
 
 """
 backtest.py — Argus
@@ -14,7 +12,7 @@ A small, dependency-free vectorised-signal backtester.
 This exists to replace `vectorbt`, which ships under Apache-2.0 **plus the
 Commons Clause** — a condition that withholds the right to sell software whose
 value derives substantially from it, and which is incompatible with Argus's
-dual-licensing model (see COMMERCIAL-LICENSE.md). Every published vectorbt release
+licensing (AGPL-3.0 section 7 forbids passing such a condition on). Every published vectorbt release
 carries the clause, so pinning an older version was not an option.
 
 Only the surface Argus actually used is reimplemented here: a long-only or

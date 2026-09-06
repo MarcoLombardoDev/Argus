@@ -5,6 +5,72 @@ All notable changes to Argus are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+- **The commercial licence, in full.** `COMMERCIAL-LICENSE.md` is deleted and
+  Argus is offered under **AGPL-3.0-or-later and no other terms**. The licence
+  badge, the README's commercial section, the price table, the tier ladder, the
+  release-note pointer and the "commercial licence available" line in every
+  source header go with it.
+
+  The reason is not a change of heart about selling software. Argus's forecast
+  runs on TimesFM, and Google publishes the *weights* — for the 3.0 checkpoint
+  and the 2.5 one alike — under the **TimesFM Non-Commercial License**: testing,
+  evaluation and research only, with revenue-generating activity, production
+  systems, end-user interaction and any Distribution of the weights or
+  derivatives excluded by name. The restriction reaches "any Outputs and data
+  produced by the TimesFM Model", so it does not stop at the file on disk.
+
+  Argus is a trading application. Its central use case sits outside those terms,
+  which made two things in `COMMERCIAL-LICENSE.md` false rather than merely
+  optimistic: the assertion that *"no dependency imposes a field-of-use or
+  anti-commercial condition"*, and the Redistribution grant itself — a
+  redistributor's customers would still have had to fetch weights they were not
+  licensed to use for the purpose the product exists for. That is permission
+  that could not be delivered, so it is no longer sold.
+
+  **This removes a false promise; it does not unblock anyone.** Google's licence
+  binds whoever downloads the weights, and Argus was never a party to it. A user
+  who wants to trade on a TimesFM forecast still needs terms from Google, or a
+  different model. The README, `THIRD-PARTY-LICENSES.md`, the release body, the
+  licence bundle inside every archive and the model dropdown in the GUI all say
+  so now, and `tests/test_docs.py` fails if the README or the licence inventory
+  stops saying it.
+
+- **The 2.5 code path.** `core/forecaster.py` supported both APIs so that a
+  settings file pinned to an older checkpoint kept working across the 1.1.0
+  upgrade. Both checkpoints carry the same non-commercial terms, so keeping the
+  older one bought nothing but a second untested branch through the loader:
+  `uses_legacy_api`, `LEGACY_CHECKPOINT_MARKERS`, `_load_legacy_model`,
+  `_legacy_confidence` and `_legacy_batch` are gone, and the model dropdown
+  offers `google/timesfm-3.0-pytorch` alone. The quantile positions are still
+  read from the model's own quantile list rather than hard-coded, and the
+  regression test that catches a wrong index is unchanged.
+
+### Changed
+- **The CLA no longer reserves a right to relicense contributions
+  commercially.** §2's sublicensing grant is narrowed to other *free and
+  open-source* licences, and §5 — previously a dual-licensing reservation — now
+  states that there is no commercial or proprietary licence and that this
+  Agreement does not grant the right to create one. Contributors receive the
+  same rights in the project as everybody else.
+- **The GUI's model dropdown carries the weights warning.** The configuration
+  panel states, in amber next to the model selector, that the weights are
+  published under the TimesFM Non-Commercial License and that trading real money
+  is not permitted by Google's terms — the one place in the product where a user
+  chooses the component the restriction attaches to.
+- **The footer's mail link is a contact link, not a sales link.** It opened a
+  "commercial licence enquiry"; it now opens a plain enquiry, and
+  `App.open_licensing_email` is `App.open_contact_email`.
+- **The dependency rule survives with a different justification.** A dependency
+  carrying a field-of-use restriction still cannot be added — not because it
+  would break a commercial offer, but because AGPL-3.0 §7 does not permit a
+  licensee to be handed added restrictions, which would leave the project
+  undistributable. `vectorbt` stays out, and
+  `tests/test_core.py::test_no_commons_clause_dependency_remains` stays the
+  tripwire.
+
 ## [1.1.0] — 2026-09-05
 
 ### Changed

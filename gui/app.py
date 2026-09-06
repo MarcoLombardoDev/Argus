@@ -3,8 +3,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Distributed WITHOUT ANY WARRANTY; see LICENSE for the full terms.
-# A commercial licence, without the AGPL's obligations, is available for use
-# in proprietary or closed-source products — see COMMERCIAL-LICENSE.md.
 
 """
 app.py — Argus
@@ -263,8 +261,8 @@ class ArgusApp(ctk.CTk):
         footer.grid_rowconfigure(0, weight=1)
 
         # Chi sta usando l'applicazione è esattamente la persona che potrebbe
-        # dover comprare una licenza commerciale: l'indirizzo è scritto per
-        # esteso e cliccabile, invece di un generico "available on request".
+        # avere una domanda su licenze, sicurezza o contributi: l'indirizzo è
+        # scritto per esteso e cliccabile, invece di un "available on request".
         # Un frame interno senza sticky resta centrato nella cella.
         center = ctk.CTkFrame(footer, fg_color="transparent")
         center.grid(row=0, column=0, padx=20)
@@ -273,7 +271,7 @@ class ArgusApp(ctk.CTk):
             center,
             text=(
                 "© 2026 Marco Lombardo — Argus  |  Licensed under AGPL-3.0  |  "
-                "Commercial licensing:"
+                "Contact:"
             ),
             font=ctk.CTkFont(family=ui_font_family(), size=9),
             text_color=("#4a5568", "#4a5568"),
@@ -288,11 +286,11 @@ class ArgusApp(ctk.CTk):
             cursor="hand2",
         )
         self._footer_email.pack(side="left", padx=(4, 0))
-        self._footer_email.bind("<Button-1>", self.open_licensing_email)
+        self._footer_email.bind("<Button-1>", self.open_contact_email)
 
-    def open_licensing_email(self, event=None):
-        """Apre il client di posta su una richiesta di licenza commerciale."""
-        subject = quote(f"{APP_TITLE} — commercial licence enquiry")
+    def open_contact_email(self, event=None):
+        """Apre il client di posta su una richiesta di contatto."""
+        subject = quote(f"{APP_TITLE} — enquiry")
         # Nessun client di posta configurato: l'indirizzo resta comunque
         # leggibile a schermo, quindi non vale un dialog di errore.
         with contextlib.suppress(Exception):

@@ -4,21 +4,20 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Distributed WITHOUT ANY WARRANTY; see LICENSE for the full terms.
-# A commercial licence, without the AGPL's obligations, is available for use
-# in proprietary or closed-source products — see COMMERCIAL-LICENSE.md.
 
 """Guards against the documentation drifting away from the product — and away
 from the other three products it is deliberately kept in step with.
 
-Orion, Iris, Proteus and Argus share a README skeleton, a commercial licence
-structure and a price-list format on purpose: the same clause sits at the same
-number in all four, so a buyer or a contributor who has read one has read them
-all. Nothing enforces that at runtime, and a drifting document is invisible to
-anyone editing the code — so it is checked here.
+Orion, Iris, Proteus and Argus share a README skeleton on purpose, so a reader
+who has found something in one knows where to look in the others. Nothing
+enforces that at runtime, and a drifting document is invisible to anyone
+editing the code — so it is checked here.
 
-A price quoted in two places will eventually disagree with itself, and a
-screenshot referenced after being renamed leaves a broken image on the
-project's front page. Both are checked here too.
+Argus no longer shares their commercial licence structure: it has none. The
+tests below hold that line, because a withdrawn offer that survives in one
+forgotten file is worse than no offer at all — and so is a README that stops
+warning about the TimesFM weights. A screenshot referenced after being renamed
+leaves a broken image on the project's front page; that is checked here too.
 """
 
 from __future__ import annotations
@@ -50,29 +49,10 @@ README_SKELETON = (
     "Building a standalone executable",
     "Troubleshooting",
     "Scope and limitations",
-    "License & Commercial Licensing",
+    "Licence",
     "Contributing",
     "Disclaimer",
 )
-
-#: The commercial licence's section structure, likewise shared by all four.
-LICENCE_SECTIONS = (
-    "1. Do you actually need this?",
-    "2. Licence structure",
-    "3. What the Commercial licence grants",
-    "4. What the Redistribution licence grants",
-    "5. Price list",
-    "6. Support",
-    "7. Custom development",
-    "8. How to buy",
-    "9. Term, warranty and liability",
-    "10. What is *not* included",
-    "11. Third-party components",
-    "12. Contributors",
-    "13. Contact",
-    "14. Terminology",
-)
-
 
 def read(name: str) -> str:
     with open(os.path.join(REPO, name), encoding="utf-8") as fh:
@@ -105,15 +85,6 @@ def test_the_readme_follows_the_shared_section_skeleton():
     rest.
     """
     assert tuple(headings(read("README.md"), 2)) == README_SKELETON
-
-
-def test_the_commercial_licence_follows_the_shared_section_structure():
-    """Same reasoning, applied to the document that is actually a contract:
-    §11 is Third-party components in every product, so a cross-reference to it
-    from anywhere means the same thing.
-    """
-    found = tuple(headings(read("COMMERCIAL-LICENSE.md"), 2))
-    assert found == LICENCE_SECTIONS
 
 
 def test_every_internal_readme_link_points_at_a_heading_that_exists():
@@ -156,113 +127,48 @@ def test_every_referenced_image_exists():
 
 # ---------------------------------------------------------------------------
 # Licensing
+#
+# Argus is AGPL-3.0 and nothing else. The tests that used to police a price
+# list, a tier ladder and a perpetual-option rule went with the commercial
+# offer; what replaced them guards the one restriction that is real.
 # ---------------------------------------------------------------------------
 
-#: Tiers that must exist under the same name in both documents. Commercial and
-#: Redistribution each cover several sub-tiers (Small/Medium/Large/Enterprise,
-#: Standard/Enterprise) that the README does not necessarily spell out row by
-#: row, so matching is done at the licence-family level; their figures are
-#: checked below by amount instead of by sub-tier name.
-TIERS = ("Community", "Commercial", "Redistribution")
+CONTACT = "marco.lombardo@gmail.com"
 
 
-def section(text: str, heading: str, stop: str) -> str:
-    """The slice of a document between two headings."""
-    start = text.index(heading)
-    end = text.index(stop, start)
-    return text[start:end]
-
-
-def tier_rows(text: str) -> dict[str, str]:
-    """Map each tier name to the raw table row quoting its price."""
-    found: dict[str, str] = {}
-    for line in text.splitlines():
-        if not line.startswith("|"):
-            continue
-        for tier in TIERS:
-            if f"**{tier}" in line:
-                found.setdefault(tier, line)
-    return found
-
-
-def amounts(text: str) -> set[str]:
-    """Every monetary figure in `text`, normalised."""
-    return {a.replace(",", "").replace(" ", "")
-            for a in re.findall(r"€\s?[\d,]+", text)}
-
-
-def test_the_price_list_agrees_with_itself():
-    """The README summarises the price list; COMMERCIAL-LICENSE.md is the
-    source of truth. Two copies of a number is one copy too many, so they are
-    compared rather than trusted.
-
-    Compared by amount rather than by row, because the README legitimately
-    collapses rows the licence keeps separate. What must never differ is the
-    set of figures a reader is quoted.
+def test_no_commercial_offer_survives_anywhere():
+    """The offer was withdrawn because it could not be kept: the forecast runs
+    on weights licensed for non-commercial use only. A stray sentence still
+    offering to sell a licence would be selling something that cannot be
+    delivered.
     """
-    terms = read("COMMERCIAL-LICENSE.md")
-    # The README's licensing section summarises the whole offer, so it is
-    # compared against both places the licence quotes a figure: the price list
-    # and the custom-development day rate.
-    licence = (amounts(section(terms, "## 5. Price list", "## 6."))
-               | amounts(section(terms, "## 7. Custom development", "## 8.")))
-    readme = amounts(section(read("README.md"),
-                             "### Commercial Licensing", "## Contributing"))
-
-    assert readme == licence, (f"README quotes {sorted(readme)}, "
-                               f"COMMERCIAL-LICENSE.md quotes {sorted(licence)}")
+    for name in ("README.md", "CLA.md", "CONTRIBUTING.md", "THIRD-PARTY-LICENSES.md"):
+        text = read(name)
+        assert "COMMERCIAL-LICENSE.md" not in text, (
+            f"{name} still points at a document that no longer exists")
+    assert not os.path.exists(os.path.join(REPO, "COMMERCIAL-LICENSE.md"))
 
 
-def test_the_perpetual_option_is_three_times_the_annual_rate():
-    """The rule the four price lists share. Stated once in the licence and
-    repeated in the README, so it is the kind of thing that silently stops
-    being true after one edit.
+def test_the_weights_restriction_is_stated_where_a_user_meets_it():
+    """The one thing a reader must not miss. Argus's own code is free; the
+    TimesFM weights it downloads are licensed for testing, evaluation and
+    research only, which excludes the trading this application exists to do.
+    Burying that would be the most consequential omission in the project.
     """
-    annual, perpetual = {}, {}
-    for line in section(read("COMMERCIAL-LICENSE.md"),
-                        "## 5. Price list", "## 6.").splitlines():
-        if not line.startswith("|"):
-            continue
-        cells = [cell.strip() for cell in line.strip("|").split("|")]
-        label = re.sub(r"[*]", "", cells[0]).strip()
-        figures = re.findall(r"€([\d,]+)", line)
-        # "from €N" is a starting price on a negotiated tier, and the
-        # discounts table below quotes a revenue threshold, not a price.
-        if not figures or "from" in line or not label.startswith(
-                ("Commercial — ", "Redistribution — ")):
-            continue
-        (annual if "/ year" in line else perpetual)[label] = int(
-            figures[0].replace(",", ""))
-
-    priced = ("Commercial — Small", "Commercial — Medium", "Commercial — Large",
-              "Redistribution — Standard")
-    assert set(perpetual) == set(priced), (
-        f"the perpetual table lists {sorted(perpetual)}, expected {sorted(priced)}")
-    for tier in priced:
-        assert perpetual[tier] == annual[tier] * 3, (
-            f"{tier}: perpetual €{perpetual[tier]:,} is not three times "
-            f"annual €{annual[tier]:,}")
+    for name in ("README.md", "THIRD-PARTY-LICENSES.md"):
+        lowered = read(name).lower()
+        assert "non-commercial license" in lowered, (
+            f"{name} does not name the licence the weights are under")
+        assert "revenue" in lowered or "production" in lowered, (
+            f"{name} does not say what the licence excludes")
 
 
-def test_every_tier_is_named_in_both_documents():
-    """A tier the README never mentions is a tier nobody will ask about."""
-    licence = tier_rows(section(read("COMMERCIAL-LICENSE.md"), "## 5. Price list", "## 6."))
-    readme = tier_rows(section(read("README.md"),
-                               "### Commercial Licensing", "## Contributing"))
-
-    assert set(licence) == set(TIERS), f"tiers missing from the licence: {sorted(licence)}"
-    assert set(readme) == set(TIERS), f"tiers missing from the README: {sorted(readme)}"
-
-
-def test_the_free_tier_stays_free():
-    """The Community row is the one a hostile reading would quietly reprice. It
-    must cost nothing, in both documents, in words a reader cannot misread.
+def test_the_readme_says_argus_does_not_ship_the_weights():
+    """It is the fact that keeps the AGPL distribution clean: the restricted
+    artefact is fetched by the user, not redistributed by the project.
     """
-    for document, heading, stop in (
-            ("COMMERCIAL-LICENSE.md", "## 5. Price list", "## 6."),
-            ("README.md", "### Commercial Licensing", "## Contributing")):
-        row = tier_rows(section(read(document), heading, stop))["Community"]
-        assert re.search(r"\*\*(Free|€0)\*\*", row), f"{document}: {row.strip()}"
+    lowered = read("README.md").lower()
+    assert "never ships the weights" in lowered or "not ship the weights" in lowered
 
 
 def test_the_agpl_text_is_not_edited():
@@ -282,59 +188,34 @@ def test_the_agpl_text_is_not_edited():
     for word in ("€", "VAT", "invoice", "per year", "subscription"):
         pattern = re.escape(word) if not word.isalpha() else rf"\b{word}\b"
         assert not re.search(pattern, licence, re.IGNORECASE), (
-            f"LICENSE must stay verbatim AGPL, found {word!r} — "
-            "commercial terms belong in COMMERCIAL-LICENSE.md")
+            f"LICENSE must stay verbatim AGPL, found {word!r}")
 
 
-def test_the_commercial_terms_do_not_contradict_the_agpl_on_internal_use():
-    """Regression against the commonest dual-licensing lie. The AGPL grants
-    free internal use to organisations of any size; a price list that implies
-    otherwise would be misrepresenting the licence the project ships under.
-    """
-    terms = read("COMMERCIAL-LICENSE.md").lower()
-
-    # Matched on substance rather than on an exact sentence: the wording has
-    # already been rewritten once, and pinning the phrasing only teaches the
-    # next editor to delete the test.
-    match = re.search(r"organisations of any size", terms)
-    assert match, "the terms must state that internal use is free at any size"
-    assert "free" in terms[max(0, match.start() - 160):match.end()], (
-        "'organisations of any size' must appear in a sentence about it being free")
-
-
-CONTACT = "marco.lombardo@gmail.com"
-
-
-@pytest.mark.parametrize("document", ["README.md", "COMMERCIAL-LICENSE.md", "CLA.md"])
-def test_a_buyer_can_find_a_way_to_get_in_touch(document):
-    """A price list nobody can respond to is decoration."""
+@pytest.mark.parametrize("document", ["README.md", "CLA.md"])
+def test_a_reader_can_find_a_way_to_get_in_touch(document):
+    """A project nobody can write to is harder to contribute to."""
     assert CONTACT in read(document)
 
 
-def test_the_mail_subject_is_the_same_wherever_the_reader_clicks():
-    """The README and the licence both open a mail client. The same enquiry
-    arriving under two different subjects makes it look like two different
-    enquiries — and the drift is invisible, because nobody clicks every link.
+def test_the_mail_subject_is_consistent():
+    """The README opens a mail client. One enquiry arriving under two subjects
+    looks like two enquiries, and the drift is invisible because nobody clicks
+    every link.
     """
-    expected = {f"subject={APP_NAME}%20commercial%20licence%20enquiry"}
-    for document in ("README.md", "COMMERCIAL-LICENSE.md"):
-        subjects = set(re.findall(r"subject=[^)\s]+", read(document)))
-        assert subjects, f"{document} has no mailto subject to check"
-        assert subjects == expected, f"{document} uses {sorted(subjects)}, expected {expected}"
+    subjects = set(re.findall(r"subject=[^)\s]+", read("README.md")))
+    assert subjects == {f"subject={APP_NAME}"}, f"README uses {sorted(subjects)}"
 
 
-def test_no_placeholder_survived_into_the_published_terms():
-    """Regression: the contact address started life as a marked placeholder. A
-    price list shipped with `(to be published)` still in it is worse than one
-    with no price list at all.
-    """
-    terms = read("COMMERCIAL-LICENSE.md").lower()
-    for placeholder in ("to be published", "tbd", "todo", "xxx", "your-domain"):
-        assert placeholder not in terms, f"placeholder left in the terms: {placeholder!r}"
+def test_no_placeholder_survived_into_the_published_documents():
+    """Regression: the contact address started life as a marked placeholder."""
+    for name in ("README.md", "CLA.md"):
+        lowered = read(name).lower()
+        for placeholder in ("to be published", "tbd", "todo", "xxx", "your-domain"):
+            assert placeholder not in lowered, f"{name}: placeholder left in: {placeholder!r}"
 
 
 @pytest.mark.parametrize(
-    "document", ["README.md", "COMMERCIAL-LICENSE.md", "CLA.md", "CONTRIBUTING.md",
+    "document", ["README.md", "CLA.md", "CONTRIBUTING.md",
                  "CHANGELOG.md", "LICENSE"])
 def test_the_shared_document_set_is_present(document):
     """All four products carry the same six documents. One missing is one the
@@ -343,93 +224,9 @@ def test_the_shared_document_set_is_present(document):
     assert os.path.exists(os.path.join(REPO, document))
 
 
-@pytest.mark.parametrize("document", ["COMMERCIAL-LICENSE.md", "CLA.md", "LICENSE"])
+@pytest.mark.parametrize("document", ["CLA.md", "LICENSE"])
 def test_licensing_documents_are_reachable_from_the_readme(document):
     assert document in read("README.md"), f"{document} is not linked from the README"
-
-
-class TestThirdPartySection:
-    """§11 is what a buyer reads before signing, so it has to be true.
-
-    What it said before was a table of the source dependencies with a column
-    headed "Commercial redistribution" and a ✅ in every row, under the
-    sentence "Every dependency is permissively licensed and safe to
-    redistribute in a commercial product."
-
-    Both halves were wrong. A tick reads as permission granted, in the one
-    section whose whole job is to say that no rights to third-party components
-    are granted here. And `requirements.txt` is not what a redistributor
-    ships: they ship a frozen bundle of 376 native libraries, one of which
-    was GPL-3.0 readline.
-    """
-
-    @pytest.fixture(scope="class")
-    def section(self) -> str:
-        terms = read("COMMERCIAL-LICENSE.md")
-        return terms[
-            terms.index("## 11. Third-party components"):terms.index("## 12. Contributors")
-        ]
-
-    def test_it_distinguishes_the_source_dependencies_from_the_shipped_bundle(
-        self, section: str
-    ) -> None:
-        """A redistributor ships the bundle, not requirements.txt."""
-        assert "source" in section.lower()
-        assert "THIRD-PARTY-LICENSES.md" in section, (
-            "§11 does not point at the full inventory, so it remains a summary "
-            "of a handful of components presented as the whole picture"
-        )
-
-    def test_no_component_is_marked_simply_permitted(self, section: str) -> None:
-        """The old table's ✅ column invited exactly the wrong conclusion."""
-        assert "✅" not in section, (
-            "a tick in §11 reads as permission granted; this section grants none"
-        )
-
-    def test_the_licensing_history_is_stated_and_not_softened(
-        self, section: str
-    ) -> None:
-        """The decision that shaped the dependency list, in the document people
-        pay against. A buyer who learns it after paying has bought the wrong
-        thing.
-        """
-        lowered = section.lower()
-        assert "vectorbt" in lowered
-        assert "commons clause" in lowered
-
-    @pytest.mark.parametrize(
-        "obligation",
-        [
-            # Each of these is carried by something the archives actually
-            # contain, and none was in the table this replaced.
-            "GCC Runtime Library Exception",
-            "Microsoft",
-            "Bootloader Exception",
-            "Tcl and Tk",
-            # Argus reaches three MPL-2.0 distributions through requests
-            # and openai. File-level copyleft is still copyleft.
-            "MPL-2.0",
-        ],
-    )
-    def test_obligations_carried_by_the_bundle_are_named(
-        self, section: str, obligation: str
-    ) -> None:
-        assert obligation in section
-
-    def test_the_gpl3_library_that_used_to_ship_is_disclosed(
-        self, section: str
-    ) -> None:
-        """Removed from the build, and said out loud rather than quietly fixed.
-
-        Somebody holding an older archive still has it, and §11 is where they
-        would look.
-        """
-        assert "libreadline" in section
-        assert "no linking exception" in section
-
-    def test_it_still_disclaims_being_a_legal_opinion(self, section: str) -> None:
-        """More detail is not more authority."""
-        assert "not a legal opinion" in section.lower()
 
 
 def test_the_inventory_document_is_reachable_from_the_licence():

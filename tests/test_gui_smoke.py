@@ -3,8 +3,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Distributed WITHOUT ANY WARRANTY; see LICENSE for the full terms.
-# A commercial licence, without the AGPL's obligations, is available for use
-# in proprietary or closed-source products — see COMMERCIAL-LICENSE.md.
 
 """
 tests/test_gui_smoke.py — Argus
@@ -230,12 +228,13 @@ def test_auto_trading_scheduler_survives_the_weekend_branch(app):
 
 
 # ─────────────────────────────────────────────────────────────
-# Commercial licensing contact
+# Contact address in the footer
 # ─────────────────────────────────────────────────────────────
 
 def test_the_footer_shows_the_licensing_address(app):
-    """The person running the app is the one who may need to buy a licence, so
-    the address is spelled out rather than promised 'on request'."""
+    """The person running the app is the one who may have a licensing or
+    security question, so the address is spelled out rather than promised
+    'on request'."""
     from core.version import CONTACT_EMAIL
 
     assert app._footer_email.cget("text") == CONTACT_EMAIL
@@ -255,7 +254,7 @@ def test_clicking_the_address_opens_the_mail_client(app, monkeypatch):
     opened = []
     monkeypatch.setattr(app_mod.webbrowser, "open", opened.append)
 
-    app.open_licensing_email()
+    app.open_contact_email()
 
     assert len(opened) == 1
     assert opened[0].startswith(f"mailto:{CONTACT_EMAIL}?subject=")
@@ -271,7 +270,7 @@ def test_a_missing_mail_client_does_not_crash(app, monkeypatch):
 
     monkeypatch.setattr(app_mod.webbrowser, "open", explode)
 
-    app.open_licensing_email()
+    app.open_contact_email()
 
     assert app.winfo_exists()
 

@@ -41,8 +41,8 @@ a = Analysis(
     # readline is excluded for a licensing reason, not for size. PyInstaller
     # collects the standard library's optional readline extension, which links
     # libreadline — GPL-3.0-or-later, with no linking exception — so a GPL-3
-    # library ended up inside an archive COMMERCIAL-LICENSE.md offers for
-    # redistribution inside closed-source products. libpython does not link
+    # library ended up inside an archive distributed under AGPL-3.0, whose
+    # section 7 does not permit added restrictions. libpython does not link
     # it; only this module does, and Argus is a windowed application that
     # never reads a line from an interactive prompt. rlcompleter goes with it:
     # it imports readline and exists for nothing else.

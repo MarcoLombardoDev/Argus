@@ -114,17 +114,23 @@ vanish between runs of the built executable.
 - **The backtester is deliberately in-house.** `core/backtest.py` was written for this
   project to replace `vectorbt`, whose Apache-2.0 **plus Commons Clause** licence
   withholds the right to sell software deriving substantially from it — a condition
-  AGPL-3.0 §7 does not permit a licensee to impose. Do not reintroduce vectorbt, or an
-  equivalent, without re-reading that clause: it would break the commercial offer.
-- **Model weights are licensed separately from model code.** The `timesfm` package is
-  Apache-2.0 — re-verified at 3.0.1: Apache-2.0 text in the wheel, the same header on all
-  32 source files, no Commons Clause, no non-commercial term. The TimesFM *checkpoints*
-  pulled from Hugging Face carry their own terms, and **1.1.0 changed which checkpoint is
-  the default** (`google/timesfm-3.0-pytorch`, previously the 2.5 one). Nobody has
-  verified the 3.0 checkpoint's terms — Hugging Face is unreachable from the sandboxes
-  these sessions run in — so that is an open item, and it matters most to a
-  Redistribution licensee. Argus never ships the weights: they are downloaded at first
-  use, so they are in no release archive and in no inventory of one.
+  AGPL-3.0 §7 does not permit a licensee to pass on. Do not reintroduce vectorbt, or an
+  equivalent, without re-reading that clause: a downstream recipient of an AGPL work is
+  entitled to sell it, and a Commons Clause dependency takes that back.
+- **Model weights are licensed separately from model code, and the weights are the
+  restricted half.** The `timesfm` package is Apache-2.0 — re-verified at 3.0.1:
+  Apache-2.0 text in the wheel, the same header on all 32 source files, no Commons
+  Clause, no non-commercial term. The *checkpoints* are not. Google publishes them under
+  the **TimesFM Non-Commercial License**, which allows testing, evaluation and research
+  and excludes revenue-generating activity, production systems, end-user interaction and
+  any Distribution of the weights or derivatives — and extends that restriction to "any
+  Outputs and data produced by the TimesFM Model". Trading real money on a TimesFM
+  forecast is outside those terms. This is why Argus has no commercial licence to sell
+  (see *Licensing* above), and it is not a thing to paper over: any wording that implies
+  Argus clears production use of the weights is false. Argus never ships them — they are
+  downloaded from Hugging Face at first use, under the user's own name, so they are in no
+  release archive and in no inventory of one, and the restriction binds that user
+  directly, not Argus.
 - **Install `timesfm[torch]`, never `[flax]` or `[xreg]`.** Those extras depend on
   `jax[cuda]`, which drags NVIDIA's CUDA libraries and their own redistribution terms
   into a bundle `THIRD-PARTY-LICENSES.md` promises is free of them. `timesfm3` imports
@@ -168,82 +174,58 @@ Heading anchors follow GitHub's slug rules: lowercase, punctuation stripped, spa
 mapped to `-` and **not collapsed** — so `## A & B` is `#a--b`, with two hyphens. The
 table of contents breaks quietly when a heading is reworded.
 
-## Commercial model — two axes, not one tier ladder
+## Licensing — AGPL-3.0 and nothing else
 
-The commercial offer is **Commercial vs. Redistribution**, not a single ladder from
-Internal up to Enterprise. The two axes answer different questions:
+There is **no commercial licence**. There was one, in some detail — a
+Commercial/Redistribution split with employee-count tiers and a price list —
+and it was withdrawn in full, along with `COMMERCIAL-LICENSE.md`, when the
+reason below came to light. Do not reinstate any part of it without reading
+that reason first.
 
-- **Commercial** — closed-source **internal use only**, nothing built on Argus leaves the
-  licensee's organisation. Scaled by **employee count** into four tiers: Small (1–49),
-  Medium (50–249), Large (250–999), Enterprise (1,000+ or a Corporate Group).
-- **Redistribution** — Argus, or something built on it, reaches **third parties**:
-  embedding, OEM, reselling, a hosted service for external customers. Scaled by
-  distribution scale, not employee count, into Standard and Enterprise.
+**Why it went.** The forecast runs on TimesFM, and Google publishes the
+weights for *both* the 3.0 and 2.5 checkpoints under the **TimesFM
+Non-Commercial License**: testing, evaluation and research only, with
+revenue-generating activity, production systems, and Distribution of the
+weights or derivatives excluded by name. The restriction reaches the forecasts
+themselves — "any Outputs and data produced by the TimesFM Model" used
+commercially. Argus is a trading application, so its central use case sits
+outside those terms.
 
-**A Commercial licence, at any tier, does not include redistribution rights.** OEM is not
-a tier of its own — it is one example of a Redistribution scenario, alongside embedding
-and reselling; see `COMMERCIAL-LICENSE.md` §6.
+Selling a Redistribution licence on top of that would have been selling
+permission that could not be delivered: the buyer's customers would still have
+had to fetch weights they were not licensed to use. `COMMERCIAL-LICENSE.md`
+also asserted in as many words that *"no dependency imposes a field-of-use or
+anti-commercial condition"*, which the TimesFM licence contradicts about as
+directly as a sentence can.
 
-**Corporate Group membership doesn't auto-extend a licence.** A small subsidiary of a
-large group cannot use a Small-tier Commercial licence to cover the rest of the group —
-group-wide scope requires the Enterprise / Group tier, and the certificate names exactly
-which legal entities it covers (`COMMERCIAL-LICENSE.md` §5).
+**What is true now:**
 
-The parts that stay true regardless of tier structure:
+- Argus's own code is **AGPL-3.0-or-later**, and offered under no other terms.
+  The licence headers say only that; there is no "a commercial licence is
+  available" line any more.
+- Argus **never ships the weights.** They are downloaded from Hugging Face at
+  first use by whoever runs the program, so the AGPL distribution stays clean
+  and the person bound by Google's terms is the user, not the project.
+- **The restriction still binds that user.** Making Argus AGPL-only removed a
+  false promise; it did not make trading with TimesFM weights permissible. The
+  README, `THIRD-PARTY-LICENSES.md`, the release notes, the licence bundle
+  inside every archive and the model dropdown in the GUI all say so, and
+  `tests/test_docs.py` fails if the README or the inventory stops saying it.
+- The CLA's sublicensing grant is narrowed to **other free and open-source
+  licences**. It no longer reserves a right to relicense contributions
+  commercially, because there is nothing to relicense them into.
 
-- **Email is the only commercial channel.** GitHub Issues are for bugs and features.
-- **Email support is included at every paid tier** (2–5 business days depending on tier),
-  never sold separately to a paying customer.
-- **Custom development is never included**, at any tier, and is always quoted separately
-  per project at a fixed price agreed before work starts.
-- Perpetual fallback, no retroactive price rise, cancel any time, **no licence key and no
-  phone-home**, 50% discount under 10 employees and €1M revenue, free licences for
-  non-profits, academia and published research.
+**The dependency rule survives, with a different justification.** A dependency
+carrying a field-of-use restriction still cannot be added — not because it
+would break a commercial offer, but because AGPL-3.0 §7 does not permit a
+licensee to be handed added restrictions, which would make the project
+undistributable. That is why `vectorbt` is gone, and
+`tests/test_core.py::test_no_commons_clause_dependency_remains` is the
+tripwire for it.
 
-Argus's own prices:
-
-| Tier | Price |
-|---|---|
-| Community (AGPL-3.0) | Free |
-| Commercial — Small (1–49 employees) | €1,900 / year |
-| Commercial — Medium (50–249 employees) | €3,900 / year |
-| Commercial — Large (250–999 employees) | €7,900 / year |
-| Commercial — Enterprise (1,000+ / Group) | from €14,000 / year |
-| Redistribution — Standard | €4,900 / year |
-| Redistribution — Enterprise | from €24,900 / year, quoted per engagement |
-| Perpetual (Commercial Small/Medium/Large, or Redistribution Standard) | €5,700 / €11,700 / €23,700 / €14,700 one-off |
-| Custom development, indicative | €1,200 / day |
-
-And the principle underneath all of it: **the free AGPL build is the whole product.** No
-paid edition, no feature gate, no seat limit. A commercial licence buys *permission*, not
-functionality. Never add a feature that is unlocked by paying.
-
-**This diverges from Iris and Proteus.** Those two still run the old single-ladder model
-(Community / Internal / OEM & Redistribution / Enterprise) — this restructuring was done
-on Argus only, at the owner's explicit request to work on this repository alone. The
-three products are supposed to share the same commercial offer shape; until Iris and
-Proteus are updated to the same Commercial/Redistribution split, that alignment is broken
-and the owner knows it. Don't "fix" this by reverting Argus — the new structure is the
-one that was asked for.
-
-## Dependency licence hygiene — now a commercial commitment
-
-`COMMERCIAL-LICENSE.md` tells buyers that **no dependency imposes copyleft**. That
-sentence has to stay true.
-
-Before adding a dependency, check its licence. Permissive (MIT / BSD / Apache-2.0 / PSF /
-HPND) is fine. Copyleft or "dual AGPL-or-pay" is not, because a commercial licence cannot
-relicense someone else's code and the buyer would need a second licence.
-
-This is not hypothetical here: the `vectorbt` dependency was removed for exactly this reason — see the note above and `COMMERCIAL-LICENSE.md` §15.
-
-`tests/test_core.py::test_no_commons_clause_dependency_remains` enforces the vectorbt half
-of this mechanically, failing if an import or a requirements line comes back. It is a
-tripwire for one known offender, not a licence audit — a new dependency still needs a
-human to read its licence.
-
-PyInstaller is GPL-2.0 **with the bootloader exception**, which exists precisely to allow
-proprietary frozen applications — that one is fine.
+**This diverges from Iris and Proteus**, which still carry the old
+single-ladder commercial offer. That divergence is deliberate and was the
+owner's decision; do not "fix" it by reinstating anything here.
 
 ## The repository is public
 
@@ -262,8 +244,6 @@ prose only.
 
 ## The contact address
 
-`CONTACT_EMAIL` in `core/version.py` is the single source of truth: the application footer,
-the README and `COMMERCIAL-LICENSE.md` all quote it. The footer shows the address in full
-and clicking it opens the mail client on a pre-filled enquiry — whoever is running the
-software is exactly the person who might need a licence, and "available on request" tells
-them nothing.
+`CONTACT_EMAIL` in `core/version.py` is the single source of truth: the application
+footer and the README both quote it. The footer shows the address in full and clicking
+it opens the mail client.

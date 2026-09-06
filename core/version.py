@@ -3,14 +3,12 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Distributed WITHOUT ANY WARRANTY; see LICENSE for the full terms.
-# A commercial licence, without the AGPL's obligations, is available for use
-# in proprietary or closed-source products — see COMMERCIAL-LICENSE.md.
 
 """
 version.py — Argus
 
-Single source of truth for the application's identity and its commercial
-contact address.
+Single source of truth for the application's identity and its contact
+address.
 
 CONTACT_EMAIL lives here rather than being spelled out at each call site so
 that changing it — moving from a personal address to a role address on an
@@ -29,5 +27,5 @@ APP_TITLE = "Argus — Advanced Market Forecast & AI Analysis"
 __version__ = "1.1.0"
 
 # Commercial licensing, quotes, OEM and enterprise enquiries. Email is the
-# only commercial channel — see COMMERCIAL-LICENSE.md.
+# contact address for the project.
 CONTACT_EMAIL = "marco.lombardo@gmail.com"

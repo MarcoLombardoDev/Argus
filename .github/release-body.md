@@ -67,7 +67,11 @@ See [CHANGELOG.md](https://github.com/MarcoLombardoDev/Argus/blob/{{TAG}}/CHANGE
 ## Licence
 
 Licensed **AGPL-3.0-or-later** — see
-[LICENSE](https://github.com/MarcoLombardoDev/Argus/blob/{{TAG}}/LICENSE). A commercial
-licence, without the AGPL's obligations, is available for closed-source and redistribution
-use: see
-[COMMERCIAL-LICENSE.md](https://github.com/MarcoLombardoDev/Argus/blob/{{TAG}}/COMMERCIAL-LICENSE.md).
+[LICENSE](https://github.com/MarcoLombardoDev/Argus/blob/{{TAG}}/LICENSE), and offered
+under no other terms.
+
+⚠️ **The TimesFM model weights are not covered by it.** Argus does not ship them: it
+downloads them from Hugging Face on first use, under Google's **TimesFM Non-Commercial
+License**, which permits testing, evaluation and research only and excludes
+revenue-generating and production use — including trading real money. See the
+[README](https://github.com/MarcoLombardoDev/Argus/blob/{{TAG}}/README.md#licence).
