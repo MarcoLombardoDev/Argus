@@ -105,6 +105,20 @@ package is Apache-2.0; the TimesFM checkpoints downloaded from Hugging Face
 carry their own terms. Verify the licence on the specific checkpoint you deploy
 before shipping it commercially.
 
+The weights are not in this inventory because they are not in the bundle: they
+are fetched from Hugging Face the first time a forecast runs, onto the machine
+running it. Nothing on the releases page contains them.
+
+As of 1.1.0 the default checkpoint is `google/timesfm-3.0-pytorch`, where it was
+`google/timesfm-2.5-200m-pytorch` before. The **package** was re-verified at
+3.0.1 — Apache-2.0 licence text in the wheel, the same header on all 32 source
+files, no Commons Clause and no non-commercial term — and it is installed as
+`timesfm[torch]` deliberately: the `flax` and `xreg` extras pull `jax[cuda]`,
+which would bring NVIDIA's CUDA libraries and their own redistribution terms
+into a bundle this document promises is free of them. The **checkpoint's** terms
+are a separate question and were not verified: a clearance obtained for the 2.5
+weights does not cover the 3.0 ones.
+
 ## The components that actually constrain redistribution
 
 Most of the inventory below is MIT, BSD and ISC — attribution and nothing more.

@@ -51,6 +51,27 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   It is now `core.forecaster.DEFAULT_CHECKPOINT`, imported by the GUI, so the
   loader and the interface cannot drift apart.
 
+- **Licence review of the new dependency.** `timesfm` 3.0.1 was checked against
+  what the commercial offer promises, not taken on trust from a metadata field:
+  the wheel carries the Apache-2.0 licence text, all 32 source files — including
+  the new `timesfm3` package — carry its header, and no file contains a Commons
+  Clause, a copyleft term or a non-commercial restriction. Its `[torch]`
+  dependencies (`numpy`, `huggingface_hub`, `safetensors`, `torch`) are all
+  permissive and already inventoried.
+
+  `timesfm[torch]` is now documented as a deliberate choice rather than a
+  default: the `[flax]` and `[xreg]` extras depend on `jax[cuda]`, which would
+  pull NVIDIA's CUDA libraries and their own redistribution terms into a bundle
+  `THIRD-PARTY-LICENSES.md` states is free of them. `timesfm3` imports only the
+  four packages above, so nothing on the code path needs those extras.
+
+  **The weights remain unverified, and the default checkpoint changed.** Argus
+  never ships them — they are fetched from Hugging Face at first use, so they
+  are in no release archive — but a clearance obtained for the 2.5 checkpoint
+  does not cover `google/timesfm-3.0-pytorch`. `COMMERCIAL-LICENSE.md`,
+  `THIRD-PARTY-LICENSES.md` and `CLAUDE.md` now say so explicitly instead of
+  leaving it to the general "checkpoints carry their own terms" note.
+
 ## [1.0.0] — 2026-08-30
 
 ### Added

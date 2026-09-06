@@ -18,6 +18,12 @@ ccxt>=4.2.0
 # The floor matters: the TimesFM3Forecaster API lives in the timesfm3 package,
 # which only ships from 3.0 onwards. The same release still carries the 2.5
 # models, so a settings file pinned to an older checkpoint keeps working.
+#
+# The [torch] extra is a licensing choice as much as a size one: [flax] and
+# [xreg] depend on jax[cuda], which would put NVIDIA's CUDA libraries and their
+# own redistribution terms inside a bundle THIRD-PARTY-LICENSES.md promises is
+# free of them. timesfm3 imports only huggingface_hub, numpy, safetensors and
+# torch, so nothing on the code path needs them.
 huggingface-hub>=0.28.0
 torch>=2.1.0
 timesfm[torch]>=3.0.0

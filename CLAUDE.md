@@ -117,8 +117,19 @@ vanish between runs of the built executable.
   AGPL-3.0 §7 does not permit a licensee to impose. Do not reintroduce vectorbt, or an
   equivalent, without re-reading that clause: it would break the commercial offer.
 - **Model weights are licensed separately from model code.** The `timesfm` package is
-  Apache-2.0, but the TimesFM *checkpoints* pulled from Hugging Face carry their own
-  terms. Verify the licence on the specific checkpoint before shipping it commercially.
+  Apache-2.0 — re-verified at 3.0.1: Apache-2.0 text in the wheel, the same header on all
+  32 source files, no Commons Clause, no non-commercial term. The TimesFM *checkpoints*
+  pulled from Hugging Face carry their own terms, and **1.1.0 changed which checkpoint is
+  the default** (`google/timesfm-3.0-pytorch`, previously the 2.5 one). Nobody has
+  verified the 3.0 checkpoint's terms — Hugging Face is unreachable from the sandboxes
+  these sessions run in — so that is an open item, and it matters most to a
+  Redistribution licensee. Argus never ships the weights: they are downloaded at first
+  use, so they are in no release archive and in no inventory of one.
+- **Install `timesfm[torch]`, never `[flax]` or `[xreg]`.** Those extras depend on
+  `jax[cuda]`, which drags NVIDIA's CUDA libraries and their own redistribution terms
+  into a bundle `THIRD-PARTY-LICENSES.md` promises is free of them. `timesfm3` imports
+  only `huggingface_hub`, `numpy`, `safetensors` and `torch`, so the torch extra is
+  genuinely all the code path needs.
 - **The backtester's numbers are optimistic, on purpose.** `run_signal_backtest` fills at
   the close and evaluates stops against the close, never against intrabar highs and lows,
   because Argus feeds it a close-price series only — an intrabar fill would be invented

@@ -389,6 +389,22 @@ dependencies beyond pandas and NumPy.
 Face carry their own terms. Verify the licence on the specific checkpoint you
 deploy before shipping it commercially.
 
+> **1.1.0 changed which checkpoint that is.** The default moved from
+> `google/timesfm-2.5-200m-pytorch` to `google/timesfm-3.0-pytorch`. The
+> *package* was re-checked at 3.0.1 and is Apache-2.0 throughout — the licence
+> text in the wheel is the Apache-2.0 text, all 32 source files carry its
+> header, and there is no Commons Clause and no non-commercial term anywhere in
+> it. **The weights are a separate question and have not been checked here.** If
+> you cleared the 2.5 checkpoint with your legal team, that clearance does not
+> carry over: it was granted for a different artefact.
+>
+> Argus does not ship the weights — they are downloaded from Hugging Face on
+> first use, by whoever runs the program — so they are in no archive on the
+> releases page and in no inventory of one. Under a **Redistribution** licence
+> that is the point to be careful about: your customers will fetch Google's
+> weights on their own machines, under Google's terms, and §10 means this
+> licence grants you nothing in respect of them.
+
 ### What Argus depends on
 
 The packages Argus requires, plus the interpreter it runs on, the toolkit it
