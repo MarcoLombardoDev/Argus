@@ -129,9 +129,19 @@ someone who downloaded a superseded archive still holds it long after the tag an
 release page are gone. The commit is still in `main`'s history — the repository is
 public, which is what §6 actually asks for — but with the tag deleted, nothing points at
 *which* commit built that archive. So each released version's heading in `CHANGELOG.md`
-carries its commit SHA. Add it when you cut a release; it is the only durable record
-left. (v1.0.0's is unrecoverable: its tag was deleted before anyone wrote the SHA down,
-which is how this rule came to exist.)
+carries its commit SHA — the only durable record left.
+
+**The release workflow writes it now; do not add it by hand.** It was a note-to-self
+until 1.3.0, and 1.3.0 went out with the placeholder still in the heading, because from
+inside the commit being tagged there is no way to know its own hash. The last step of the
+`checksums` job knows: by then the tag exists and points at exactly one commit, however
+many archives hang off it. It commits to `main` and pushes. Running last is deliberate —
+a failure there costs a line in a file and leaves the release itself finished — and two
+tests in `tests/test_release_workflow.py` hold the step, its push and that ordering.
+
+(v1.0.0's is unrecoverable: its tag was deleted before anyone wrote the SHA down, which
+is how this rule came to exist. 1.3.0's was filled in by hand after the fact, which is
+what it cost to notice.)
 
 **The build bundles whatever `torch` is already installed** in the environment you build
 from — there is no separate pin in `Argus.spec`. A CPU-only wheel keeps the executable in

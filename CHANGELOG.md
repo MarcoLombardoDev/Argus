@@ -5,7 +5,19 @@ All notable changes to Argus are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.0] — 2026-09-07 — commit unrecorded until the release is cut
+## [Unreleased]
+
+### Added
+- **The release workflow records which commit a release was built from.** The
+  changelog has carried that since 1.1.0, and it was written by hand after the
+  fact — which is how 1.3.0 shipped with the placeholder still in its heading:
+  from inside the commit being tagged there is no way to know its own hash.
+  The last step of the release now knows, because by then the tag exists and
+  points at exactly one commit, however many archives hang off it. It runs
+  after the notes are written, so a failure there costs a line in a file and
+  not a release.
+
+## [1.3.0] — 2026-09-07 — `eaefd1f`
 
 ### Removed
 - **The Contributor License Agreement, and every link to it.** `CLA.md` is

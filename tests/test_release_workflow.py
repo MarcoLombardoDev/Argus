@@ -298,6 +298,52 @@ def test_the_bundle_is_inventoried_on_the_machine_that_built_it():
     )
 
 
+def test_the_release_records_which_commit_it_was_built_from():
+    """Only the newest release stays online and its tag goes with it.
+
+    AGPL-3.0 §6 obliges whoever distributed a binary to hand over the
+    corresponding source, and somebody holding a superseded archive still has
+    it long after the release page is gone. The source is fine — the repository
+    is public and the commit stays in main's history — but with the tag deleted
+    nothing says *which* commit built that archive. CHANGELOG.md carries it, in
+    a file that survives the deletion.
+
+    This was a note written by hand after the fact, and 1.3.0 went out with the
+    placeholder still in it: from inside the commit being tagged there is no
+    way to know its own hash. The workflow knows, because by then the tag
+    exists.
+    """
+    workflow = load_workflow()
+    assert "sha" in workflow["jobs"]["release"]["outputs"], (
+        "the release job does not publish the tagged commit"
+    )
+    steps = workflow["jobs"]["checksums"]["steps"]
+    record = next(
+        (s for s in steps if "CHANGELOG.md" in s.get("run", "")), None
+    )
+    assert record is not None, "nothing writes the commit into the changelog"
+    assert "git push origin main" in record["run"], (
+        "the changelog is edited and never pushed"
+    )
+    # It must land on the branch people read, not on the tag.
+    checkout = next(s for s in steps if s.get("uses", "").startswith("actions/checkout"))
+    assert checkout["with"]["ref"] == "main"
+
+
+def test_recording_the_commit_is_the_last_thing_a_release_does():
+    """A failure there costs a line in a file, not a release.
+
+    Ordered after the notes deliberately: everything a downloader sees is
+    already in place by the time this runs.
+    """
+    steps = load_workflow()["jobs"]["checksums"]["steps"]
+    runs = [s.get("run", "") for s in steps]
+    notes = next(i for i, r in enumerate(runs) if "gh release edit" in r)
+    record = next(i for i, r in enumerate(runs) if "CHANGELOG.md" in r)
+    assert notes < record
+    assert record == len(runs) - 1, "it is not the final step"
+
+
 def test_the_inventory_checks_that_every_notice_reached_the_archive():
     """The gap neither script can see on its own.
 
