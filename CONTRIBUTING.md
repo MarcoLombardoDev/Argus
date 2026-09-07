@@ -15,23 +15,24 @@ follow from that and are not negotiable:
   data.
 
 A dependency carrying a field-of-use or anti-commercial condition — the Commons Clause, for
-one — cannot be added: it would break the commercial licence. That one already cost this
-project a rewrite of the backtester.
+one — cannot be added: AGPL-3.0 §7 does not let a licensee pass such a condition on, so it
+would make the project undistributable. That one already cost this project a rewrite of the
+backtester.
 
-## The Contributor License Agreement
+## There is no CLA
 
-Argus is dual-licensed: AGPL-3.0 for everyone, and commercial terms for those who cannot
-accept the AGPL's obligations. That is only possible if one party can license the whole
-work both ways, so **every contributor must agree to the
-[Contributor License Agreement](CLA.md)** before a pull request can be merged.
+Argus is **AGPL-3.0-or-later and nothing else**, so there is no Contributor License
+Agreement and no copyright assignment. Nobody signs anything.
 
-> **To agree:** include
-> `I have read and agree to the Contributor License Agreement (CLA.md).`
-> in your pull request description. Your first pull request constitutes your agreement.
+That follows from the licensing rather than being a separate decision. A CLA exists so one
+party can license the whole work on terms other than the ones contributors chose — which is
+what a commercial tier needs. Argus had such a tier and **withdrew it in 1.2.0**: the
+forecast runs on TimesFM weights licensed for non-commercial use only, so the offer could
+not be kept. With nothing to relicense into, a CLA would be collecting a right nobody
+intends to use.
 
-You keep the copyright in your work, and you receive a perpetual, royalty-free commercial
-licence to Argus for your own use — see
-[LICENSE](LICENSE).
+You keep the copyright in your work. You offer it under the AGPL, like everything else
+here, which is what the AGPL provides for on its own.
 
 ## Getting set up
 

@@ -17,7 +17,6 @@
 - [ ] Documentation updated if the behaviour changed
 - [ ] If the build or the dependencies were touched: `python build.py` run, and the
       executable it produced started successfully
-- [ ] I have read and agree to the Contributor License Agreement (CLA.md).
 
 ## Notes for the reviewer
 

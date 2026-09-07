@@ -1,7 +1,12 @@
 # Routes non-bug traffic away from public Issues.
 #
-# Some traffic does not belong in a public thread: CLA questions, and above
-# all security reports. The new-issue chooser offers those as email links.
+# Some traffic does not belong in a public thread, and above all a security
+# report does not. The new-issue chooser offers those as email links.
+#
+# There is no CLA entry here, deliberately: Argus has no CLA, having withdrawn
+# the commercial tier a CLA exists to serve. A chooser offering to answer
+# questions about a document that does not exist would be the first thing a
+# contributor read.
 blank_issues_enabled: true
 contact_links:
   - name: ⚖️ Licensing question
@@ -10,9 +15,6 @@ contact_links:
       Argus is AGPL-3.0 and offered under no other terms. Note that the TimesFM
       model weights are Google's, under a non-commercial licence Argus cannot
       change — see the README before asking about production use.
-  - name: 📄 Contributor License Agreement (CLA) questions
-    url: mailto:marco.lombardo@gmail.com?subject=Argus%20CLA
-    about: Individual or Corporate CLA questions, including employer sign-off.
   - name: 🔐 Security vulnerability
     url: mailto:marco.lombardo@gmail.com?subject=Argus%20security%20report
     about: >-

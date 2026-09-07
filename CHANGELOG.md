@@ -5,6 +5,33 @@ All notable changes to Argus are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+- **The Contributor License Agreement, and every link to it.** `CLA.md` is
+  deleted. A CLA exists so one party can license the whole work on terms other
+  than the ones contributors chose — which is what the commercial tier
+  withdrawn in 1.2.0 needed. 1.2.0 narrowed its sublicensing grant to other
+  free and open-source licences and left an agreement collecting a right
+  nobody intends to use, plus a document every contributor had to read before
+  a first pull request. A contribution is offered under the AGPL, which is
+  what the AGPL provides for on its own. The pull-request checklist, the issue
+  chooser, the README and `CONTRIBUTING.md` no longer mention it, and a test
+  fails if any of them links it again or starts asking for agreement.
+
+### Fixed
+- `CONTRIBUTING.md` still described Argus as dual-licensed, with commercial
+  terms for those who cannot accept the AGPL's obligations. That has not been
+  true since 1.2.0.
+- **The licence inventory now checks that every notice reached the archive.**
+  `tools/licence_inventory.py` gained `--licences`, and the release job passes
+  it the tree about to be packaged. The inventory reported the rows it could
+  not attribute and said nothing about a row it attributed perfectly to a
+  distribution whose licence text never made it into `licenses/` — which is
+  how this actually fails: a dependency starts shipping a native extension,
+  the inventory credits it happily, and its notice travels nowhere. Orion and
+  XIP already had this; Iris, Proteus and Tyche gained it in the same pass.
+
 ## [1.2.0] — 2026-09-06 — `dc14ec0`
 
 ### Removed

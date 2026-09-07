@@ -142,7 +142,7 @@ def test_no_commercial_offer_survives_anywhere():
     offering to sell a licence would be selling something that cannot be
     delivered.
     """
-    for name in ("README.md", "CLA.md", "CONTRIBUTING.md", "THIRD-PARTY-LICENSES.md"):
+    for name in ("README.md", "CONTRIBUTING.md", "THIRD-PARTY-LICENSES.md"):
         text = read(name)
         assert "COMMERCIAL-LICENSE.md" not in text, (
             f"{name} still points at a document that no longer exists")
@@ -191,10 +191,9 @@ def test_the_agpl_text_is_not_edited():
             f"LICENSE must stay verbatim AGPL, found {word!r}")
 
 
-@pytest.mark.parametrize("document", ["README.md", "CLA.md"])
-def test_a_reader_can_find_a_way_to_get_in_touch(document):
+def test_a_reader_can_find_a_way_to_get_in_touch():
     """A project nobody can write to is harder to contribute to."""
-    assert CONTACT in read(document)
+    assert CONTACT in read("README.md")
 
 
 def test_the_mail_subject_is_consistent():
@@ -208,23 +207,49 @@ def test_the_mail_subject_is_consistent():
 
 def test_no_placeholder_survived_into_the_published_documents():
     """Regression: the contact address started life as a marked placeholder."""
-    for name in ("README.md", "CLA.md"):
+    for name in ("README.md", "CONTRIBUTING.md"):
         lowered = read(name).lower()
         for placeholder in ("to be published", "tbd", "todo", "xxx", "your-domain"):
             assert placeholder not in lowered, f"{name}: placeholder left in: {placeholder!r}"
 
 
 @pytest.mark.parametrize(
-    "document", ["README.md", "CLA.md", "CONTRIBUTING.md",
-                 "CHANGELOG.md", "LICENSE"])
+    "document", ["README.md", "CONTRIBUTING.md", "CHANGELOG.md", "LICENSE",
+                 "THIRD-PARTY-LICENSES.md"])
 def test_the_shared_document_set_is_present(document):
-    """All four products carry the same six documents. One missing is one the
-    others link to and this one does not have.
-    """
+    """One missing is one the others link to and this one does not have."""
     assert os.path.exists(os.path.join(REPO, document))
 
 
-@pytest.mark.parametrize("document", ["CLA.md", "LICENSE"])
+def test_there_is_no_cla_and_nothing_asks_a_contributor_to_sign_one():
+    """A CLA exists so one party can license the whole work on other terms.
+
+    That is what a commercial tier needs, and Argus withdrew its own in 1.2.0
+    because the forecast runs on TimesFM weights licensed for non-commercial
+    use only — the offer could not be kept. With nothing to relicense into, a
+    CLA collects a right nobody intends to use, and asking a contributor to
+    agree to a document that does not exist is the first thing they would
+    read.
+
+    Two things are checked rather than the bare acronym: that nothing links
+    the file, and that nothing asks anyone to agree to it. Matching on "CLA"
+    line by line was the first version and it failed on a paragraph that says
+    there *is* no CLA, wrapped across two lines — the same trap as "todo"
+    inside *metodo*, one document over.
+    """
+    assert not os.path.exists(os.path.join(REPO, "CLA.md"))
+    for name in ("README.md", "CONTRIBUTING.md",
+                 ".github/PULL_REQUEST_TEMPLATE.md",
+                 ".github/ISSUE_TEMPLATE/config.yml"):
+        text = read(name)
+        assert "CLA.md" not in text, f"{name} links a CLA that does not exist"
+        flattened = " ".join(text.lower().split())
+        for ask in ("agree to the contributor license agreement",
+                    "must agree to the", "sign the cla"):
+            assert ask not in flattened, f"{name} asks for a CLA: {ask!r}"
+
+
+@pytest.mark.parametrize("document", ["LICENSE", "CONTRIBUTING.md"])
 def test_licensing_documents_are_reachable_from_the_readme(document):
     assert document in read("README.md"), f"{document} is not linked from the README"
 

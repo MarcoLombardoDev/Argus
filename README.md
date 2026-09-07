@@ -986,7 +986,6 @@ Argus/
 ├── requirements.txt              # Python dependencies
 ├── README.md
 ├── LICENSE                       # AGPL-3.0
-├── CLA.md                        # Contributor License Agreement
 ├── CHANGELOG.md
 ├── .env                          # Secrets — generated at runtime, never committed
 ├── config/
@@ -1262,14 +1261,13 @@ helps whoever asks next. For anything else:
 
 ## Contributing
 
-Contributions are welcome. All contributors must agree to the
-[Contributor License Agreement (CLA)](CLA.md) before a Pull Request can be merged. It
-keeps the copyright position of the project clear and lets contributions be relicensed
-if the project ever needs to move to another free licence.
-
-> **To agree to the CLA:** include
-> `I have read and agree to the Contributor License Agreement (CLA.md).`
-> in your Pull Request description.
+Contributions are welcome, and there is nothing to sign: no Contributor License
+Agreement, no copyright assignment. A CLA exists so one party can license the whole
+work on terms other than the ones contributors chose, which is what a commercial tier
+needs — and Argus withdrew its own in 1.2.0, because the forecast runs on weights
+licensed for non-commercial use only. With nothing to relicense into, a CLA would be
+collecting a right nobody intends to use. You keep the copyright in your work and offer
+it under the AGPL, like everything else here.
 
 Practical expectations:
 

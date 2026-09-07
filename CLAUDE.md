@@ -232,9 +232,17 @@ directly as a sentence can.
   README, `THIRD-PARTY-LICENSES.md`, the release notes, the licence bundle
   inside every archive and the model dropdown in the GUI all say so, and
   `tests/test_docs.py` fails if the README or the inventory stops saying it.
-- The CLA's sublicensing grant is narrowed to **other free and open-source
-  licences**. It no longer reserves a right to relicense contributions
-  commercially, because there is nothing to relicense them into.
+- **There is no CLA either, and it went for the same reason.** 1.2.0 narrowed
+  its sublicensing grant to other free and open-source licences, since there
+  was nothing to relicense a contribution *into* any more; what that left was
+  an agreement collecting a right nobody intends to use, and a document every
+  contributor had to read and agree to before a first pull request. It was
+  withdrawn in full, with `CLA.md` and every link to it — README, pull-request
+  checklist, issue chooser, CONTRIBUTING. A contribution is offered under the
+  AGPL, which is what the AGPL provides for on its own.
+  `tests/test_docs.py::test_there_is_no_cla_and_nothing_asks_a_contributor_to_sign_one`
+  fails if any of them links the file again or starts asking for agreement.
+  Tyche, which never had one, carries the same test.
 
 **The dependency rule survives, with a different justification.** A dependency
 carrying a field-of-use restriction still cannot be added — not because it
