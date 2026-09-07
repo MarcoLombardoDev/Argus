@@ -103,10 +103,37 @@ class TestApplicationIcon:
 
     ICO = REPO / "assets/app_icon.ico"
     PNG = REPO / "assets/app_icon.png"
+    ICNS = REPO / "assets/app_icon.icns"
 
-    def test_both_files_are_in_the_repository(self):
-        assert self.ICO.is_file(), f"{self.ICO} is missing"
-        assert self.PNG.is_file(), f"{self.PNG} is missing"
+    def test_all_three_files_are_in_the_repository(self):
+        for path in (self.ICO, self.PNG, self.ICNS):
+            assert path.is_file(), f"{path} is missing"
+
+    def test_the_icns_is_a_real_icns(self):
+        """A file with the right name and the wrong bytes fails only on a
+        runner, and only on the platform nobody here builds on by hand.
+
+        The container declares its own total length and every entry declares
+        its own, so both are checked, along with each payload really being a
+        PNG. Argus has no BUNDLE() to hand this to — see Argus.spec — but a
+        broken file would be found the day one is added rather than then.
+        """
+        import struct
+
+        blob = self.ICNS.read_bytes()
+        assert blob[:4] == b"icns"
+        assert struct.unpack(">I", blob[4:8])[0] == len(blob), "declared length is wrong"
+
+        offset, seen = 8, []
+        while offset < len(blob):
+            kind = blob[offset:offset + 4]
+            length = struct.unpack(">I", blob[offset + 4:offset + 8])[0]
+            assert length >= 8 and offset + length <= len(blob), f"{kind!r} overruns"
+            assert blob[offset + 8:offset + 12] == b"\x89PNG", f"{kind!r} is not a PNG"
+            seen.append(kind)
+            offset += length
+        # The retina pair Finder and the Dock actually read.
+        assert b"ic11" in seen and b"ic12" in seen
 
     def test_the_ico_carries_every_size_windows_asks_for(self):
         """An .ico with only one frame makes Windows scale it, and a 256-pixel
@@ -475,3 +502,58 @@ class TestLicenceHeader:
                     )
                     break
         assert not wrong, "the licence header is broken in:\n  " + "\n  ".join(wrong)
+
+
+class TestSpecFile:
+    """Two things the spec had wrong until they were looked for."""
+
+    SPEC = REPO / "Argus.spec"
+
+    def test_it_carries_the_licence_header(self):
+        """Every .py file in this repository opens with it; the spec did not.
+
+        It is source like any other — it is executed, it is copied when
+        somebody borrows this build setup — so it says what it is and what may
+        be done with it.
+        """
+        lines = self.SPEC.read_text(encoding="utf-8").splitlines()
+        for offset, expected in enumerate((
+            "# Argus",
+            "# Copyright (C)",
+            "#",
+            "# SPDX-License-Identifier: AGPL-3.0-or-later",
+            "# Distributed WITHOUT ANY WARRANTY; see LICENSE for the full terms.",
+        )):
+            assert lines[offset].startswith(expected), (
+                f"line {offset + 1}: expected {expected!r}, found {lines[offset]!r}"
+            )
+
+    def test_the_icon_is_chosen_per_platform(self):
+        """A hardcoded .ico is what killed XIP's first macOS release.
+
+        PyInstaller's normalize_icon_type accepts only .ico on Windows and only
+        .icns on macOS, converting anything else if Pillow happens to be
+        installed. Leaving the mapping in place while hardcoding the .ico again
+        would satisfy a test that only looked for the dictionary, so what EXE
+        actually receives is checked too.
+        """
+        spec = self.SPEC.read_text(encoding="utf-8")
+        assert '"win32": "assets/app_icon.ico"' in spec
+        assert '"darwin": "assets/app_icon.icns"' in spec
+        assert "icon=_ICON_FOR_EXE," in spec
+        assert 'icon="assets/app_icon.ico"' not in spec
+
+    def test_it_records_that_macos_gets_no_icon_from_exe(self):
+        """The correction that produced this mapping.
+
+        EXE embeds an icon only on Windows — its darwin branch converts the
+        architecture and nothing else — so on macOS the icon belongs to
+        BUNDLE(), which Argus deliberately does not have, because core/paths.py
+        writes user data beside sys.executable and inside an .app that would be
+        inside the bundle. Without that written down, the next person to notice
+        the macOS binary has no icon reaches for the .ico again.
+        """
+        spec = " ".join(self.SPEC.read_text(encoding="utf-8").split())
+        assert "BUNDLE()" in spec
+        assert "sys.executable" in spec
+

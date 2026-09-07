@@ -1,3 +1,9 @@
+# Argus — Advanced Market Forecast & AI Analysis
+# Copyright (C) 2026 Marco Lombardo
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Distributed WITHOUT ANY WARRANTY; see LICENSE for the full terms.
+
 # Argus.spec — PyInstaller build specification
 #
 # Produces a single, self-contained executable: `python build.py` (or
@@ -19,6 +25,8 @@
 # the one that gets bundled — if it's a CUDA build, its (large) CUDA runtime
 # libraries are pulled in too, useful only on a machine with a matching GPU.
 
+import sys
+
 from PyInstaller.utils.hooks import collect_data_files
 
 # customtkinter ships its themes and fonts as package data (JSON + TTF under
@@ -26,8 +34,28 @@ from PyInstaller.utils.hooks import collect_data_files
 # renders with the wrong theme or falls back to a system font.
 datas = collect_data_files("customtkinter")
 # Both files: Windows takes the .ico through iconbitmap, and Tk
-# everywhere else needs the PNG, which iconphoto reads.
+# everywhere else needs the PNG, which iconphoto reads. The .icns is not in
+# here — it is an executable resource, not something read at run time.
 datas += [("assets/app_icon.ico", "assets"), ("assets/app_icon.png", "assets")]
+
+# The executable's own icon, per platform, because PyInstaller will not
+# convert between the formats on its own: `normalize_icon_type` accepts only
+# .ico on Windows and only .icns on macOS, converting anything else *if Pillow
+# happens to be installed*. A hardcoded .ico is what killed XIP's first macOS
+# release. None on Linux, where PyInstaller ignores an icon and warns about it
+# on every build.
+#
+# **The macOS build has no icon, and this does not give it one.** EXE embeds an
+# icon only on Windows — the darwin branch of its assembly step converts the
+# architecture and nothing else. On macOS the icon belongs to `BUNDLE()`, which
+# Argus deliberately does not have: core/paths.py writes .env, config/ and
+# data/ beside sys.executable, which inside an .app would be inside the app
+# bundle. So the value below is correct rather than effective, and it is here
+# so that nobody wires the .ico back in expecting a different outcome.
+_ICON_FOR_EXE = {
+    "win32": "assets/app_icon.ico",
+    "darwin": "assets/app_icon.icns",
+}.get(sys.platform)
 
 a = Analysis(
     ["main.py"],
@@ -70,5 +98,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon="assets/app_icon.ico",
+    icon=_ICON_FOR_EXE,
 )

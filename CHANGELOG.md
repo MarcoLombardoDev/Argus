@@ -20,6 +20,19 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   fails if any of them links it again or starts asking for agreement.
 
 ### Fixed
+- **`Argus.spec` had no licence header**, alone among the source files here,
+  and hardcoded `icon="assets/app_icon.ico"`. The icon is now chosen per
+  platform — PyInstaller converts between the formats only if Pillow happens
+  to be installed, and a hardcoded `.ico` is what killed XIP's first macOS
+  release. On Linux it is `None`, which also stops the *"Ignoring icon"*
+  warning every build printed.
+- **`assets/app_icon.icns` is committed**, which `tools/make_icon.py` has
+  always produced and this repository alone never kept. It does not give the
+  macOS build an icon and cannot: `EXE` embeds one on Windows only, and on
+  macOS that belongs to `BUNDLE()`, which Argus does not have because
+  `core/paths.py` writes user data beside `sys.executable` and inside an
+  `.app` that would be inside the bundle. Both facts are now written into the
+  spec, so the next person to notice does not reach for the `.ico` again.
 - `CONTRIBUTING.md` still described Argus as dual-licensed, with commercial
   terms for those who cannot accept the AGPL's obligations. That has not been
   true since 1.2.0.

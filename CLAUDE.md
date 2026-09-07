@@ -80,6 +80,24 @@ SHOTDIR=docs/screenshots xvfb-run -a python docs/generate_screenshots.py
 is the same thing as a double-click launcher on Windows. Neither is part of the test suite
 or any CI step — generate it on demand.
 
+### The icon, and the one platform that does not get it
+
+`tools/make_icon.py` writes three files into `assets/`, all committed: the `.png` Tk reads
+at run time through `iconphoto`, the `.ico` Windows takes through `iconbitmap` *and*
+embeds in the executable, and the `.icns`. `Argus.spec` picks between the last two by
+platform, because PyInstaller converts neither: `normalize_icon_type` accepts only `.ico`
+on Windows and only `.icns` on macOS, and converts anything else *if Pillow happens to be
+installed*. A hardcoded `.ico` is what killed XIP's first macOS release.
+
+**The macOS binary has no icon, and the `.icns` does not give it one.** `EXE` embeds an
+icon on Windows only — its darwin branch converts the architecture and nothing else. On
+macOS the icon belongs to `BUNDLE()`, and Argus deliberately has none: `core/paths.py`
+writes `.env`, `config/` and `data/` beside `sys.executable`, which inside an `.app` would
+put a user's configuration inside the application bundle. So the `.icns` is committed for
+correctness and for the day that changes, and `Argus.spec` says as much where somebody
+would otherwise wire the `.ico` back in and expect a different outcome. Three tests in
+`tests/test_packaging.py` hold the mapping, the file's contents and that explanation.
+
 **PyInstaller does not cross-compile.** The binary is native to whatever platform runs the
 build: Windows in, `.exe` out; Linux in, ELF out. There is no way to produce a Windows
 executable from a Linux or macOS machine, or vice versa. `.github/workflows/build.yml` is
