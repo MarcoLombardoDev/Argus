@@ -24,7 +24,7 @@ APP_TITLE = "Argus — Advanced Market Forecast & AI Analysis"
 # has no .py sources on disk to derive a date from (see gui/app.py, which
 # used to walk the source tree for this and would have printed 1970.01.01
 # out of a PyInstaller bundle).
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 # Commercial licensing, quotes, OEM and enterprise enquiries. Email is the
 # contact address for the project.
